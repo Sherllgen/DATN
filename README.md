@@ -37,8 +37,8 @@ Dự án hướng tới việc **số hóa và tối ưu hóa quy trình vận h
 
 | Thành phần | Công nghệ |
 |-------------|-----------|
-| **Backend** | Java Spring Boot · PostgreSQL · Redis · Docker |
+| **Backend** | Java Spring Boot · PostgreSQL · Redis|
 | **Frontend (Admin Web)** | React.js · TailwindCSS |
-| **Mobile App (User)** | React Native · Expo |
+| **Mobile App (User)** | React Native · Expo Go |
 
 ---
