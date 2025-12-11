@@ -1,2 +1,2 @@
-@org.springframework.modulith.ApplicationModule(displayName = "Shared Kernel")
+@org.springframework.modulith.ApplicationModule(displayName = "Shared Kernel", type = org.springframework.modulith.ApplicationModule.Type.OPEN)
 package com.project.evgo.sharedkernel;
