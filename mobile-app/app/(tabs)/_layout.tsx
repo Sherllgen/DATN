@@ -22,7 +22,7 @@ export default function TabLayout() {
                     style={[
                         {
                             position: "absolute",
-                            top: 6,
+                            top: 4,
                             width: 44,
                             height: 44,
                             paddingTop: 7,
@@ -49,12 +49,12 @@ export default function TabLayout() {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    backgroundColor: "white",
+                    backgroundColor: "#131315",
                     height: 80,
                     paddingTop: 6,
                     borderColor: "#eee",
                 },
-                tabBarActiveTintColor: AppColors.primary,
+                tabBarActiveTintColor: "#fff",
             }}
         >
             <Tabs.Screen
@@ -65,7 +65,7 @@ export default function TabLayout() {
                         <MaterialCommunityIcons
                             name="home"
                             size={30}
-                            color="red"
+                            color={color}
                         />
                     ),
                 }}
@@ -76,13 +76,11 @@ export default function TabLayout() {
                 options={{
                     tabBarLabel: "",
                     tabBarIcon: () => (
-                        <View className="bg-[#01B763] pt-2">
-                            <MaterialCommunityIcons
-                                name="qrcode-scan"
-                                size={24}
-                                color="white"
-                            />
-                        </View>
+                        <MaterialCommunityIcons
+                            name="qrcode-scan"
+                            size={24}
+                            color="white"
+                        />
                     ),
                     tabBarButton: (props) => <CenterTabButton {...props} />,
                 }}
