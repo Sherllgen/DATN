@@ -1,0 +1,107 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+
+import MenuItem from "@/components/setting_page/MenuItem";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+export default function SettingPage() {
+    const router = useRouter();
+
+    return (
+        <LinearGradient
+            colors={["#33404F", "#000000"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            className="flex-1 px-6 pt-6"
+        >
+            <SafeAreaView>
+                <ScrollView>
+                    {/* Profile Section */}
+                    <TouchableOpacity
+                        className="flex-row items-center"
+                        activeOpacity={0.7}
+                    >
+                        <Image
+                            source={{ uri: "https://i.pravatar.cc/150?img=12" }}
+                            className="bg-[#4A5568] rounded-full w-[60px] h-[60px]"
+                        />
+                        <View className="flex-1 ml-4">
+                            <Text className="mb-1 font-semibold text-white text-lg">
+                                Andrew Ainsley
+                            </Text>
+                            <Text className="text-[#9BA1A6] text-sm">
+                                +1111467378399
+                            </Text>
+                        </View>
+                        <Ionicons
+                            name="chevron-forward"
+                            size={20}
+                            color="#9BA1A6"
+                        />
+                    </TouchableOpacity>
+
+                    <View className="bg-[#4A5568]/50 my-4 h-[1px]" />
+
+                    {/* Menu Items */}
+                    <View>
+                        <MenuItem
+                            title="Personal Info"
+                            onPress={() => console.log("Personal Info")}
+                        />
+                        <MenuItem
+                            title="My Vehicle"
+                            onPress={() => console.log("My Vehicle")}
+                        />
+
+                        <View className="bg-[#4A5568]/50 my-2 h-[1px]" />
+
+                        <MenuItem
+                            title="Payment Methods"
+                            onPress={() => console.log("Payment Methods")}
+                        />
+                        <MenuItem
+                            title="Security"
+                            onPress={() => console.log("Security")}
+                        />
+                        <MenuItem
+                            title="Privacy Policy"
+                            onPress={() => console.log("Privacy Policy")}
+                        />
+
+                        <View className="bg-[#4A5568]/50 my-2 h-[1px]" />
+
+                        <MenuItem
+                            title="Help Center"
+                            onPress={() => console.log("Help Center")}
+                        />
+
+                        <MenuItem
+                            title="Language"
+                            rightText="English (US)"
+                            onPress={() => console.log("Language")}
+                        />
+                        <MenuItem
+                            title="About EVPoint"
+                            onPress={() => console.log("About EVPoint")}
+                        />
+                    </View>
+
+                    {/* Logout Button */}
+                    <TouchableOpacity
+                        className="mt-8 py-5"
+                        onPress={() => router.replace("/auth/login")}
+                        activeOpacity={0.7}
+                    >
+                        <Text className="font-semibold text-[#FF3B30]">
+                            Logout
+                        </Text>
+                    </TouchableOpacity>
+
+                    <View className="h-10" />
+                </ScrollView>
+            </SafeAreaView>
+        </LinearGradient>
+    );
+}
