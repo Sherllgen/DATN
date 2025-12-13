@@ -25,13 +25,13 @@ export default function OTPVerificationStep({
     const [timeRemaining, setTimeRemaining] = useState<number>(60);
 
     useEffect(() => {
-        if (timeRemaining > 0) {
-            const timer = setInterval(() => {
-                setTimeRemaining((prev) => prev - 1);
-            }, 1000);
+        if (timeRemaining === 0) return;
 
-            return () => clearInterval(timer);
-        }
+        const timer = setTimeout(() => {
+            setTimeRemaining((prev) => prev - 1);
+        }, 1000);
+
+        return () => clearTimeout(timer);
     }, [timeRemaining]);
 
     const handleOTPChange = (index: number, value: string) => {
@@ -102,6 +102,7 @@ export default function OTPVerificationStep({
                             keyboardType="numeric"
                             maxLength={1}
                             selectTextOnFocus
+                            caretHidden={true}
                         />
                     </View>
                 ))}
