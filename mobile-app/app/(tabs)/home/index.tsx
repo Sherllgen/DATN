@@ -13,7 +13,7 @@ export default function HomePage() {
             colors={["#33404F", "#000000"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
-            className="flex-1 px-6 pt-3"
+            className="flex-1 px-6 pt-6"
         >
             <SafeAreaView>
                 <View>

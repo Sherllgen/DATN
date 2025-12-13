@@ -11,6 +11,8 @@ module.exports = {
         extend: {
             colors: {
                 primary: "#33404F",
+                secondary: "#00A452",
+                navBarColor: "#131315",
             },
         },
     },
