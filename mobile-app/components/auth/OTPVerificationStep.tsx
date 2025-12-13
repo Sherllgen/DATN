@@ -24,16 +24,6 @@ export default function OTPVerificationStep({
     const otpInputs = useRef<(TextInput | null)[]>([]);
     const [timeRemaining, setTimeRemaining] = useState<number>(60);
 
-    useEffect(() => {
-        if (timeRemaining === 0) return;
-
-        const timer = setTimeout(() => {
-            setTimeRemaining((prev) => prev - 1);
-        }, 1000);
-
-        return () => clearTimeout(timer);
-    }, [timeRemaining]);
-
     const handleOTPChange = (index: number, value: string) => {
         onOTPChange(index, value);
         if (value && index < 5) {
@@ -51,6 +41,16 @@ export default function OTPVerificationStep({
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, "0")}`;
     };
+
+    useEffect(() => {
+        if (timeRemaining === 0) return;
+
+        const timer = setTimeout(() => {
+            setTimeRemaining((prev) => prev - 1);
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    }, [timeRemaining]);
 
     return (
         <>

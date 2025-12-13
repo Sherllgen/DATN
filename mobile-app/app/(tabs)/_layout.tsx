@@ -6,6 +6,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { AppColors } from "@/constants/theme";
+import { MaterialIcons } from "@expo/vector-icons";
 
 export default function TabLayout() {
     const CenterTabButton = ({ children, onPress }: any) => {
@@ -54,6 +55,7 @@ export default function TabLayout() {
                     paddingTop: 6,
                     borderColor: "#eee",
                 },
+
                 tabBarActiveTintColor: "#fff",
             }}
         >
@@ -72,6 +74,20 @@ export default function TabLayout() {
             />
 
             <Tabs.Screen
+                name="charging"
+                options={{
+                    title: "Charging",
+                    tabBarIcon: ({ color }) => (
+                        <MaterialIcons
+                            name="energy-savings-leaf"
+                            size={28}
+                            color={color}
+                        />
+                    ),
+                }}
+            />
+
+            <Tabs.Screen
                 name="qr_scan"
                 options={{
                     tabBarLabel: "",
@@ -83,6 +99,20 @@ export default function TabLayout() {
                         />
                     ),
                     tabBarButton: (props) => <CenterTabButton {...props} />,
+                }}
+            />
+
+            <Tabs.Screen
+                name="notifice"
+                options={{
+                    title: "Notifice",
+                    tabBarIcon: ({ color }) => (
+                        <MaterialCommunityIcons
+                            name="bell"
+                            size={30}
+                            color={color}
+                        />
+                    ),
                 }}
             />
 
