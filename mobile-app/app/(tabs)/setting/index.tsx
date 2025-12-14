@@ -1,13 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+    Image,
+    Modal,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 import MenuItem from "@/components/setting_page/MenuItem";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingPage() {
     const router = useRouter();
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     return (
         <LinearGradient
@@ -91,7 +100,7 @@ export default function SettingPage() {
                     {/* Logout Button */}
                     <TouchableOpacity
                         className="mt-8 py-5"
-                        onPress={() => router.replace("/auth/login")}
+                        onPress={() => setShowLogoutModal(true)}
                         activeOpacity={0.7}
                     >
                         <Text className="font-semibold text-[#FF3B30]">
@@ -102,6 +111,54 @@ export default function SettingPage() {
                     <View className="h-10" />
                 </ScrollView>
             </SafeAreaView>
+
+            {/* Logout Confirmation Modal */}
+            <Modal
+                visible={showLogoutModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowLogoutModal(false)}
+            >
+                <TouchableOpacity
+                    className="flex-1 justify-end bg-black/50"
+                    onPress={() => setShowLogoutModal(false)}
+                    activeOpacity={1}
+                >
+                    <View className="bg-[#1F2937] px-6 pt-6 pb-16 rounded-t-3xl">
+                        <Text className="mb-2 font-semibold text-white text-lg text-center">
+                            Logout
+                        </Text>
+                        <Text className="mb-8 text-[#9BA1A6] text-sm text-center">
+                            Are you sure you want to logout?
+                        </Text>
+
+                        <View className="flex flex-row justify-between gap-4">
+                            <TouchableOpacity
+                                className="flex-1 py-3 border border-gray-400 rounded-full"
+                                onPress={() => setShowLogoutModal(false)}
+                                activeOpacity={0.8}
+                            >
+                                <Text className="font-semibold text-white text-base text-center">
+                                    Cancel
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                className="flex-1 bg-secondary py-3 rounded-full"
+                                onPress={() => {
+                                    setShowLogoutModal(false);
+                                    router.replace("/auth/login");
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Text className="font-semibold text-white text-base text-center">
+                                    Logout
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </LinearGradient>
     );
 }
