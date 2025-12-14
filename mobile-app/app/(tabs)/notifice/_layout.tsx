@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-export default function QrScanLayout() {
+export default function NotificeLayout() {
     return (
         <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />

@@ -1,7 +1,7 @@
 import SvgLogoGoogle from "@/assets/svg/SvgLogoGoogle";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     ScrollView,
@@ -17,9 +17,10 @@ export default function LoginScreen() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
+    const router = useRouter();
+
     const handleSignIn = () => {
-        // Handle sign in logic
-        console.log("Sign in with:", username, password);
+        router.replace("/(tabs)/home");
     };
 
     const handleGoogleSignIn = () => {
