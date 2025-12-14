@@ -16,7 +16,7 @@ public class BookingDtoConverter {
         return BookingResponse.builder()
                 .id(booking.getId())
                 .userId(booking.getUserId())
-                .slotId(booking.getSlotId())
+                .portId(booking.getPortId())
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .status(booking.getStatus())

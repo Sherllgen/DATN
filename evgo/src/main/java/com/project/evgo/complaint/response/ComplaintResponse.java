@@ -20,7 +20,7 @@ public class ComplaintResponse {
     private Long id;
     private Long userId;
     private Long stationId;
-    private String subject;
+    private String title;
     private String description;
     private ComplaintStatus status;
     private String adminNote;

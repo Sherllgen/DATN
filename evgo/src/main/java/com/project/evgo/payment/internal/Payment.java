@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
  * Payment entity.
  * Internal - not accessible by other modules.
  */
+//TODO: check if needed
 @Entity
 @Getter
 @Setter

@@ -31,7 +31,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingResponse> findBySlotId(Long slotId) {
-        return converter.toResponseList(bookingRepository.findBySlotId(slotId));
+    public List<BookingResponse> findByPortId(Long portId) {
+        return converter.toResponseList(bookingRepository.findByPortId(portId));
     }
 }

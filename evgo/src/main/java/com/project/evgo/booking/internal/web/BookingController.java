@@ -49,11 +49,11 @@ public class BookingController {
                 .build());
     }
 
-    @GetMapping("/slot/{slotId}")
-    @Operation(summary = "Get bookings by slot ID")
-    public ResponseEntity<ApiResponse<List<BookingResponse>>> getBySlotId(
-            @PathVariable Long slotId) {
-        var result = bookingService.findBySlotId(slotId);
+    @GetMapping("/port/{portId}")
+    @Operation(summary = "Get bookings by port ID")
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> getByPortId(
+            @PathVariable Long portId) {
+        var result = bookingService.findByPortId(portId);
         return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")

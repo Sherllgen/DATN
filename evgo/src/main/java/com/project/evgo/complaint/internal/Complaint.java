@@ -34,7 +34,7 @@ public class Complaint {
     private Long stationId;
 
     @Column(nullable = false, length = 200)
-    private String subject;
+    private String title;
 
     @Column(nullable = false, length = 2000)
     private String description;

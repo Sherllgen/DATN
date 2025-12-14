@@ -1,6 +1,7 @@
 package com.project.evgo.charger.internal;
 
 import com.project.evgo.sharedkernel.enums.ChargerStatus;
+import com.project.evgo.sharedkernel.enums.ConnectorType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,8 +33,12 @@ public class Charger {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "power_output", nullable = false)
-    private Double powerOutput;
+    @Column(name = "max_power", nullable = false)
+    private Double maxPower;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "connector_type", nullable = false)
+    private ConnectorType connectorType;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -43,7 +48,7 @@ public class Charger {
     private Long stationId;
 
     @OneToMany(mappedBy = "charger", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Slot> slots = new ArrayList<>();
+    private List<Port> ports = new ArrayList<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;

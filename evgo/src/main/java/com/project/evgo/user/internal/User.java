@@ -31,8 +31,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String email;
+    
+    @Column(name = "phone_number", unique = true)
+    private String phoneNumber;
 
     @Column(nullable = false)
     private String password;
@@ -45,17 +48,20 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserStatus status = UserStatus.ACTIVE;
+    private UserStatus status = UserStatus.INACTIVE;
 
     private LocalDate birthday;
 
     @Column(name = "avatar_url")
     private String avatarUrl;
 
-    @Column(name = "phone_number")
-    private String phoneNumber;
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @Column(name = "phone_verified", nullable = false)
+    private boolean phoneVerified = false;
+
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 

@@ -1,8 +1,8 @@
-@org.springframework.modulith.ApplicationModule(displayName = "Charger & Slot Management")
+@org.springframework.modulith.ApplicationModule(displayName = "Charger & Port Management")
 package com.project.evgo.charger;
 
 /*
- * This package contains classes and interfaces related to the Charger & Slot
+ * This package contains classes and interfaces related to the Charger & Port
  * Management module.
  *
  * The module is annotated with `@ApplicationModule` from Spring Modulith to

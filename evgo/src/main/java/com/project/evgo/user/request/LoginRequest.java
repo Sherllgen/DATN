@@ -5,10 +5,28 @@ import jakarta.validation.constraints.NotBlank;
 
 /**
  * Request DTO for user login.
- * Public API - accessible by other modules.
+ * At least one of email or phoneNumber must be provided.
  */
 public record LoginRequest(
-        @NotBlank(message = "Email is required") @Email(message = "Invalid email format") String email,
+    @Email(message = "Invalid email format") 
+    String email,
 
-        @NotBlank(message = "Password is required") String password) {
+    String phoneNumber,
+
+    @NotBlank(message = "Password is required") 
+    String password
+) {
+    /**
+     * Get the identifier (email or phone).
+     */
+    public String getIdentifier() {
+        return email != null && !email.isBlank() ? email : phoneNumber;
+    }
+
+    /**
+     * Check if login is via email.
+     */
+    public boolean isEmailLogin() {
+        return email != null && !email.isBlank();
+    }
 }

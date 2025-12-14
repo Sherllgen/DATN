@@ -2,7 +2,7 @@ package com.project.evgo.charger.internal.web;
 
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.ChargerResponse;
-import com.project.evgo.charger.response.SlotResponse;
+import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
@@ -16,12 +16,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * REST controller for charger and slot management.
+ * REST controller for charger and port management.
  */
 @RestController
 @RequestMapping("/api/v1/chargers")
 @RequiredArgsConstructor
-@Tag(name = "Chargers", description = "Charger & Slot management APIs")
+@Tag(name = "Chargers", description = "Charger & Port management APIs")
 public class ChargerController {
 
     private final ChargerService chargerService;
@@ -50,24 +50,24 @@ public class ChargerController {
                 .build());
     }
 
-    @GetMapping("/{id}/slots")
-    @Operation(summary = "Get slots by charger ID")
-    public ResponseEntity<ApiResponse<List<SlotResponse>>> getSlotsByChargerId(
+    @GetMapping("/{id}/ports")
+    @Operation(summary = "Get ports by charger ID")
+    public ResponseEntity<ApiResponse<List<PortResponse>>> getPortsByChargerId(
             @PathVariable Long id) {
-        var result = chargerService.findSlotsByChargerId(id);
-        return ResponseEntity.ok(ApiResponse.<List<SlotResponse>>builder()
+        var result = chargerService.findPortsByChargerId(id);
+        return ResponseEntity.ok(ApiResponse.<List<PortResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
                 .data(result)
                 .build());
     }
 
-    @GetMapping("/slots/{slotId}")
-    @Operation(summary = "Get slot by ID")
-    public ResponseEntity<ApiResponse<SlotResponse>> getSlotById(@PathVariable Long slotId) {
-        var result = chargerService.findSlotById(slotId)
+    @GetMapping("/ports/{portId}")
+    @Operation(summary = "Get port by ID")
+    public ResponseEntity<ApiResponse<PortResponse>> getPortById(@PathVariable Long portId) {
+        var result = chargerService.findPortById(portId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
-        return ResponseEntity.ok(ApiResponse.<SlotResponse>builder()
+        return ResponseEntity.ok(ApiResponse.<PortResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
                 .data(result)

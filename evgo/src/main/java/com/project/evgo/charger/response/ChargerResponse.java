@@ -1,6 +1,7 @@
 package com.project.evgo.charger.response;
 
 import com.project.evgo.sharedkernel.enums.ChargerStatus;
+import com.project.evgo.sharedkernel.enums.ConnectorType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,9 +21,10 @@ public class ChargerResponse {
 
     private Long id;
     private String name;
-    private Double powerOutput;
+    private Double maxPower;
+    private ConnectorType connectorType;
     private ChargerStatus status;
     private Long stationId;
-    private List<SlotResponse> slots;
+    private List<PortResponse> ports;
     private LocalDateTime createdAt;
 }

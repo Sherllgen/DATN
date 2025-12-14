@@ -17,8 +17,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CreateBookingRequest {
 
-    @NotNull(message = "Slot ID is required")
-    private Long slotId;
+    @NotNull(message = "Port ID is required")
+    private Long portId;
 
     @NotNull(message = "Start time is required")
     @Future(message = "Start time must be in the future")

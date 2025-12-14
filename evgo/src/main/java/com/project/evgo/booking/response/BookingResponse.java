@@ -20,7 +20,7 @@ public class BookingResponse {
 
     private Long id;
     private Long userId;
-    private Long slotId;
+    private Long portId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private BookingStatus status;

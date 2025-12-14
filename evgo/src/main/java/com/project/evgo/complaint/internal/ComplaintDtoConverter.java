@@ -17,7 +17,7 @@ public class ComplaintDtoConverter {
                 .id(complaint.getId())
                 .userId(complaint.getUserId())
                 .stationId(complaint.getStationId())
-                .subject(complaint.getSubject())
+                .title(complaint.getTitle())
                 .description(complaint.getDescription())
                 .status(complaint.getStatus())
                 .adminNote(complaint.getAdminNote())
