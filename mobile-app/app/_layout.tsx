@@ -53,6 +53,10 @@ export default function RootLayout() {
                             name="auth"
                             options={{ headerShown: false }}
                         />
+                        <Stack.Screen
+                            name="payment"
+                            options={{ headerShown: false }}
+                        />
                     </Stack>
                 </ThemeProvider>
             </LinearGradient>

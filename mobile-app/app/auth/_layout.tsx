@@ -8,7 +8,7 @@ export default function AuthLayout() {
                 animation: "fade",
             }}
         >
-            <Stack.Screen name="index" />
+            <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="register" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="otp-verify" options={{ headerShown: false }} />

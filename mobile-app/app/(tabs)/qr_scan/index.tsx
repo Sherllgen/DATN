@@ -95,7 +95,7 @@ export default function QrScanPage() {
                         <View style={styles.iconCircle}>
                             <Ionicons
                                 name="image-outline"
-                                size={32}
+                                size={28}
                                 color="white"
                             />
                         </View>
@@ -206,10 +206,10 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     iconCircle: {
-        width: 60,
-        height: 60,
+        width: 50,
+        height: 50,
         borderRadius: 30,
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        backgroundColor: "rgba(0, 0, 0, 0.3)",
         justifyContent: "center",
         alignItems: "center",
     },

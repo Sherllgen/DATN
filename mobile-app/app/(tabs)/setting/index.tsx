@@ -120,11 +120,11 @@ export default function SettingPage() {
                 onRequestClose={() => setShowLogoutModal(false)}
             >
                 <TouchableOpacity
-                    className="flex-1 justify-end bg-black/50"
+                    className="flex-1 justify-center bg-black/80 px-6"
                     onPress={() => setShowLogoutModal(false)}
                     activeOpacity={1}
                 >
-                    <View className="bg-[#1F2937] px-6 pt-6 pb-16 rounded-t-3xl">
+                    <View className="bg-[#2e2e2e] px-6 pt-6 pb-8 rounded-3xl">
                         <Text className="mb-2 font-semibold text-white text-lg text-center">
                             Logout
                         </Text>
@@ -136,7 +136,7 @@ export default function SettingPage() {
                             <TouchableOpacity
                                 className="flex-1 py-3 border border-gray-400 rounded-full"
                                 onPress={() => setShowLogoutModal(false)}
-                                activeOpacity={0.8}
+                                activeOpacity={0.4}
                             >
                                 <Text className="font-semibold text-white text-base text-center">
                                     Cancel
@@ -149,7 +149,7 @@ export default function SettingPage() {
                                     setShowLogoutModal(false);
                                     router.replace("/auth/login");
                                 }}
-                                activeOpacity={0.8}
+                                activeOpacity={0.7}
                             >
                                 <Text className="font-semibold text-white text-base text-center">
                                     Logout

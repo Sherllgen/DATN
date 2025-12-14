@@ -1,4 +1,10 @@
-import { FontAwesome5 } from "@expo/vector-icons";
+import {
+    EvilIcons,
+    FontAwesome5,
+    Ionicons,
+    MaterialIcons,
+    SimpleLineIcons,
+} from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -175,6 +181,7 @@ export default function ChargingPage() {
                         <TouchableOpacity
                             className="flex-1 items-center py-3 border border-gray-400 rounded-full"
                             onPress={handleStop}
+                            activeOpacity={0.7}
                         >
                             <Text className="font-semibold text-white">
                                 Stop
@@ -184,6 +191,7 @@ export default function ChargingPage() {
                         <TouchableOpacity
                             className="flex-1 items-center bg-secondary py-3 rounded-full"
                             onPress={handlePayment}
+                            activeOpacity={0.7}
                         >
                             <Text className="font-semibold text-white">
                                 Payment
@@ -192,54 +200,88 @@ export default function ChargingPage() {
                     </View>
 
                     {/* Information Section */}
-                    <View className="flex-1 bg-white/10 -mx-6 p-6 rounded-t-3xl">
-                        {/* <Text className="mb-6 font-bold text-white text-lg">
-                            Thông tin
-                        </Text> */}
-
-                        <View className="flex-row justify-start items-center gap-4 mb-4">
-                            <Text className="font-medium text-white text-base">
-                                Trạm:
-                            </Text>
-                            <Text className="text-gray-400 text-sm">
-                                {stationName}
+                    <View className="flex-row flex-wrap flex-1 justify-between bg-white/10 -mx-6 p-6 rounded-t-3xl">
+                        <View className="flex-row justify-start items-center mb-6">
+                            <EvilIcons
+                                name="location"
+                                size={22}
+                                color="#d6d6d6"
+                            />
+                            <Text className="text-gray-300 text-sm">
+                                14 Lý Thường Kiệt, Đông Hòa, Dĩ An, Bình Dương
                             </Text>
                         </View>
 
-                        <View className="flex-row justify-start items-center gap-4 mb-4">
-                            <Text className="font-medium text-white text-base">
-                                Địa chỉ:
-                            </Text>
-                            <Text className="text-gray-400 text-sm">
-                                {address}
-                            </Text>
+                        <View className="flex-row justify-start items-center gap-4 bg-white/10 mb-4 p-4 rounded-lg w-[48%]">
+                            <View className="flex justify-center items-center bg-green-500/80 rounded-full size-12">
+                                <SimpleLineIcons
+                                    name="energy"
+                                    size={24}
+                                    color="#ebebeb"
+                                />
+                            </View>
+                            <View className="text-start">
+                                <Text className="font-medium text-gray-300 text-sm">
+                                    Power
+                                </Text>
+                                <Text className="mt-1 font-semibold text-white">
+                                    {power} kW
+                                </Text>
+                            </View>
                         </View>
 
-                        <View className="flex-row justify-start items-center gap-4 mb-4">
-                            <Text className="font-medium text-white text-base">
-                                Công suất:
-                            </Text>
-                            <Text className="text-gray-400 text-sm">
-                                {power} kW
-                            </Text>
+                        <View className="flex-row justify-start items-center gap-4 bg-white/10 mb-4 p-4 rounded-lg w-[48%]">
+                            <View className="flex justify-center items-center bg-[#ed9e0afc]/80 rounded-full size-12">
+                                <Ionicons
+                                    name="timer"
+                                    size={30}
+                                    color="#ebebeb"
+                                />
+                            </View>
+                            <View className="text-start">
+                                <Text className="font-medium text-gray-300 text-sm">
+                                    Duration
+                                </Text>
+                                <Text className="mt-1 font-semibold text-white">
+                                    {chargingTime}
+                                </Text>
+                            </View>
                         </View>
 
-                        <View className="flex-row justify-start items-center gap-4 mb-4">
-                            <Text className="font-medium text-white text-base">
-                                Đơn giá:
-                            </Text>
-                            <Text className="text-gray-400 text-sm">
-                                {price.toLocaleString()} VNĐ/kWh
-                            </Text>
+                        <View className="flex-row justify-start items-center gap-4 bg-white/10 mb-4 p-4 rounded-lg w-[48%]">
+                            <View className="flex justify-center items-center bg-[#6e1abd]/80 rounded-full size-12">
+                                <MaterialIcons
+                                    name="attach-money"
+                                    size={26}
+                                    color="#dbdbdb"
+                                />
+                            </View>
+                            <View className="text-start">
+                                <Text className="font-medium text-gray-300 text-sm">
+                                    Total Cost
+                                </Text>
+                                <Text className="mt-1 font-semibold text-white">
+                                    {price}
+                                </Text>
+                            </View>
                         </View>
 
-                        <View className="flex-row justify-start items-center gap-4 mb-4">
-                            <Text className="font-medium text-white text-base">
-                                Thời gian sạc:
-                            </Text>
-                            <Text className="text-gray-400 text-sm">
-                                {chargingTime}
-                            </Text>
+                        <View className="flex-row justify-start items-center gap-4 bg-white/10 mb-4 p-4 rounded-lg w-[48%]">
+                            <View className="flex justify-center items-center bg-[#3174ff]/80 rounded-full size-12">
+                                <MaterialIcons
+                                    name="savings"
+                                    size={28}
+                                    color="#ebebeb"
+                                />
+                            </View>
+                            <View className="text-start">
+                                <Text className="font-medium text-gray-300 text-sm">
+                                    Saved
+                                </Text>
+                                <Text className="mt-1 font-semibold text-white">
+                                    50,000
+                                </Text>
+                            </View>
                         </View>
                     </View>
                 </View>

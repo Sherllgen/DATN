@@ -37,7 +37,7 @@ export default function HomePage() {
                         <Text style={[styles.h3, { marginTop: 30 }]}>Map</Text>
 
                         <View style={{ height: 208, marginTop: 16 }}>
-                            <View className="bg-gray-600 w-full h-60"></View>
+                            <View className="bg-gray-600 rounded-2xl w-full h-60"></View>
                             {/* <MapView
                             style={StyleSheet.absoluteFillObject}
                             initialRegion={{
