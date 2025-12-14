@@ -1,4 +1,4 @@
-package com.project.evgo.config.security;
+package com.project.evgo.user.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -35,9 +35,6 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    /**
-     * Generate access token for a user.
-     */
     public String generateAccessToken(Long userId, String email, List<String> roles) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + accessTokenExpiration);
@@ -53,9 +50,6 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    /**
-     * Generate refresh token for a user.
-     */
     public String generateRefreshToken(Long userId) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + refreshTokenExpiration);
@@ -69,42 +63,27 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    /**
-     * Get user ID from JWT token.
-     */
     public Long getUserIdFromToken(String token) {
         Claims claims = parseToken(token);
         return Long.parseLong(claims.getSubject());
     }
 
-    /**
-     * Get email from JWT token.
-     */
     public String getEmailFromToken(String token) {
         Claims claims = parseToken(token);
         return claims.get("email", String.class);
     }
 
-    /**
-     * Get roles from JWT token.
-     */
     @SuppressWarnings("unchecked")
     public List<String> getRolesFromToken(String token) {
         Claims claims = parseToken(token);
         return claims.get("roles", List.class);
     }
 
-    /**
-     * Get token type (access/refresh).
-     */
     public String getTokenType(String token) {
         Claims claims = parseToken(token);
         return claims.get("type", String.class);
     }
 
-    /**
-     * Validate JWT token.
-     */
     public boolean validateToken(String token) {
         try {
             parseToken(token);
@@ -123,9 +102,6 @@ public class JwtTokenProvider {
         return false;
     }
 
-    /**
-     * Check if token is expired.
-     */
     public boolean isTokenExpired(String token) {
         try {
             Claims claims = parseToken(token);
@@ -135,9 +111,6 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * Get remaining time until token expires (in milliseconds).
-     */
     public long getRemainingTime(String token) {
         try {
             Claims claims = parseToken(token);
@@ -148,16 +121,10 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * Get access token expiration time in seconds.
-     */
     public long getAccessTokenExpirationSeconds() {
         return accessTokenExpiration / 1000;
     }
 
-    /**
-     * Parse JWT token and return claims.
-     */
     private Claims parseToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())

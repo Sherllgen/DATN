@@ -1,4 +1,4 @@
-package com.project.evgo.config.security;
+package com.project.evgo.user.security;
 
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.enums.UserStatus;
@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 
 /**
  * Custom UserDetailsService that loads user from database.
- * Supports loading by email, phone number, or user ID.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,9 +24,6 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
-    /**
-     * Load user by username (email or phone number).
-     */
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -38,9 +34,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         return buildUserDetails(user);
     }
 
-    /**
-     * Load user by ID (used by JWT filter).
-     */
     @Transactional(readOnly = true)
     public UserDetails loadUserById(Long userId) {
         User user = userRepository.findById(userId)

@@ -1,4 +1,4 @@
-package com.project.evgo.config.security;
+package com.project.evgo.user.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.evgo.sharedkernel.dto.ApiResponse;

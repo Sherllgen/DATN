@@ -1,4 +1,4 @@
-package com.project.evgo.config.security;
+package com.project.evgo.user.security;
 
 import com.project.evgo.user.internal.token.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
@@ -46,14 +46,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
-                // Check if token is blacklisted (logged out)
                 if (tokenBlacklistService.isBlacklisted(jwt)) {
                     log.debug("Token is blacklisted");
                     filterChain.doFilter(request, response);
                     return;
                 }
 
-                // Verify token type is "access"
                 String tokenType = jwtTokenProvider.getTokenType(jwt);
                 if (!"access".equals(tokenType)) {
                     log.debug("Invalid token type: {}", tokenType);
@@ -80,13 +78,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
-        // Try to get from Authorization header first
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(BEARER_PREFIX.length());
         }
 
-        // Try to get from cookie
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {

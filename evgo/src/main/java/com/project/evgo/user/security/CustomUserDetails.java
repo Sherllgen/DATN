@@ -1,4 +1,4 @@
-package com.project.evgo.config.security;
+package com.project.evgo.user.security;
 
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -51,7 +51,6 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        // Return email or phone as username
         return email != null ? email : phoneNumber;
     }
 
@@ -75,9 +74,6 @@ public class CustomUserDetails implements UserDetails {
         return enabled;
     }
 
-    /**
-     * Check if user is verified (either email or phone).
-     */
     public boolean isVerified() {
         return emailVerified || phoneVerified;
     }

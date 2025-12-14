@@ -1,6 +1,6 @@
 package com.project.evgo.user.internal;
 
-import com.project.evgo.config.security.JwtTokenProvider;
+import com.project.evgo.user.security.JwtTokenProvider;
 import com.project.evgo.notification.EmailService;
 import com.project.evgo.notification.SmsService;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
