@@ -1,6 +1,6 @@
-package com.project.evgo.charger.internal;
+package com.project.evgo.user.internal;
 
-import com.project.evgo.sharedkernel.enums.SlotStatus;
+import com.project.evgo.sharedkernel.enums.ConnectorType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * Slot entity.
+ * Vehicle entity - represents user's electric vehicle.
  * Internal - not accessible by other modules.
  */
 @Entity
@@ -20,23 +20,28 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "slots")
-public class Slot {
+@Table(name = "vehicles")
+public class Vehicle {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "slot_number", nullable = false)
-    private Integer slotNumber;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "model_name", nullable = false)
+    private String modelName;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private SlotStatus status = SlotStatus.AVAILABLE;
+    @Column(name = "connector_type", nullable = false)
+    private ConnectorType connectorType;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "charger_id", nullable = false)
-    private Charger charger;
+    // @Column(name = "license_plate")
+    // private String licensePlate;
+
+    // @Column(name = "battery_capacity")
+    // private Double batteryCapacity;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

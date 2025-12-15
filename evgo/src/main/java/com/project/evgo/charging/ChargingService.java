@@ -13,7 +13,7 @@ public interface ChargingService {
 
     Optional<ChargingSessionResponse> findById(Long id);
 
-    Optional<ChargingSessionResponse> findByBookingId(Long bookingId);
+    // Optional<ChargingSessionResponse> findByBookingId(Long bookingId);
 
     List<ChargingSessionResponse> findByUserId(Long userId);
 }

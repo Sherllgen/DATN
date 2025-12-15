@@ -1,13 +1,13 @@
 package com.project.evgo.charger;
 
 import com.project.evgo.charger.response.ChargerResponse;
-import com.project.evgo.charger.response.SlotResponse;
+import com.project.evgo.charger.response.PortResponse;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Service interface for charger and slot management.
+ * Service interface for charger and port management.
  * Public API - accessible by other modules.
  */
 public interface ChargerService {
@@ -16,7 +16,7 @@ public interface ChargerService {
 
     Optional<ChargerResponse> findById(Long id);
 
-    List<SlotResponse> findSlotsByChargerId(Long chargerId);
+    List<PortResponse> findPortsByChargerId(Long chargerId);
 
-    Optional<SlotResponse> findSlotById(Long id);
+    Optional<PortResponse> findPortById(Long id);
 }

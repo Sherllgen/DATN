@@ -25,10 +25,10 @@ public class ChargingServiceImpl implements ChargingService {
         return converter.toResponse(sessionRepository.findById(id));
     }
 
-    @Override
-    public Optional<ChargingSessionResponse> findByBookingId(Long bookingId) {
-        return converter.toResponse(sessionRepository.findByBookingId(bookingId));
-    }
+    // @Override
+    // public Optional<ChargingSessionResponse> findByBookingId(Long bookingId) {
+    //     return converter.toResponse(sessionRepository.findByBookingId(bookingId));
+    // }
 
     @Override
     public List<ChargingSessionResponse> findByUserId(Long userId) {

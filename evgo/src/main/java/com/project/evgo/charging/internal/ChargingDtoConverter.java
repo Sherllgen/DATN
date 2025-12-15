@@ -15,7 +15,6 @@ public class ChargingDtoConverter {
     public ChargingSessionResponse toResponse(ChargingSession session) {
         return ChargingSessionResponse.builder()
                 .id(session.getId())
-                .bookingId(session.getBookingId())
                 .userId(session.getUserId())
                 .startTime(session.getStartTime())
                 .endTime(session.getEndTime())

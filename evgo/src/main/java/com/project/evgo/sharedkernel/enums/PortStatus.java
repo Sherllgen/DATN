@@ -1,9 +1,9 @@
 package com.project.evgo.sharedkernel.enums;
 
 /**
- * Status of a charging slot.
+ * Status of a charging port.
  */
-public enum SlotStatus {
+public enum PortStatus {
     AVAILABLE,
     RESERVED,
     CHARGING,

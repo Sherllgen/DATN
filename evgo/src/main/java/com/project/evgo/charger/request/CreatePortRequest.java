@@ -7,16 +7,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Request DTO for creating a new slot.
+ * Request DTO for creating a new port.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateSlotRequest {
+public class CreatePortRequest {
 
-    @NotNull(message = "Slot number is required")
-    @Positive(message = "Slot number must be positive")
-    private Integer slotNumber;
+    @NotNull(message = "Port number is required")
+    @Positive(message = "Port number must be positive")
+    private Integer portNumber;
 
     @NotNull(message = "Charger ID is required")
     private Long chargerId;

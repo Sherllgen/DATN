@@ -10,7 +10,7 @@ import java.util.Optional;
  */
 public interface ChargingSessionRepository extends JpaRepository<ChargingSession, Long> {
 
-    Optional<ChargingSession> findByBookingId(Long bookingId);
+    //Optional<ChargingSession> findByBookingId(Long bookingId);
 
     List<ChargingSession> findByUserId(Long userId);
 }

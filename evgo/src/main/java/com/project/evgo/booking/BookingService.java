@@ -15,5 +15,5 @@ public interface BookingService {
 
     List<BookingResponse> findByUserId(Long userId);
 
-    List<BookingResponse> findBySlotId(Long slotId);
+    List<BookingResponse> findByPortId(Long portId);
 }
