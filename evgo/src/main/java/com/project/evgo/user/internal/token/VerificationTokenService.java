@@ -17,7 +17,7 @@ public class VerificationTokenService {
     private static final String EMAIL_VERIFICATION_PREFIX = "verification:email:";
     private static final String PHONE_VERIFICATION_PREFIX = "verification:phone:";
     private static final String PASSWORD_RESET_PREFIX = "reset:password:";
-    private static final long EMAIL_TOKEN_EXPIRY_MINUTES = 60; // 1 hour
+    private static final long EMAIL_TOKEN_EXPIRY_MINUTES = 30; // 1 hour
     private static final long PHONE_OTP_EXPIRY_MINUTES = 5; // 5 minutes
     private static final long PASSWORD_RESET_EXPIRY_MINUTES = 30; // 30 minutes
 
