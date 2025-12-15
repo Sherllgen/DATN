@@ -157,6 +157,18 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse<>(200, "Password reset successful", null));
     }
 
+    @PostMapping("/google")
+    @Operation(summary = "Login with Google", description = "Login or register with Google OAuth")
+    public ResponseEntity<ApiResponse<AuthResponse>> loginWithGoogle(
+            @Valid @RequestBody GoogleLoginRequest request,
+            HttpServletResponse response) {
+
+        AuthResponse authResponse = authService.loginWithGoogle(request);
+        addTokenCookies(response, authResponse);
+
+        return ResponseEntity.ok(new ApiResponse<>(200, "Google login successful", authResponse));
+    }
+
     // ------------------------ Helper methods ------------------------
     private void addTokenCookies(HttpServletResponse response, AuthResponse authResponse) {
         // Access token cookie

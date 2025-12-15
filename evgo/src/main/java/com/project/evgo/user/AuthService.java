@@ -54,4 +54,9 @@ public interface AuthService {
      * Reset password with token.
      */
     void resetPassword(ResetPasswordRequest request);
+
+    /**
+     * Login with Google OAuth.
+     */
+    AuthResponse loginWithGoogle(GoogleLoginRequest request);
 }

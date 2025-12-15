@@ -120,6 +120,36 @@ This project uses a **Modular Monolithic** architecture with Spring Modulith, pr
 | `JWT_SECRET` | JWT signing secret (min 256 bits) | - |
 | `SERVER_PORT` | Application port | `8081` |
 
+
+### Google OAuth Configuration & Testing
+
+To enable Google Login, you need a Google Cloud Project with OAuth 2.0 Credentials.
+
+1.  **Get Client ID**:
+    -   Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+    -   Create OAuth 2.0 Client ID (Web Application).
+    -   Add `https://developers.google.com/oauthplayground` to **Authorized redirect URIs**.
+
+2.  **Configure App**:
+    -   Update `.env`: `GOOGLE_CLIENT_ID=your-client-id-here`.
+    -   Restart the application.
+
+3.  **Test with OAuth Playground**:
+    -   Go to [OAuth 2.0 Playground](https://developers.google.com/oauthplayground).
+    -   Click Gear Icon ⚙️ -> Check "Use your own OAuth credentials" -> Enter your OAuth Client ID (and Client Secret if asked, though backend only needs ID).
+    -   Select scopes: `email`, `profile`, `openid`.
+    -   Authorize API -> "Exchange authorization code for tokens".
+    -   Copy the **id_token** (NOT access_token).
+
+4.  **Verify via API**:
+    -   Endpoint: `POST http://localhost:8081/api/v1/auth/google`
+    -   Body:
+        ```json
+        {
+          "idToken": "your_id_token_here"
+        }
+        ```
+
 ## 📚 Documentation
 
 ### Module Documentation Generator

@@ -1,5 +1,6 @@
 package com.project.evgo.user.internal;
 
+import com.project.evgo.sharedkernel.enums.AuthProvider;
 import com.project.evgo.sharedkernel.enums.UserGender;
 import com.project.evgo.sharedkernel.enums.UserStatus;
 import jakarta.persistence.*;
@@ -33,7 +34,7 @@ public class User {
 
     @Column(unique = true)
     private String email;
-    
+
     @Column(name = "phone_number", unique = true)
     private String phoneNumber;
 
@@ -60,6 +61,13 @@ public class User {
 
     @Column(name = "phone_verified", nullable = false)
     private boolean phoneVerified = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false)
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
+    @Column(name = "provider_id")
+    private String providerId;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))

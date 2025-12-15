@@ -1,6 +1,9 @@
 spring:
   application:
     name: evgo
+  docker:
+    compose:
+      enabled: false
 
   datasource:
     url: ${DB_URL}
@@ -87,3 +90,5 @@ app:
     from: ${MAIL_USERNAME}
     from-name: EV-Go Support
 
+google:
+  client-id: ${GOOGLE_CLIENT_ID}

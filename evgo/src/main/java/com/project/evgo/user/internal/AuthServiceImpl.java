@@ -1,8 +1,13 @@
 package com.project.evgo.user.internal;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.project.evgo.user.security.JwtTokenProvider;
 import com.project.evgo.notification.EmailService;
 import com.project.evgo.notification.SmsService;
+import com.project.evgo.sharedkernel.enums.AuthProvider;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.enums.UserStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
@@ -21,8 +26,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +56,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${jwt.refresh-token.expiration}")
     private Long refreshTokenExpiration;
+
+    @Value("${google.client-id:}")
+    private String googleClientId;
 
     @Override
     @Transactional
@@ -86,6 +96,7 @@ public class AuthServiceImpl implements AuthService {
         user.setRoles(Set.of(userRole));
         user.setEmailVerified(false);
         user.setPhoneVerified(false);
+        user.setAuthProvider(AuthProvider.LOCAL);
 
         user = userRepository.save(user);
         log.info("User registered successfully: {}", user.getId());
@@ -123,6 +134,79 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("User logged in successfully: {}", user.getId());
         return generateAuthResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse loginWithGoogle(GoogleLoginRequest request) {
+        // Verify Google ID token
+        GoogleIdToken.Payload payload = verifyGoogleToken(request.idToken());
+
+        String email = payload.getEmail();
+        String providerId = payload.getSubject();
+        String name = (String) payload.get("name");
+        String pictureUrl = (String) payload.get("picture");
+
+        // Find or create user
+        User user = userRepository.findByEmail(email)
+                .orElseGet(() -> createGoogleUser(email, providerId, name, pictureUrl));
+
+        // Update provider info if existing user switches to Google
+        if (user.getAuthProvider() == AuthProvider.LOCAL) {
+            user.setAuthProvider(AuthProvider.GOOGLE);
+            user.setProviderId(providerId);
+            if (pictureUrl != null && user.getAvatarUrl() == null) {
+                user.setAvatarUrl(pictureUrl);
+            }
+            userRepository.save(user);
+        }
+
+        log.info("User logged in with Google: {}", user.getId());
+        return generateAuthResponse(user);
+    }
+
+    private GoogleIdToken.Payload verifyGoogleToken(String idToken) {
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    // .setIssuer("https://accounts.google.com") // Handle both with/without https
+                    // if needed later
+                    .build();
+
+            GoogleIdToken googleIdToken = verifier.verify(idToken);
+            if (googleIdToken == null) {
+                log.error("GoogleIdTokenVerifier returned null. Invalid signature or claims.");
+
+                throw new AppException(ErrorCode.INVALID_TOKEN, "Invalid Google ID token");
+            }
+
+            return googleIdToken.getPayload();
+        } catch (Exception e) {
+            log.error("Failed to verify Google token. Error: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.INVALID_TOKEN, "Failed to verify Google token: " + e.getMessage());
+        }
+    }
+
+    private User createGoogleUser(String email, String providerId, String name, String pictureUrl) {
+        Role userRole = roleRepository.findByName(DEFAULT_USER_ROLE)
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND, "Default role not found"));
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setFullName(name != null ? name : "Google User");
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRoles(Set.of(userRole));
+        user.setEmailVerified(true); // Google emails are verified
+        user.setPhoneVerified(false);
+        user.setAuthProvider(AuthProvider.GOOGLE);
+        user.setProviderId(providerId);
+        user.setAvatarUrl(pictureUrl);
+
+        user = userRepository.save(user);
+        log.info("Created new user from Google: {}", user.getId());
+        return user;
     }
 
     @Override

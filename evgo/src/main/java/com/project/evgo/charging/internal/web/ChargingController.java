@@ -37,18 +37,18 @@ public class ChargingController {
                 .build());
     }
 
-    @GetMapping("/booking/{bookingId}")
-    @Operation(summary = "Get charging session by booking ID")
-    public ResponseEntity<ApiResponse<ChargingSessionResponse>> getByBookingId(
-            @PathVariable Long bookingId) {
-        var result = chargingService.findByBookingId(bookingId)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
-        return ResponseEntity.ok(ApiResponse.<ChargingSessionResponse>builder()
-                .status(HttpStatus.OK.value())
-                .message("Success")
-                .data(result)
-                .build());
-    }
+//     @GetMapping("/booking/{bookingId}")
+//     @Operation(summary = "Get charging session by booking ID")
+//     public ResponseEntity<ApiResponse<ChargingSessionResponse>> getByBookingId(
+//             @PathVariable Long bookingId) {
+//         var result = chargingService.findByBookingId(bookingId)
+//                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+//         return ResponseEntity.ok(ApiResponse.<ChargingSessionResponse>builder()
+//                 .status(HttpStatus.OK.value())
+//                 .message("Success")
+//                 .data(result)
+//                 .build());
+//     }
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get charging sessions by user ID")
