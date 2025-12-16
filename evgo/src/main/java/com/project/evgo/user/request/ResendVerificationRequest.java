@@ -7,10 +7,12 @@ public record ResendVerificationRequest(
         String email,
         String phoneNumber
 ) {
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public String getIdentifier() {
         return email != null && !email.isBlank() ? email : phoneNumber;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isEmail() {
         return email != null && !email.isBlank();
     }
