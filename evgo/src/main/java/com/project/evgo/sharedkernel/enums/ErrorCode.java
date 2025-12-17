@@ -1,5 +1,6 @@
 package com.project.evgo.sharedkernel.enums;
 
+import com.project.evgo.user.internal.User;
 import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
@@ -9,6 +10,8 @@ public enum ErrorCode {
     UNAUTHORIZED(401, HttpStatus.UNAUTHORIZED, "Unauthorized"),
     FORBIDDEN(403, HttpStatus.FORBIDDEN, "Access denied"),
     NOT_FOUND(404, HttpStatus.NOT_FOUND, "Resource not found"),
+    ENDPOINT_NOT_FOUND(4041, HttpStatus.NOT_FOUND, "Endpoint not found"),
+    METHOD_NOT_ALLOWED(4051, HttpStatus.METHOD_NOT_ALLOWED, "Method not allowed"),
 
     // Authentication errors
     EMAIL_ALREADY_EXISTS(1001, HttpStatus.CONFLICT, "Email already exists"),
@@ -19,7 +22,16 @@ public enum ErrorCode {
     ACCOUNT_NOT_VERIFIED(1006, HttpStatus.FORBIDDEN, "Account not verified"),
     ACCOUNT_DISABLED(1007, HttpStatus.FORBIDDEN, "Account is disabled"),
     ROLE_NOT_FOUND(1008, HttpStatus.INTERNAL_SERVER_ERROR, "Role not found"),
-    EMAIL_OR_PHONE_REQUIRED(1009, HttpStatus.BAD_REQUEST, "Email or phone number is required");
+    EMAIL_OR_PHONE_REQUIRED(1009, HttpStatus.BAD_REQUEST, "Email or phone number is required"),
+
+    // User Profile errors
+    USER_NOT_FOUND(2001, HttpStatus.NOT_FOUND, "User not found"),
+    PASSWORD_MISMATCH(2002, HttpStatus.BAD_REQUEST, "Password does not match"),
+    CURRENT_PASSWORD_INCORRECT(2003, HttpStatus.BAD_REQUEST, "Current password is incorrect"),
+    FILE_UPLOAD_ERROR(2004, HttpStatus.INTERNAL_SERVER_ERROR, "File upload error"),
+    FILE_TYPE_NOT_SUPPORTED(2005, HttpStatus.BAD_REQUEST, "File type not supported"),
+
+    ;
 
     private final int code;
     private final HttpStatus status;
