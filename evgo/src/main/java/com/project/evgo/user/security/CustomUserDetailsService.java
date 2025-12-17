@@ -54,6 +54,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 user.getEmail(),
                 user.getPhoneNumber(),
                 user.getPassword(),
+                user.getPasswordChangedAt(),
                 enabled,
                 user.isEmailVerified(),
                 user.isPhoneVerified(),

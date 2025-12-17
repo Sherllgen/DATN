@@ -62,13 +62,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = jwtTokenProvider.getUserIdFromToken(jwt);
                 UserDetails userDetails = userDetailsService.loadUserById(userId);
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                if (jwtTokenProvider.validateAccessToken(jwt, userDetails)) {
+                    // Reload user to get fresh passwordChangedAt
+                    UserDetails freshUserDetails = userDetailsService.loadUserById(
+                            ((CustomUserDetails) userDetails).getId()
+                    );
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    // Validate again with fresh data
+                    if (jwtTokenProvider.validateAccessToken(jwt, freshUserDetails)) {
+                        // Set authentication
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
+                }
+
             }
         } catch (Exception ex) {
             log.error("Could not set user authentication in security context", ex);

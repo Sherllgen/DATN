@@ -5,6 +5,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,18 +20,20 @@ public class CustomUserDetails implements UserDetails {
     private final String email;
     private final String phoneNumber;
     private final String password;
+    private final Instant passwordChangedAt;
     private final boolean enabled;
     private final boolean emailVerified;
     private final boolean phoneVerified;
     private final Collection<? extends GrantedAuthority> authorities;
 
-    public CustomUserDetails(Long id, String email, String phoneNumber, String password,
+    public CustomUserDetails(Long id, String email, String phoneNumber, String password, Instant passwordChangedAt,
             boolean enabled, boolean emailVerified, boolean phoneVerified,
             List<String> roles) {
         this.id = id;
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.password = password;
+        this.passwordChangedAt = passwordChangedAt;
         this.enabled = enabled;
         this.emailVerified = emailVerified;
         this.phoneVerified = phoneVerified;
