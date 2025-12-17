@@ -1,6 +1,5 @@
 package com.project.evgo.sharedkernel.enums;
 
-import com.project.evgo.user.internal.User;
 import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
