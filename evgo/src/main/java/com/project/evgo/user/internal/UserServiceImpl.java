@@ -8,6 +8,7 @@ import com.project.evgo.user.internal.token.TokenBlacklistService;
 import com.project.evgo.user.request.ChangePasswordRequest;
 import com.project.evgo.user.request.UpdateProfileRequest;
 import com.project.evgo.user.response.UserResponse;
+import com.project.evgo.user.security.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,16 +44,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+    public UserResponse getCurrentUser() {
+        Long userId = getCurrentUserId();
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         return userDtoConverter.convert(user);
     }
 
     @Transactional
     @Override
-    public UserResponse updateProfile(String email, UpdateProfileRequest request) {
-        User user = userRepository.findByEmail(email)
+    public UserResponse updateProfile(UpdateProfileRequest request) {
+        Long userId = getCurrentUserId();
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (request.fullName() != null) {
@@ -74,12 +77,13 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public void changePassword(String email, ChangePasswordRequest request) {
+    public void changePassword(ChangePasswordRequest request) {
         if (!request.newPassword().equals(request.confirmPassword())) {
             throw new AppException(ErrorCode.PASSWORD_MISMATCH);
         }
 
-        User user = userRepository.findByEmail(email)
+        Long userId = getCurrentUserId();
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
@@ -95,29 +99,35 @@ public class UserServiceImpl implements UserService {
         refreshTokenService.deleteAllForUser(user.getId());
     }
 
+    // @Override
+    // public UserResponse uploadAvatar(String email, MultipartFile file) {
+    // if (file.isEmpty()) {
+    // throw new AppException(ErrorCode.FILE_UPLOAD_ERROR, "File upload error");
+    // }
+    //
+    // // Validate file type
+    // String contentType = file.getContentType();
+    // if (contentType == null || !contentType.startsWith("image/")) {
+    // throw new AppException(ErrorCode.FILE_TYPE_NOT_SUPPORTED);
+    // }
+    //
+    // User user = userRepository.findByEmail(email)
+    // .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    //
+    // // TODO: Implement file storage logic (e.g., save to disk, cloud storage)
+    // // For now, just store the filename
+    // String avatarUrl = "/uploads/avatars/" + file.getOriginalFilename();
+    // user.setAvatarUrl(avatarUrl);
+    //
+    // User updatedUser = userRepository.save(user);
+    // return userDtoConverter.convert(updatedUser);
+    // }
 
-//    @Override
-//    public UserResponse uploadAvatar(String email, MultipartFile file) {
-//        if (file.isEmpty()) {
-//            throw new AppException(ErrorCode.FILE_UPLOAD_ERROR, "File upload error");
-//        }
-//
-//        // Validate file type
-//        String contentType = file.getContentType();
-//        if (contentType == null || !contentType.startsWith("image/")) {
-//            throw new AppException(ErrorCode.FILE_TYPE_NOT_SUPPORTED);
-//        }
-//
-//        User user = userRepository.findByEmail(email)
-//                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-//
-//        // TODO: Implement file storage logic (e.g., save to disk, cloud storage)
-//        // For now, just store the filename
-//        String avatarUrl = "/uploads/avatars/" + file.getOriginalFilename();
-//        user.setAvatarUrl(avatarUrl);
-//
-//        User updatedUser = userRepository.save(user);
-//        return userDtoConverter.convert(updatedUser);
-//    }
-    
+    private Long getCurrentUserId() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+        }
+        return userId;
+    }
 }

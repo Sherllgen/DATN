@@ -24,45 +24,45 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-        private final JwtAuthenticationFilter jwtAuthenticationFilter;
-        private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-        /**
-         * Public endpoints that don't require authentication.
-         */
-        private static final String[] PUBLIC_ENDPOINTS = {
-                        "/api/v1/auth/**",
-                        "/swagger-ui/**",
-                        "/swagger-ui.html",
-                        "/v3/api-docs/**",
-                        "/swagger-resources/**",
-                        "/webjars/**"
-        };
+	/**
+	 * Public endpoints that don't require authentication.
+	 */
+	private static final String[] PUBLIC_ENDPOINTS = {
+		"/api/v1/auth/**",
+		"/swagger-ui/**",
+		"/swagger-ui.html",
+		"/v3/api-docs/**",
+		"/swagger-resources/**",
+		"/webjars/**"
+	};
 
-        @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-                http
-                                .csrf(AbstractHttpConfigurer::disable)
-                                .exceptionHandling(exception -> exception
-                                                .authenticationEntryPoint(jwtAuthenticationEntryPoint))
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/v1/stations/**").permitAll()
-                                                .anyRequest().authenticated())
-                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+			.csrf(AbstractHttpConfigurer::disable)
+			.exceptionHandling(exception -> exception
+							.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+			.sessionManagement(session -> session
+							.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.authorizeHttpRequests(auth -> auth
+							.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+							.requestMatchers(HttpMethod.GET, "/api/v1/stations/**").permitAll()
+							.anyRequest().authenticated())
+			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-                return http.build();
-        }
+		return http.build();
+	}
 
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
-        }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
-        @Bean
-        public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-                return authConfig.getAuthenticationManager();
-        }
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+		return authConfig.getAuthenticationManager();
+	}
 }

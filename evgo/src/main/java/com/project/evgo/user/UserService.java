@@ -18,12 +18,12 @@ public interface UserService {
 
     List<UserResponse> findAll();
 
-    UserResponse getCurrentUser(String email);
+    UserResponse getCurrentUser();
 
-    UserResponse updateProfile(String email, UpdateProfileRequest request);
+    UserResponse updateProfile(UpdateProfileRequest request);
 
-    void changePassword(String email, ChangePasswordRequest request);
+    void changePassword(ChangePasswordRequest request);
 
-//    UserResponse uploadAvatar(String email, MultipartFile file);
+    // UserResponse uploadAvatar(String email, MultipartFile file);
 
 }

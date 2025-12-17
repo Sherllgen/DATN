@@ -28,28 +28,28 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
-                .info(new Info()
-                        .title("EV-Go API")
-                        .description("API for Electric Vehicle Charging Station Management System")
-                        .version("1.0.0")
-                        .contact(new Contact()
-                                .name("EV-Go Team")
-                                .email("support@evgo.com"))
-                        .license(new License()
-                                .name("MIT License")
-                                .url("https://opensource.org/licenses/MIT")))
-                .servers(List.of(
-                        new Server()
-                                .url("http://localhost:" + serverPort)
-                                .description("Development Server")))
-                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
-                .components(new Components()
-                        .addSecuritySchemes(SECURITY_SCHEME_NAME,
-                                new SecurityScheme()
-                                        .name(SECURITY_SCHEME_NAME)
-                                        .type(SecurityScheme.Type.HTTP)
-                                        .scheme("bearer")
-                                        .bearerFormat("JWT")
-                                        .description("Enter JWT token. Get token from /api/v1/auth/login")));
+            .info(new Info()
+                .title("EV-Go API")
+                .description("API for Electric Vehicle Charging Station Management System")
+                .version("1.0.0")
+                .contact(new Contact()
+                    .name("EV-Go Team")
+                    .email("support@evgo.com"))
+                .license(new License()
+                    .name("MIT License")
+                    .url("https://opensource.org/licenses/MIT")))
+            .servers(List.of(
+                new Server()
+                    .url("http://localhost:" + serverPort)
+                    .description("Development Server")))
+            .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+            .components(new Components()
+                .addSecuritySchemes(SECURITY_SCHEME_NAME,
+                    new SecurityScheme()
+                        .name(SECURITY_SCHEME_NAME)
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT")
+                        .description("Enter JWT token. Get token from /api/v1/auth/login")));
     }
 }

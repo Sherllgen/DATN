@@ -6,10 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Vehicle entity - represents user's electric vehicle.
@@ -30,12 +29,20 @@ public class Vehicle {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(name = "brand", nullable = false)
+    private String brand;
+
     @Column(name = "model_name", nullable = false)
     private String modelName;
 
+    @ElementCollection(targetClass = ConnectorType.class)
+    @CollectionTable(name = "vehicle_connector_types", joinColumns = @JoinColumn(name = "vehicle_id"))
     @Enumerated(EnumType.STRING)
-    @Column(name = "connector_type", nullable = false)
-    private ConnectorType connectorType;
+    @Column(name = "connector_type")
+    private Set<ConnectorType> connectorTypes = new HashSet<>();
+
+    @Column(name = "in_use", nullable = false)
+    private Boolean inUse = false;
 
     // @Column(name = "license_plate")
     // private String licensePlate;
@@ -43,9 +50,9 @@ public class Vehicle {
     // @Column(name = "battery_capacity")
     // private Double batteryCapacity;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+    // @CreationTimestamp
+    // private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    // @UpdateTimestamp
+    // private LocalDateTime updatedAt;
 }
