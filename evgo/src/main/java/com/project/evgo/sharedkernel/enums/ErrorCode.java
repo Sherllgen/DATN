@@ -19,7 +19,8 @@ public enum ErrorCode {
     ACCOUNT_NOT_VERIFIED(1006, HttpStatus.FORBIDDEN, "Account not verified"),
     ACCOUNT_DISABLED(1007, HttpStatus.FORBIDDEN, "Account is disabled"),
     ROLE_NOT_FOUND(1008, HttpStatus.INTERNAL_SERVER_ERROR, "Role not found"),
-    EMAIL_OR_PHONE_REQUIRED(1009, HttpStatus.BAD_REQUEST, "Email or phone number is required");
+    EMAIL_OR_PHONE_REQUIRED(1009, HttpStatus.BAD_REQUEST, "Email or phone number is required"),
+    USER_NOT_FOUND(1010, HttpStatus.NOT_FOUND, "User not found");
 
     private final int code;
     private final HttpStatus status;
