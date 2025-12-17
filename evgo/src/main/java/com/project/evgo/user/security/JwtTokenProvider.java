@@ -1,15 +1,18 @@
 package com.project.evgo.user.security;
 
+import com.project.evgo.user.internal.token.TokenBlacklistService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 
@@ -29,6 +32,12 @@ public class JwtTokenProvider {
 
     @Value("${jwt.refresh-token.expiration}")
     private Long refreshTokenExpiration;
+
+    private final TokenBlacklistService tokenBlacklistService;
+
+    public JwtTokenProvider(TokenBlacklistService tokenBlacklistService) {
+        this.tokenBlacklistService = tokenBlacklistService;
+    }
 
     private Key getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
@@ -102,6 +111,20 @@ public class JwtTokenProvider {
         return false;
     }
 
+    public boolean validateAccessToken(String token, UserDetails userDetails) {
+        if (!getEmailFromToken(token).equals(userDetails.getUsername())) return false;
+        if (isTokenExpired(token)) return false;
+        if (tokenBlacklistService.isBlacklisted(token)) return false;
+
+        if (userDetails instanceof CustomUserDetails customUser) {
+            Instant pwdChangedAt = customUser.getPasswordChangedAt();
+            return pwdChangedAt == null ||
+                    !extractIssuedAt(token).toInstant().isBefore(pwdChangedAt);
+        }
+        return true;
+    }
+
+
     public boolean isTokenExpired(String token) {
         try {
             Claims claims = parseToken(token);
@@ -132,4 +155,10 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
+    private Date extractIssuedAt(String token) {
+        Claims claims = parseToken(token);
+        return claims.getIssuedAt();
+    }
+
 }

@@ -3,11 +3,14 @@ package com.project.evgo.user.internal;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.user.UserService;
+import com.project.evgo.user.internal.token.RefreshTokenService;
+import com.project.evgo.user.internal.token.TokenBlacklistService;
 import com.project.evgo.user.request.ChangePasswordRequest;
 import com.project.evgo.user.request.UpdateProfileRequest;
 import com.project.evgo.user.response.UserResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,11 +23,14 @@ import java.util.Optional;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserDtoConverter userDtoConverter;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     public Optional<UserResponse> findById(Long id) {
@@ -81,7 +87,12 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setPasswordChangedAt(java.time.Instant.now());
+
         userRepository.save(user);
+
+        // Delete all refresh tokens for this user (forces re-authentication)
+        refreshTokenService.deleteAllForUser(user.getId());
     }
 
 
