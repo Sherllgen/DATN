@@ -200,7 +200,8 @@ export default function ChargingPage() {
                     </View>
 
                     {/* Information Section */}
-                    <View className="flex-row flex-wrap flex-1 justify-between bg-white/10 -mx-6 p-6 rounded-t-3xl">
+
+                    <View className="flex-row flex-wrap flex-1 justify-between -mx-6 p-6 rounded-t-3xl">
                         <View className="flex-row justify-start items-center mb-6">
                             <EvilIcons
                                 name="location"

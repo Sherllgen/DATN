@@ -15,7 +15,7 @@ export default function NotificePage() {
             colors={["#33404F", "#000000"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
-            className="flex-1 pt-6"
+            className="flex-1 pt-6 pb-[80px]"
         >
             <SafeAreaView className="flex-1">
                 <TabHeader activeTab={activeTab} onTabChange={setActiveTab} />

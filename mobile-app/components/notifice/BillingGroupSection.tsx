@@ -26,14 +26,14 @@ export default function BillingGroupSection({
     };
 
     return (
-        <View className="mb-4">
-            <Text className="mb-3 px-4 py-2 border-gray-600 border-b rounded-md font-semibold text-white text-sm">
+        <View className="mb-4 px-6">
+            <Text className="-mx-6 mb-3 px-6 py-2 border-gray-600 border-b rounded-md font-semibold text-white text-sm">
                 {group.period}
             </Text>
             {group.items.map((billingItem, index: number) => (
                 <TouchableOpacity
                     key={index}
-                    className="flex-row items-center mb-2 px-4 py-3"
+                    className="flex-row items-center mb-2 py-3"
                     onPress={() => handleItemPress(billingItem)}
                     activeOpacity={0.7}
                 >

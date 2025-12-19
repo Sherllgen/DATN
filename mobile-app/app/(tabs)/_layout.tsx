@@ -1,14 +1,18 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Pressable, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { AppColors } from "@/constants/theme";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 export default function TabLayout() {
+    const insets = useSafeAreaInsets();
+    const TAB_HEIGHT = 80;
+
     const CenterTabButton = ({ children, onPress }: any) => {
         return (
             <View
@@ -47,11 +51,11 @@ export default function TabLayout() {
                 tabBarButton: HapticTab,
                 tabBarStyle: {
                     position: "absolute",
-                    bottom: 0,
+                    bottom: insets.bottom,
                     left: 0,
                     right: 0,
                     backgroundColor: "#131315",
-                    height: 80,
+                    height: TAB_HEIGHT,
                     paddingTop: 6,
                     borderColor: "#eee",
                 },
@@ -64,11 +68,7 @@ export default function TabLayout() {
                 options={{
                     title: "Home",
                     tabBarIcon: ({ color }) => (
-                        <MaterialCommunityIcons
-                            name="home"
-                            size={30}
-                            color={color}
-                        />
+                        <Ionicons name="compass" size={28} color={color} />
                     ),
                 }}
             />
@@ -119,7 +119,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="setting"
                 options={{
-                    title: "Profile",
+                    title: "Setting",
                     tabBarIcon: ({ color }) => (
                         <MaterialCommunityIcons
                             name="cog"
@@ -127,6 +127,7 @@ export default function TabLayout() {
                             size={26}
                         />
                     ),
+                    popToTopOnBlur: true,
                 }}
             />
         </Tabs>
