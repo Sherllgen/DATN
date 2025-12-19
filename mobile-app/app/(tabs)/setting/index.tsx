@@ -31,6 +31,7 @@ export default function SettingPage() {
                     <TouchableOpacity
                         className="flex-row items-center"
                         activeOpacity={0.7}
+                        onPress={() => router.push("/setting/profile")}
                     >
                         <Image
                             source={{ uri: "https://i.pravatar.cc/150?img=12" }}
@@ -57,7 +58,7 @@ export default function SettingPage() {
                     <View>
                         <MenuItem
                             title="Personal Info"
-                            onPress={() => console.log("Personal Info")}
+                            onPress={() => router.push("/setting/profile")}
                         />
                         <MenuItem
                             title="My Vehicle"

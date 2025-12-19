@@ -57,7 +57,7 @@ export default function OTPVerificationStep({
             {/* Back Button */}
             <TouchableOpacity
                 onPress={onBack}
-                className="-mt-12 mb-16 p-3 w-12"
+                className="-mt-12 mb-16 p-3 pl-0 w-12"
             >
                 <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
