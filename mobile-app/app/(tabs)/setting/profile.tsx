@@ -117,17 +117,10 @@ export default function ProfilePage() {
                             <Ionicons name="camera" size={22} color="#4CAF50" />
                         </View>
                     </TouchableOpacity>
-
-                    <Text className="mt-4 font-bold text-white">
-                        Andrew Ainsley
-                    </Text>
-                    <Text className="mt-1 text-white/80 text-sm">
-                        ID - 2211100
-                    </Text>
                 </View>
 
                 {/* Form Section */}
-                <ScrollView className="flex-1 px-6">
+                <ScrollView className="flex-1 mt-6 px-6">
                     {/* Full name */}
                     <View className="mt-5">
                         <Text className="mb-1 text-[#9BA1A6] text-sm">
@@ -174,7 +167,7 @@ export default function ProfilePage() {
                         </Text>
                         <View className="flex-row justify-between items-center pb-3 border-[#4A5568] border-b">
                             <Text className="text-[#4CAF50] text-base">
-                                trunganh4002@gmail.com
+                                andrewainsley@gmail.com
                             </Text>
                             <Text className="text-[#9BA1A6] text-sm">
                                 Read only
@@ -189,7 +182,7 @@ export default function ProfilePage() {
                         </Text>
                         <View className="flex-row justify-between items-center pb-3 border-[#4A5568] border-b">
                             <Text className="text-[#4CAF50] text-base">
-                                +84846779714
+                                0949668866
                             </Text>
                             <View className="flex-row items-center bg-[#4CAF50]/20 px-3 py-1 rounded-full">
                                 <Ionicons
