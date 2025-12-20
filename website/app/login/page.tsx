@@ -9,7 +9,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { GalleryVerticalEnd } from "lucide-react";
-import Link from "next/link";
 
 export default function LoginPage() {
     return (
@@ -36,6 +35,7 @@ export default function LoginPage() {
                                         id="email"
                                         type="email"
                                         placeholder="m@example.com"
+                                        tabIndex={1}
                                         required
                                     />
                                 </Field>
@@ -44,24 +44,21 @@ export default function LoginPage() {
                                         <FieldLabel htmlFor="password">
                                             Password
                                         </FieldLabel>
+                                        <a
+                                            href="#"
+                                            className="ml-auto text-sm hover:underline underline-offset-4"
+                                        >
+                                            Forgot your password?
+                                        </a>
                                     </div>
                                     <Input
                                         id="password"
                                         type="password"
+                                        placeholder="********"
+                                        tabIndex={2}
                                         required
                                     />
                                 </Field>
-                                <Button
-                                    type="button"
-                                    variant="link"
-                                    size={"sm"}
-                                    className="self-end"
-                                >
-                                    <Link href="/forgot-password">
-                                        Quên mật khẩu?
-                                    </Link>
-                                </Button>
-                                <FieldSeparator />
                                 <Field>
                                     <Button type="submit">Login</Button>
                                 </Field>
