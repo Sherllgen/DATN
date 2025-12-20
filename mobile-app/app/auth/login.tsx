@@ -53,17 +53,17 @@ export default function LoginScreen() {
 
                     {/* Username Input */}
                     <Text className="mb-2 font-medium text-white text-sm">
-                        Phone Number
+                        Email
                     </Text>
                     <View className="flex-row items-center bg-primary/90 mb-6 px-2 py-[2px] rounded-full">
                         <TextInput
                             className="flex-1 ml-3 text-white text-base"
-                            placeholder="+84 0*********"
+                            placeholder="abc@example.com"
                             placeholderTextColor="#999"
                             value={username}
                             onChangeText={setUsername}
                             autoCapitalize="none"
-                            keyboardType="numeric"
+                            keyboardType="email-address"
                         />
                     </View>
 
