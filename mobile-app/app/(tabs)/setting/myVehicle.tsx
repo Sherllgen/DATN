@@ -117,7 +117,7 @@ export default function MyVehiclePage() {
                                 onPress={handleAddVehicle}
                             >
                                 <Text className="px-2 font-medium text-white">
-                                    Thêm xe
+                                    New
                                 </Text>
                             </TouchableOpacity>
                         </View>
