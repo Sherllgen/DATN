@@ -21,7 +21,7 @@ type BikeBrand = "YAMAHA" | "HONDA" | "SUZUKI" | "VINFAST" | "OTHER";
 type BikeBrandItem = { label: BikeBrand; value: BikeBrand };
 
 export default function ProfilePage() {
-    const [fullName, setFullName] = useState("Hoàng Trung Anh");
+    const [fullName, setFullName] = useState("Andrew Ainsley");
     const [bikeBrand, setBikeBrand] = useState<BikeBrand>("VINFAST");
     const [profileImage, setProfileImage] = useState<string | null>(null);
     const [showImageModal, setShowImageModal] = useState(false);
@@ -118,18 +118,18 @@ export default function ProfilePage() {
                         </View>
                     </TouchableOpacity>
 
-                    <Text className="mt-4 font-bold text-white text-lg">
-                        Hoàng Trung Anh
+                    <Text className="mt-4 font-bold text-white">
+                        Andrew Ainsley
                     </Text>
                     <Text className="mt-1 text-white/80 text-sm">
-                        ID - 18826
+                        ID - 2211100
                     </Text>
                 </View>
 
                 {/* Form Section */}
                 <ScrollView className="flex-1 px-6">
                     {/* Full name */}
-                    <View className="mt-6">
+                    <View className="mt-5">
                         <Text className="mb-1 text-[#9BA1A6] text-sm">
                             Full name
                         </Text>
@@ -141,8 +141,34 @@ export default function ProfilePage() {
                         />
                     </View>
 
+                    {/* Gender */}
+                    <View className="mt-4">
+                        <Text className="mb-1 text-[#9BA1A6] text-sm">
+                            Gender
+                        </Text>
+                        <TextInput
+                            value={"Male"}
+                            onChangeText={setFullName}
+                            className="pb-3 border-[#4A5568] border-b text-[#4CAF50] text-base"
+                            placeholderTextColor="#9BA1A6"
+                        />
+                    </View>
+
+                    {/* Birthdate */}
+                    <View className="mt-4">
+                        <Text className="mb-1 text-[#9BA1A6] text-sm">
+                            Birthdate
+                        </Text>
+                        <TextInput
+                            value={"30/02/2004"}
+                            onChangeText={setFullName}
+                            className="pb-3 border-[#4A5568] border-b text-[#4CAF50] text-base"
+                            placeholderTextColor="#9BA1A6"
+                        />
+                    </View>
+
                     {/* Email */}
-                    <View className="mt-5">
+                    <View className="mt-4">
                         <Text className="mb-4 text-[#9BA1A6] text-sm">
                             Email
                         </Text>
@@ -157,7 +183,7 @@ export default function ProfilePage() {
                     </View>
 
                     {/* Phone number */}
-                    <View className="mt-5">
+                    <View className="mt-4">
                         <Text className="mb-3 text-[#9BA1A6] text-sm">
                             Phone number
                         </Text>

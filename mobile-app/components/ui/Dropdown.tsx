@@ -27,7 +27,7 @@ export default function Dropdown({
     const selectedItem = items.find((item) => item.value === value);
 
     return (
-        <View className="mt-5">
+        <View className="mt-4">
             <Text className="mb-3 text-[#9BA1A6] text-sm">{label}</Text>
             <TouchableOpacity
                 className="flex-row justify-between items-center pb-3 border-[#4A5568] border-b"

@@ -25,19 +25,45 @@ export default function PhoneNumberStep({
                 you a verification code.
             </Text>
 
-            {/* Phone Number Input */}
+            {/* Email Input */}
             <Text className="mb-2 ml-4 font-medium text-white text-sm">
-                Phone Number
+                Email
             </Text>
             <View className="flex-row items-center bg-primary/90 mb-6 px-2 py-[2px] rounded-full">
                 <TextInput
                     className="flex-1 ml-3 text-white text-base"
-                    placeholder="+84 0*********"
+                    placeholder="abc@example.com"
                     placeholderTextColor="#999"
                     value={phoneNumber}
                     onChangeText={onPhoneNumberChange}
                     autoCapitalize="none"
-                    keyboardType="numeric"
+                    keyboardType="email-address"
+                />
+            </View>
+
+            {/* Password Input */}
+            <Text className="mb-2 ml-4 font-medium text-white text-sm">
+                Password
+            </Text>
+            <View className="flex-row items-center bg-primary/90 mb-6 px-2 py-[2px] rounded-full">
+                <TextInput
+                    className="flex-1 ml-3 text-white text-base"
+                    placeholder="••••••••"
+                    placeholderTextColor="#999"
+                    autoCapitalize="none"
+                />
+            </View>
+
+            {/* Password confirm Input */}
+            <Text className="mb-2 ml-4 font-medium text-white text-sm">
+                Confirm Password
+            </Text>
+            <View className="flex-row items-center bg-primary/90 mb-6 px-2 py-[2px] rounded-full">
+                <TextInput
+                    className="flex-1 ml-3 text-white text-base"
+                    placeholder="••••••••"
+                    placeholderTextColor="#999"
+                    autoCapitalize="none"
                 />
             </View>
 

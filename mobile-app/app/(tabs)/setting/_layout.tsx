@@ -5,6 +5,7 @@ export default function SettingLayout() {
         <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="profile" options={{ headerShown: false }} />
+            <Stack.Screen name="myVehicle" options={{ headerShown: false }} />
 
             {/* <Stack.Screen name="[id]" options={{ headerShown: false }} /> */}
         </Stack>

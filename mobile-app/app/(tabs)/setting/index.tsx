@@ -23,7 +23,7 @@ export default function SettingPage() {
             colors={["#33404F", "#000000"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
-            className="flex-1 px-6 pt-6"
+            className="flex-1 px-6 pt-8"
         >
             <SafeAreaView>
                 <ScrollView>
@@ -60,9 +60,10 @@ export default function SettingPage() {
                             title="Personal Info"
                             onPress={() => router.push("/setting/profile")}
                         />
+
                         <MenuItem
                             title="My Vehicle"
-                            onPress={() => console.log("My Vehicle")}
+                            onPress={() => router.push("/setting/myVehicle")}
                         />
 
                         <View className="bg-[#4A5568]/50 my-2 h-[1px]" />
@@ -121,11 +122,11 @@ export default function SettingPage() {
                 onRequestClose={() => setShowLogoutModal(false)}
             >
                 <TouchableOpacity
-                    className="flex-1 justify-center bg-black/80 px-6"
+                    className="flex-1 justify-center bg-black/70 px-6"
                     onPress={() => setShowLogoutModal(false)}
                     activeOpacity={1}
                 >
-                    <View className="bg-[#2e2e2e] px-6 pt-6 pb-8 rounded-3xl">
+                    <View className="bg-[#292929] px-6 pt-6 pb-8 rounded-3xl">
                         <Text className="mb-2 font-semibold text-white text-lg text-center">
                             Logout
                         </Text>
