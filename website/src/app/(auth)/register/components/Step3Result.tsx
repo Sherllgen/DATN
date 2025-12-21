@@ -16,23 +16,23 @@ export function Step3Result({ status, onReset }: Step3ResultProps) {
                     </div>
                     <div className="space-y-2">
                         <h3 className="font-semibold text-green-500 text-xl">
-                            Đăng Ký Thành Công!
+                            Registration Successful!
                         </h3>
                         <p className="text-muted-foreground">
-                            Hồ sơ của bạn đã được gửi thành công. Chúng tôi sẽ
-                            xem xét và phản hồi trong vòng 24-48 giờ.
+                            Your application has been submitted successfully. We
+                            will review and respond within 24-48 hours.
                         </p>
                     </div>
                     <div className="bg-green-500/5 mx-auto p-4 border border-green-500/20 rounded-lg max-w-md">
                         <p className="text-muted-foreground text-sm">
-                            Mã đăng ký:{" "}
+                            Registration Code:{" "}
                             <span className="font-mono font-semibold">
                                 REG-{Date.now()}
                             </span>
                         </p>
                         <p className="mt-2 text-muted-foreground text-xs">
-                            Vui lòng kiểm tra email để theo dõi trạng thái đăng
-                            ký
+                            Please check your email to track the registration
+                            status
                         </p>
                     </div>
                 </>
@@ -43,17 +43,17 @@ export function Step3Result({ status, onReset }: Step3ResultProps) {
                     </div>
                     <div className="space-y-2">
                         <h3 className="font-semibold text-red-500 text-xl">
-                            Đăng Ký Thất Bại
+                            Registration Failed
                         </h3>
                         <p className="text-muted-foreground">
-                            Có lỗi xảy ra trong quá trình xử lý. Vui lòng kiểm
-                            tra lại file và thử lại.
+                            An error occurred during processing. Please check
+                            the file and try again.
                         </p>
                     </div>
                     <div className="bg-red-500/5 mx-auto p-4 border border-red-500/20 rounded-lg max-w-md">
                         <p className="text-muted-foreground text-sm">
-                            Lỗi: File không đúng định dạng hoặc thiếu thông tin
-                            bắt buộc
+                            Error: Incorrect file format or missing required
+                            information
                         </p>
                     </div>
                 </>
@@ -64,7 +64,7 @@ export function Step3Result({ status, onReset }: Step3ResultProps) {
                 size="lg"
                 className="w-full max-w-md"
             >
-                {status === "success" ? "Hoàn Tất" : "Thử Lại"}
+                {status === "success" ? "Complete" : "Try Again"}
             </Button>
         </div>
     );

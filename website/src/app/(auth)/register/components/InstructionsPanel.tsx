@@ -7,7 +7,9 @@ export function InstructionsPanel() {
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-primary" />
-                    <CardTitle className="text-lg">Hướng Dẫn Đăng Ký</CardTitle>
+                    <CardTitle className="text-lg">
+                        Registration Guide
+                    </CardTitle>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -19,20 +21,26 @@ export function InstructionsPanel() {
                                 1
                             </span>
                         </div>
-                        <h4 className="font-semibold text-sm">Tải Hồ Sơ Mẫu</h4>
+                        <h4 className="font-semibold text-sm">
+                            Download Template
+                        </h4>
                     </div>
                     <ul className="space-y-2 ml-10 text-muted-foreground text-xs">
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Tải file Excel mẫu từ hệ thống</span>
+                            <span>
+                                Download the Excel template from the system
+                            </span>
                         </li>
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Điền đầy đủ thông tin theo từng mục</span>
+                            <span>
+                                Fill in all information for each section
+                            </span>
                         </li>
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Kiểm tra kỹ trước khi lưu file</span>
+                            <span>Review carefully before saving the file</span>
                         </li>
                     </ul>
                 </div>
@@ -47,20 +55,22 @@ export function InstructionsPanel() {
                                 2
                             </span>
                         </div>
-                        <h4 className="font-semibold text-sm">Upload Hồ Sơ</h4>
+                        <h4 className="font-semibold text-sm">
+                            Upload Document
+                        </h4>
                     </div>
                     <ul className="space-y-2 ml-10 text-muted-foreground text-xs">
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Chọn file đã điền thông tin</span>
+                            <span>Select the completed file</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Hỗ trợ định dạng .xlsx, .xls, .pdf</span>
+                            <span>Supports .xlsx, .xls, .pdf formats</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Dung lượng tối đa 10MB</span>
+                            <span>Maximum file size 10MB</span>
                         </li>
                     </ul>
                 </div>
@@ -75,20 +85,24 @@ export function InstructionsPanel() {
                                 3
                             </span>
                         </div>
-                        <h4 className="font-semibold text-sm">Nhận Kết Quả</h4>
+                        <h4 className="font-semibold text-sm">
+                            Receive Result
+                        </h4>
                     </div>
                     <ul className="space-y-2 ml-10 text-muted-foreground text-xs">
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Hệ thống xử lý tự động trong 2-5 phút</span>
+                            <span>
+                                System processes automatically in 2-5 minutes
+                            </span>
                         </li>
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Nhận thông báo qua email trong 24-48h</span>
+                            <span>Email notification within 24-48 hours</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Lưu lại mã đăng ký để theo dõi</span>
+                            <span>Save the registration code for tracking</span>
                         </li>
                     </ul>
                 </div>
@@ -101,14 +115,17 @@ export function InstructionsPanel() {
                         <Info className="mt-0.5 w-4 h-4 text-blue-500 shrink-0" />
                         <div className="space-y-1">
                             <p className="font-semibold text-blue-500 text-xs">
-                                Lưu ý quan trọng
+                                Important Notes
                             </p>
                             <ul className="space-y-1 text-muted-foreground text-xs">
-                                <li>• Thông tin phải chính xác và đầy đủ</li>
                                 <li>
-                                    • Đảm bảo file không bị lỗi hoặc hư hỏng
+                                    • Information must be accurate and complete
                                 </li>
-                                <li>• Liên hệ hotline nếu cần hỗ trợ</li>
+                                <li>
+                                    • Ensure the file is not corrupted or
+                                    damaged
+                                </li>
+                                <li>• Contact hotline if you need support</li>
                             </ul>
                         </div>
                     </div>

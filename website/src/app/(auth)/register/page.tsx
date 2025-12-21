@@ -80,11 +80,11 @@ export default function RegisterPage() {
                     <Card className="shadow w-full">
                         <CardHeader>
                             <CardTitle className="text-2xl">
-                                Đăng Ký Trạm Sạc
+                                Charging Station Registration
                             </CardTitle>
                             <CardDescription>
-                                Hoàn thành 3 bước để đăng ký trở thành chủ trạm
-                                sạc
+                                Complete 3 steps to register as a charging
+                                station owner
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">

@@ -19,9 +19,9 @@ export function Step2Upload({
     return (
         <div className="space-y-6 text-center">
             <div className="space-y-2">
-                <h3 className="font-semibold text-xl">Upload Hồ Sơ</h3>
+                <h3 className="font-semibold text-xl">Upload Document</h3>
                 <p className="text-muted-foreground">
-                    Tải lên file hồ sơ đã điền đầy đủ thông tin
+                    Upload the completed registration document
                 </p>
             </div>
             <div className="space-y-4 mx-auto max-w-md">
@@ -51,10 +51,10 @@ export function Step2Upload({
                             <>
                                 <Upload className="w-12 h-12 text-muted-foreground" />
                                 <p className="font-medium text-sm">
-                                    Nhấn để chọn file
+                                    Click to select file
                                 </p>
                                 <p className="text-muted-foreground text-xs">
-                                    Hỗ trợ: Excel (.xlsx, .xls) hoặc PDF
+                                    Supported: Excel (.xlsx, .xls) or PDF
                                 </p>
                             </>
                         )}
@@ -66,7 +66,7 @@ export function Step2Upload({
                         onClick={onBack}
                         className="flex-1"
                     >
-                        Quay Lại
+                        Go Back
                     </Button>
                     <Button
                         onClick={onSubmit}
@@ -77,10 +77,10 @@ export function Step2Upload({
                         {isProcessing ? (
                             <>
                                 <div className="mr-2 border-2 border-current border-t-transparent rounded-full w-4 h-4 animate-spin" />
-                                Đang Xử Lý...
+                                Processing...
                             </>
                         ) : (
-                            "Gửi Hồ Sơ"
+                            "Submit Document"
                         )}
                     </Button>
                 </div>

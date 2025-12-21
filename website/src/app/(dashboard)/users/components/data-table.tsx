@@ -115,13 +115,13 @@ export function DataTable({
 
     const getRoleColor = (role: string) => {
         switch (role) {
-            case "Admin":
+            case "Super Admin":
                 return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-            case "Editor":
+            case "Station Owner":
                 return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20";
-            case "Author":
+            case "Service Staff":
                 return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
-            case "Maintainer":
+            case "Station Staff":
                 return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
             case "Subscriber":
                 return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20";
@@ -167,7 +167,7 @@ export function DataTable({
         },
         {
             accessorKey: "name",
-            header: "User",
+            header: "Name",
             cell: ({ row }) => {
                 const user = row.original;
                 return (

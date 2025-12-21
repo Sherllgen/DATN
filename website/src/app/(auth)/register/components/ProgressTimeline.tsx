@@ -6,9 +6,9 @@ interface ProgressTimelineProps {
 }
 
 const steps = [
-    { num: 1, label: "Tải hồ sơ mẫu" },
-    { num: 2, label: "Upload hồ sơ" },
-    { num: 3, label: "Nhận kết quả" },
+    { num: 1, label: "Download template" },
+    { num: 2, label: "Upload document" },
+    { num: 3, label: "Receive result" },
 ];
 
 export function ProgressTimeline({
