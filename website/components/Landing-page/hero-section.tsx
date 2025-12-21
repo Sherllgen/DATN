@@ -4,12 +4,17 @@ import Link from "next/link";
 
 const HeroSection = () => {
     return (
-        <section className="flex flex-col flex-1 justify-between gap-12 sm:gap-16 lg:gap-24 pt-8 sm:pt-16 lg:pt-24 min-h-[calc(100dvh-4rem)] overflow-x-hidden">
+        <section className="relative flex flex-col flex-1 justify-between gap-12 sm:gap-16 lg:gap-24 pt-8 sm:pt-16 lg:pt-20 min-h-[calc(100dvh-4rem)] overflow-x-hidden">
+            {/* Background Gradient */}
+            <div className="-z-10 absolute inset-0 bg-gradient-to from-blue-50 via-white to-purple-50" />
+            <div className="-z-10 absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.1),transparent_10%)]" />
+            <div className="-z-10 absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.1),transparent_10%)]" />
+
             {/* Hero Content */}
-            <div className="flex flex-col items-center gap-8 mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl text-center">
-                <div className="flex items-center gap-2.5 bg-muted px-3 py-2 border rounded-full">
+            <div className="z-10 relative flex flex-col items-center gap-8 mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl text-center">
+                <div className="flex items-center gap-2.5 bg-gray-200 px-3 py-2 border rounded-full">
                     <Badge>Smart & Automated</Badge>
-                    <span className="text-muted-foreground">
+                    <span className="text-black">
                         Nền tảng quản lý trạm sạc xe máy điện
                     </span>
                 </div>
@@ -56,23 +61,15 @@ const HeroSection = () => {
 
                 <p className="max-w-3xl text-muted-foreground">
                     Quản lý trạm sạc xe máy điện dễ dàng với nền tảng của chúng
-                    tôi: theo dõi trạng thái trạm theo thời gian thực, quản lý
-                    người dùng, thanh toán tự động và tối ưu hiệu suất vận hành
-                    <br />
-                    tất cả trong một hệ thống duy nhất.
+                    tôi: theo dõi trạng thái trạm theo thời gian thực, thanh
+                    toán tự động và tối ưu hiệu suất vận hành, tất cả trong một
+                    hệ thống duy nhất.
                 </p>
 
                 <Button size="lg" asChild>
-                    <Link href="#">Đăng ký ngay</Link>
+                    <Link href="/register">Đăng ký ngay</Link>
                 </Button>
             </div>
-
-            {/* Image */}
-            <img
-                src="https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/hero/image-19.png"
-                alt="Dishes"
-                className="w-full min-h-67 object-cover"
-            />
         </section>
     );
 };

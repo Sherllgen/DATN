@@ -15,7 +15,7 @@ export default function LoginPage() {
         <div className="grid lg:grid-cols-2 min-h-svh">
             <div className="flex flex-col gap-4 p-6 md:p-10">
                 <div className="flex flex-1 justify-center items-center">
-                    <div className="w-full max-w-xs">
+                    <div className="shadow-lg px-6 py-8 border border-gray-200 rounded-xl w-full max-w-sm">
                         <form className={cn("flex flex-col gap-6")}>
                             <FieldGroup>
                                 <div className="flex flex-col items-center gap-1 text-center">
@@ -67,11 +67,11 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-            <div className="hidden lg:block relative bg-muted">
+            <div className="hidden relative lg:flex justify-center items-center overflow-hidden">
                 <img
-                    src="/placeholder.svg"
+                    src="/images/bannerLogin.png"
                     alt="Image"
-                    className="absolute inset-0 dark:brightness-[0.2] dark:grayscale w-full h-full object-cover"
+                    className="top-1/2 left-1/2 absolute w-full object-cover -translate-x-1/2 -translate-y-1/2"
                 />
             </div>
         </div>
