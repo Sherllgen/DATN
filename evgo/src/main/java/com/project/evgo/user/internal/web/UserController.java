@@ -1,9 +1,12 @@
 package com.project.evgo.user.internal.web;
 
 import com.project.evgo.sharedkernel.dto.ApiResponse;
+import com.project.evgo.user.CloudinaryService;
 import com.project.evgo.user.UserService;
+import com.project.evgo.user.request.UpdateAvatarRequest;
 import com.project.evgo.user.request.UpdateProfileRequest;
 import com.project.evgo.user.request.ChangePasswordRequest;
+import com.project.evgo.user.response.UploadSignatureResponse;
 import com.project.evgo.user.response.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -11,9 +14,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -23,6 +30,8 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+
+    private final CloudinaryService cloudinaryService;
 
     @GetMapping("/me")
     @Operation(summary = "Get current user profile")
@@ -47,13 +56,48 @@ public class UserController {
         return ResponseEntity.ok(new ApiResponse<>(200, "Password changed successfully", null));
     }
 
-    // @PostMapping("/me/avatar")
-    // @Operation(summary = "Upload user avatar")
-    // public ResponseEntity<UserResponse> uploadAvatar(
-    // @AuthenticationPrincipal UserDetails userDetails,
-    // @RequestParam("file") MultipartFile file) {
-    // UserResponse response = userService.uploadAvatar(userDetails.getUsername(),
-    // file);
-    // return ResponseEntity.ok(response);
-    // }
+    @PostMapping("/me/avatar/upload-signature")
+    @Operation(summary = "Get Cloudinary upload signature for avatar")
+    public ResponseEntity<ApiResponse<?>> getAvatarUploadSignature(Authentication authentication) {
+        try {
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(401, "Unauthorized", null));
+            }
+            Map<String, String> signature = cloudinaryService.generateUploadSignature();
+
+            UploadSignatureResponse uploadSignatureResponse = new UploadSignatureResponse(
+                    signature.get("cloudName"),
+                    signature.get("apiKey"),
+                    signature.get("timestamp"),
+                    signature.get("signature"),
+                    signature.get("folder")
+            );
+            return ResponseEntity.ok(new ApiResponse<>(200, "Upload signature successfully", uploadSignatureResponse));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(500, "Failed to generate upload signature: " + e.getMessage(), null));
+        }
+    }
+
+    @PostMapping("/me/avatar")
+    @Operation(summary = "Update user avatar")
+    public ResponseEntity<ApiResponse<UserResponse>> updateAvatar(
+            Authentication authentication,
+            @Valid @RequestBody UpdateAvatarRequest request) {
+        try {
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(401, "Unauthorized", null));
+            }
+            UserResponse currentUser = userService.getCurrentUser();
+            Long userId = currentUser.id();
+            UserResponse response = userService.updateAvatar(userId, request.avatarUrl(), request.publicId());
+            return ResponseEntity.ok(new ApiResponse<>(200, "Avatar updated successfully", response));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(500, "Failed to update avatar: " + e.getMessage(), null));
+        }
+    }
+
 }

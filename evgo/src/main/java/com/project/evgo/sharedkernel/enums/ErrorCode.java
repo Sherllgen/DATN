@@ -27,9 +27,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(2001, HttpStatus.NOT_FOUND, "User not found"),
     PASSWORD_MISMATCH(2002, HttpStatus.BAD_REQUEST, "Password does not match"),
     CURRENT_PASSWORD_INCORRECT(2003, HttpStatus.BAD_REQUEST, "Current password is incorrect"),
-    FILE_UPLOAD_ERROR(2004, HttpStatus.INTERNAL_SERVER_ERROR, "File upload error"),
-    FILE_TYPE_NOT_SUPPORTED(2005, HttpStatus.BAD_REQUEST, "File type not supported"),
-
+    AVATAR_UPLOAD_FAILED(2004, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload avatar"),
     ;
 
     private final int code;
