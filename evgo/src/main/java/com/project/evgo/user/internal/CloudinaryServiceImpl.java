@@ -2,6 +2,8 @@ package com.project.evgo.user.internal;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.project.evgo.sharedkernel.enums.ErrorCode;
+import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.user.CloudinaryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -39,9 +41,14 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     }
 
     @Override
-    public void deleteImage(String publicId) throws IOException {
+    public void deleteImage(String publicId) {
         if (publicId != null && !publicId.isEmpty()) {
-            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            try {
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            } catch (IOException e) {
+                throw new AppException(ErrorCode.AVATAR_UPLOAD_FAILED, "Failed to delete image from Cloudinary: " + publicId);
+            }
         }
     }
+
 }
