@@ -2,8 +2,10 @@ package com.project.evgo.user.internal.web;
 
 import com.project.evgo.sharedkernel.dto.ApiResponse;
 import com.project.evgo.user.AuthService;
+import com.project.evgo.user.RegistrationService;
 import com.project.evgo.user.request.*;
 import com.project.evgo.user.response.AuthResponse;
+import com.project.evgo.user.response.RegistrationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
@@ -13,8 +15,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * REST Controller for authentication operations.
@@ -26,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final RegistrationService registrationService;
 
     @Value("${cookie.access-token.name:accessToken}")
     private String accessTokenCookieName;
@@ -167,6 +172,16 @@ public class AuthController {
         addTokenCookies(response, authResponse);
 
         return ResponseEntity.ok(new ApiResponse<>(200, "Google login successful", authResponse));
+    }
+
+    @PostMapping(path = "/register/station-owner", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Submit station owner registration", description = "Submit a new station owner registration with PDF form")
+    public ResponseEntity<ApiResponse<RegistrationResponse>> submitRegistration(
+            @RequestParam("registrationForm") MultipartFile registrationForm) {
+        RegistrationRequest request = new RegistrationRequest(registrationForm);
+        RegistrationResponse response = registrationService.submitRegistration(request);
+        return ResponseEntity
+                .ok(new ApiResponse<>(201, "Registration submitted successfully", response));
     }
 
     // ------------------------ Helper methods ------------------------

@@ -1,6 +1,7 @@
 package com.project.evgo.notification.internal;
 
 import com.project.evgo.notification.EmailService;
+import com.project.evgo.user.internal.User;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +73,180 @@ public class SmtpEmailServiceImpl implements EmailService {
             throw new RuntimeException("Failed to send email", e);
         }
     }
+
+    @Override
+    @Async
+    public void sendApprovalEmailWithPassword(String email, String fullName, String password) {
+        String subject = appName + " - Registration Approved";
+        String htmlContent = buildApprovalEmailWithPassword(email, fullName, password);
+
+        sendHtmlEmail(email, subject, htmlContent);
+    }
+
+
+    @Override
+    @Async
+    public void sendRejectionEmail(String email, String rejectionReason) {
+        String subject = appName + " - Registration Rejected";
+        String htmlContent = buildRejectionEmailHtml(rejectionReason);
+
+        sendHtmlEmail(email, subject, htmlContent);
+    }
+
+    private String buildApprovalEmailWithPassword(String email, String fullName, String password) {
+        return """
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <meta charset="UTF-8">
+                                <style>
+                                    /* Reset cơ bản */
+                                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #444; margin: 0; padding: 0; background-color: #f4f4f4; }
+                
+                                    /* Container chính: Thêm bóng đổ giúp nổi bật trên nền xám */
+                                    .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+                
+                                    /* HEADER XỊN: Gradient chéo mượt mà + Icon to */
+                                    .header {
+                                        background-color: #11998e; /* Fallback cho trình duyệt cũ */
+                                        background: linear-gradient(135deg, #11998e 0%%, #38ef7d 100%%);
+                                        color: white;
+                                        padding: 40px 20px;
+                                        text-align: center;
+                                    }
+                
+                                    .header h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+                                    .header p { margin: 10px 0 0; opacity: 0.9; font-size: 16px; }
+                
+                                    .content { padding: 40px 30px; }
+                
+                                    /* Password Box: Dùng font Monospace để phân biệt số 0 và chữ O, số 1 và chữ l */
+                                    .password-box {
+                                        background: #f0f7f4;
+                                        border: 2px dashed #11998e;
+                                        color: #333;
+                                        font-family: 'Courier New', Courier, monospace; /* QUAN TRỌNG: Font code */
+                                        font-size: 24px;
+                                        font-weight: bold;
+                                        letter-spacing: 2px;
+                                        padding: 20px;
+                                        text-align: center;
+                                        border-radius: 8px;
+                                        margin: 25px 0;
+                                    }
+                
+                                    .info-row { margin-bottom: 10px; font-size: 16px; }
+                                    .label { font-weight: bold; color: #555; }
+                
+                                    .warning {
+                                        background: #fff8e1;
+                                        border-left: 5px solid #ffc107;
+                                        padding: 15px;
+                                        margin-top: 30px;
+                                        border-radius: 4px;
+                                        color: #856404;
+                                        font-size: 14px;
+                                    }
+                
+                                    .footer {
+                                        text-align: center;
+                                        padding: 20px;
+                                        background-color: #f9f9f9;
+                                        color: #999;
+                                        font-size: 12px;
+                                        border-top: 1px solid #eee;
+                                    }
+                
+                                </style>
+                            </head>
+                            <body>
+                            <div class="container">
+                                <div class="header">
+                                    <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
+                                    <h1>%s</h1>
+                                    <p>Registration Approved Successfully!</p>
+                                </div>
+                
+                                <div class="content">
+                                    <h2 style="color: #11998e; margin-top: 0;">Hello, %s!</h2>
+                                    <p>We are pleased to inform you that your Station Owner profile has been reviewed and <strong>approved</strong>.</p>
+                
+                                    <p>Here are your account credentials:</p>
+                
+                                    <div class="info-row">
+                                        <span class="label">📧 Email:</span> %s
+                                    </div>
+                
+                                    <div class="info-row">
+                                        <span class="label">🔑 Temporary Password:</span>
+                                    </div>
+                
+                                    <div class="password-box">%s</div>
+                
+                                    <div class="warning">
+                                        <strong>⚠️ Security Notice:</strong><br>
+                                        This is a temporary password. Please change it immediately after your first login to secure your account.
+                                    </div>
+                                </div>
+                
+                                <div class="footer">
+                                    <p>Need help? Contact support@evgo.com</p>
+                                    <p>© 2025 %s. All rights reserved.</p>
+                                </div>
+                            </div>
+                            </body>
+                            </html>
+                """.formatted(
+                appName,
+                fullName,
+                email,
+                password,
+                appName
+        );
+    }
+
+
+    private String buildRejectionEmailHtml(String rejectionReason) {
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #f5576c 0%%, #f093fb 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .reason-box { background: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                    .footer { text-align: center; margin-top: 20px; color: #888; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>❌ %s</h1>
+                        <p>Registration Update</p>
+                    </div>
+                    <div class="content">
+                        <h2>Registration Not Approved</h2>
+                        <p>Unfortunately, your station owner registration has been <strong>rejected</strong>.</p>
+                        <div class="reason-box">
+                            <strong>Reason for Rejection:</strong><br>
+                            %s
+                        </div>
+                        <p>If you believe this is a mistake or have questions, please contact our support team.</p>
+                        <p>You can resubmit your registration after addressing the issues mentioned above.</p>
+                    </div>
+                    <div class="footer">
+                        <p>© 2024 %s. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+                .formatted(appName, rejectionReason, appName);
+    }
+
 
     private String buildVerificationEmailHtml(String otp) {
         return """

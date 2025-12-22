@@ -28,6 +28,17 @@ public enum ErrorCode {
     PASSWORD_MISMATCH(2002, HttpStatus.BAD_REQUEST, "Password does not match"),
     CURRENT_PASSWORD_INCORRECT(2003, HttpStatus.BAD_REQUEST, "Current password is incorrect"),
     AVATAR_UPLOAD_FAILED(2004, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload avatar"),
+
+    // PDF Parsing errors
+    PDF_PARSING_FAILED(3001, HttpStatus.BAD_REQUEST, "Failed to parse PDF file"),
+    INVALID_INPUT(3002, HttpStatus.BAD_REQUEST, "Invalid input data"),
+    FILE_TOO_LARGE(3003, HttpStatus.BAD_REQUEST, "Uploaded file is too large"),
+    FILE_UPLOAD_FAILED(3004, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload file"),
+
+    // Station Owner Profile errors
+    PROFILE_NOT_FOUND(4001, HttpStatus.NOT_FOUND, "Station owner profile not found"),
+    INVALID_STATUS(4002, HttpStatus.BAD_REQUEST, "Invalid station owner status"),
+    TOKEN_ALREADY_USED(4003, HttpStatus.BAD_REQUEST, "This activation token has already been used")
     ;
 
     private final int code;

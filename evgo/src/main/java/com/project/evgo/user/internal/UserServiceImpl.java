@@ -116,11 +116,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         // Delete old avatar from Cloudinary if exists
         if (user.getAvatarPublicId() != null && !user.getAvatarPublicId().isEmpty()) {
-            try {
-                cloudinaryService.deleteImage(user.getAvatarPublicId());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            cloudinaryService.deleteImage(user.getAvatarPublicId());
         }
 
         user.setAvatarUrl(avatarUrl);

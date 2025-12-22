@@ -1,12 +1,13 @@
 package com.project.evgo.user.internal;
 
+import com.project.evgo.sharedkernel.enums.StationOwnerStatus;
+import com.project.evgo.sharedkernel.enums.StationOwnerType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -26,28 +27,67 @@ public class StationOwnerProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false, unique = true)
-    private Long userId;
+//    @Column(name = "user_id", nullable = false, unique = true)
+//    private Long userId;
 
-    @Column(name = "business_name", nullable = false)
+    @OneToOne
+    @JoinColumn(name = "user_id", nullable = true)
+    private User user;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "owner_type", nullable = false)
+    private StationOwnerType ownerType;
+
+    // ===== INDIVIDUAL =====
+    @Column(name = "full_name")
+    private String fullName;
+
+    @Column(name = "identity_number")
+    private String idNumber;
+
+    // ===== ENTERPRISE only =====
+    @Column(name = "business_name")
     private String businessName;
+//
+//    @Column(name = "business_email")
+//    private String businessEmail;
 
-    @Column(name = "business_email")
-    private String businessEmail;
-
-    //TODO: check if needed
     @Column(name = "tax_code")
     private String taxCode;
 
+    // ===== COMMON =====
+    @Column(nullable = false)
+    private String email;
+
+    @Column(nullable = false)
+    private String phone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private StationOwnerStatus status;
+
+    // ===== BANK =====
     @Column(name = "bank_account")
     private String bankAccount;
 
     @Column(name = "bank_name")
     private String bankName;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
 
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    @Column(nullable = false)
+    private String pdfFilePath;
+
+    @CreationTimestamp
+    private LocalDateTime submittedAt;
+
+    private LocalDateTime reviewedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (status == null) {
+            status = StationOwnerStatus.PENDING;
+        }
+    }
 }
