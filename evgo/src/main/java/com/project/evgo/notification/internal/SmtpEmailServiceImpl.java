@@ -1,6 +1,7 @@
 package com.project.evgo.notification.internal;
 
 import com.project.evgo.notification.EmailService;
+import com.project.evgo.user.internal.User;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +73,114 @@ public class SmtpEmailServiceImpl implements EmailService {
             throw new RuntimeException("Failed to send email", e);
         }
     }
+
+    @Override
+    @Async
+    public void sendApprovalEmail(User user, String activationToken, String approvalMessage) {
+        String subject = appName + " - Registration Approved";
+        String htmlContent = buildApprovalEmailHtml(user.getFullName(), activationToken, approvalMessage);
+
+        sendHtmlEmail(user.getEmail(), subject, htmlContent);
+    }
+
+    @Override
+    @Async
+    public void sendRejectionEmail(String email, String rejectionReason) {
+        String subject = appName + " - Registration Rejected";
+        String htmlContent = buildRejectionEmailHtml(rejectionReason);
+
+        sendHtmlEmail(email, subject, htmlContent);
+    }
+
+    private String buildApprovalEmailHtml(String fullName, String activationToken, String approvalMessage) {
+        String activationLink = String.format("https://your-domain.com/activate?token=%s", activationToken);
+
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #11998e 0%%, #38ef7d 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .button { background: #11998e; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; font-weight: bold; }
+                    .message-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                    .footer { text-align: center; margin-top: 20px; color: #888; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>✅ %s</h1>
+                        <p>Registration Approved</p>
+                    </div>
+                    <div class="content">
+                        <h2>Congratulations, %s!</h2>
+                        <p>Your station owner registration has been <strong>approved</strong>.</p>
+                        <div class="message-box">
+                            <strong>Admin Message:</strong><br>
+                            %s
+                        </div>
+                        <p>Please click the button below to activate your account and set your password:</p>
+                        <div style="text-align: center;">
+                            <a href="%s" class="button">Activate Account</a>
+                        </div>
+                        <p style="color: #666; font-size: 14px;">This activation link will expire in 24 hours.</p>
+                        <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:<br><code>%s</code></p>
+                    </div>
+                    <div class="footer">
+                        <p>© 2024 %s. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+                .formatted(appName, fullName, approvalMessage, activationLink, activationLink, appName);
+    }
+
+    private String buildRejectionEmailHtml(String rejectionReason) {
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #f5576c 0%%, #f093fb 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .reason-box { background: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                    .footer { text-align: center; margin-top: 20px; color: #888; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>❌ %s</h1>
+                        <p>Registration Update</p>
+                    </div>
+                    <div class="content">
+                        <h2>Registration Not Approved</h2>
+                        <p>Unfortunately, your station owner registration has been <strong>rejected</strong>.</p>
+                        <div class="reason-box">
+                            <strong>Reason for Rejection:</strong><br>
+                            %s
+                        </div>
+                        <p>If you believe this is a mistake or have questions, please contact our support team.</p>
+                        <p>You can resubmit your registration after addressing the issues mentioned above.</p>
+                    </div>
+                    <div class="footer">
+                        <p>© 2024 %s. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+                .formatted(appName, rejectionReason, appName);
+    }
+
 
     private String buildVerificationEmailHtml(String otp) {
         return """

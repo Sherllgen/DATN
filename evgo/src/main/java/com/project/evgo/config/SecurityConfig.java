@@ -50,6 +50,7 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 							.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 							.requestMatchers(HttpMethod.GET, "/api/v1/stations/**").permitAll()
+                            .requestMatchers("/api/v1/admin/**").hasRole("SUPER_ADMIN")
 							.anyRequest().authenticated())
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
