@@ -76,12 +76,13 @@ public class SmtpEmailServiceImpl implements EmailService {
 
     @Override
     @Async
-    public void sendApprovalEmail(User user, String activationToken, String approvalMessage) {
+    public void sendApprovalEmailWithPassword(String email, String fullName, String password) {
         String subject = appName + " - Registration Approved";
-        String htmlContent = buildApprovalEmailHtml(user.getFullName(), activationToken, approvalMessage);
+        String htmlContent = buildApprovalEmailWithPassword(email, fullName, password);
 
-        sendHtmlEmail(user.getEmail(), subject, htmlContent);
+        sendHtmlEmail(email, subject, htmlContent);
     }
+
 
     @Override
     @Async
@@ -92,53 +93,57 @@ public class SmtpEmailServiceImpl implements EmailService {
         sendHtmlEmail(email, subject, htmlContent);
     }
 
-    private String buildApprovalEmailHtml(String fullName, String activationToken, String approvalMessage) {
-        String activationLink = String.format("https://your-domain.com/activate?token=%s", activationToken);
-
+    private String buildApprovalEmailWithPassword(String email, String fullName, String password) {
         return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #11998e 0%%, #38ef7d 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .button { background: #11998e; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; font-weight: bold; }
-                    .message-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 20px 0; border-radius: 4px; }
-                    .footer { text-align: center; margin-top: 20px; color: #888; font-size: 12px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>✅ %s</h1>
-                        <p>Registration Approved</p>
-                    </div>
-                    <div class="content">
-                        <h2>Congratulations, %s!</h2>
-                        <p>Your station owner registration has been <strong>approved</strong>.</p>
-                        <div class="message-box">
-                            <strong>Admin Message:</strong><br>
-                            %s
-                        </div>
-                        <p>Please click the button below to activate your account and set your password:</p>
-                        <div style="text-align: center;">
-                            <a href="%s" class="button">Activate Account</a>
-                        </div>
-                        <p style="color: #666; font-size: 14px;">This activation link will expire in 24 hours.</p>
-                        <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:<br><code>%s</code></p>
-                    </div>
-                    <div class="footer">
-                        <p>© 2024 %s. All rights reserved.</p>
-                    </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #4CAF50 0%%, #45a049 100%%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;}
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;}
+            .password-box { background: #4CAF50; color: white; font-size: 28px; font-weight: bold; letter-spacing: 4px; padding: 20px 40px; text-align: center; border-radius: 8px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; color: #888; font-size: 12px; }
+            .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; color: #856404; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>✅ %s</h1>
+                <p>Registration Approved!</p>
+            </div>
+            <div class="content">
+                <h2>Welcome, %s!</h2>
+                <p>Congratulations! Your station owner registration has been <strong>approved</strong>.</p>
+                <p>Your login credentials:</p>
+                <p><strong>Email:</strong> %s</p>
+                <p><strong>Temporary Password:</strong></p>
+                <div class="password-box">%s</div>
+                <div class="warning">
+                    <strong>⚠️ Security Notice:</strong><br>
+                    Please change this password immediately after your first login for security reasons.
                 </div>
-            </body>
-            </html>
-            """
-                .formatted(appName, fullName, approvalMessage, activationLink, activationLink, appName);
+                <p>You can now log in to your account and start managing your charging stations.</p>
+                <p>If you have any questions, please contact our support team.</p>
+            </div>
+            <div class="footer">
+                <p>© 2025 %s. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """.formatted(
+                appName,
+                fullName,
+                email,
+                password,
+                appName
+        );
     }
+
 
     private String buildRejectionEmailHtml(String rejectionReason) {
         return """

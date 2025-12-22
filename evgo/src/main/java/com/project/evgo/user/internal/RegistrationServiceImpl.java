@@ -15,10 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -30,9 +26,6 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     private final StationOwnerProfileRepository stationOwnerProfileRepository;
     private final PdfParsingService pdfParsingService;
-
-//    @Value("${app.upload.directory}")
-//    private String uploadDirectory;
 
     private final Cloudinary cloudinary;
 

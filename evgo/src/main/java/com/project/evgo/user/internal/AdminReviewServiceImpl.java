@@ -7,9 +7,7 @@ import com.project.evgo.sharedkernel.enums.StationOwnerStatus;
 import com.project.evgo.sharedkernel.enums.StationOwnerType;
 import com.project.evgo.sharedkernel.enums.UserStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
-import com.project.evgo.user.ActivationTokenService;
 import com.project.evgo.user.AdminReviewService;
-import com.project.evgo.user.request.ApprovalRequest;
 import com.project.evgo.user.request.RejectionRequest;
 import com.project.evgo.user.response.PendingRegistrationResponse;
 import com.project.evgo.user.response.RegistrationDetailResponse;
@@ -23,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -35,7 +32,6 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private final ActivationTokenService activationTokenService;
 
     @Override
     @Transactional(readOnly = true)
@@ -86,7 +82,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
 
     @Override
     @Transactional
-    public void approveRegistration(Long profileId, ApprovalRequest request) {
+    public void approveRegistration(Long profileId) {
         StationOwnerProfile profile = stationOwnerProfileRepository.findById(profileId)
                 .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND,
                         "Station owner profile not found"));
@@ -96,18 +92,23 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                     "Only pending registrations can be approved");
         }
 
-        User user = createUserFromProfile(profile);
+        String generatedPassword = generateRandomPassword(10);
+        User user = createUserFromProfile(profile, generatedPassword);
 
         profile.setUser(user);
         profile.setStatus(StationOwnerStatus.APPROVED);
         profile.setReviewedAt(LocalDateTime.now());
         stationOwnerProfileRepository.save(profile);
 
-        String activationToken = activationTokenService.generateActivationToken(user);
-        emailService.sendApprovalEmail(user, activationToken, request.approvalMessage());
+        emailService.sendApprovalEmailWithPassword(
+                user.getEmail(),
+                user.getFullName(),
+                generatedPassword
+        );
 
-        log.info("Registration approved for profile ID: {}", profileId);
+        log.info("Registration approved for profile ID: {} with auto-generated password", profileId);
     }
+
 
     @Override
     @Transactional
@@ -131,20 +132,19 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         log.info("Registration rejected for profile ID: {}", profileId);
     }
 
-    private User createUserFromProfile(StationOwnerProfile profile) {
+    private User createUserFromProfile(StationOwnerProfile profile, String rawPassword) {
         User user = new User();
         user.setEmail(profile.getEmail());
         user.setPhoneNumber(profile.getPhone());
-
-        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setPassword(passwordEncoder.encode(rawPassword));
 
         String fullName = profile.getOwnerType() == StationOwnerType.ENTERPRISE
                 ? profile.getBusinessName()
                 : profile.getFullName();
         user.setFullName(fullName);
 
-        user.setStatus(UserStatus.INACTIVE);
-        user.setEmailVerified(false);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(true);
 
         Role stationOwnerRole = roleRepository.findByName("STATION_OWNER")
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND,
@@ -153,5 +153,17 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         user.getRoles().add(stationOwnerRole);
 
         return userRepository.save(user);
+    }
+
+    private String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder password = new StringBuilder();
+        java.util.Random random = new java.util.Random();
+
+        for (int i = 0; i < length; i++) {
+            password.append(chars.charAt(random.nextInt(chars.length())));
+        }
+
+        return password.toString();
     }
 }

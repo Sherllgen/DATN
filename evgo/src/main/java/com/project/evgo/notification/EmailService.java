@@ -18,6 +18,7 @@ public interface EmailService {
      */
     void sendPasswordResetEmail(String email, String token);
 
-    void sendApprovalEmail(User user, String activationToken, String approvalMessage);
+    void sendApprovalEmailWithPassword(String email, String fullName, String password);
+
     void sendRejectionEmail(String email, String rejectionReason);
 }

@@ -90,7 +90,6 @@ app:
     from: ${MAIL_USERNAME}
     from-name: EV-Go Support
   upload:
-    directory: ${APP_UPLOAD_DIRECTORY:uploads/registrations}
     max-size: ${APP_UPLOAD_MAX_SIZE:10485760}
 
   activation:

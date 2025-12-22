@@ -3,7 +3,6 @@ package com.project.evgo.user.internal.web;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.user.AdminReviewService;
-import com.project.evgo.user.request.ApprovalRequest;
 import com.project.evgo.user.request.PaginationRequest;
 import com.project.evgo.user.request.RejectionRequest;
 import com.project.evgo.user.response.PendingRegistrationResponse;
@@ -58,9 +57,8 @@ public class AdminController {
     @PostMapping("/station-owner/{profileId}/approve")
     @Operation(summary = "Approve registration", description = "Approve a pending station owner registration (Admin only)")
     public ResponseEntity<ApiResponse<Void>> approveRegistration(
-            @PathVariable Long profileId,
-            @RequestBody ApprovalRequest request) {
-        adminReviewService.approveRegistration(profileId, request);
+            @PathVariable Long profileId) {
+        adminReviewService.approveRegistration(profileId);
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         HttpStatus.OK.value(),
