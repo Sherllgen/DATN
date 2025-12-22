@@ -57,6 +57,9 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "avatar_public_id")
+    private String avatarPublicId;
+
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 

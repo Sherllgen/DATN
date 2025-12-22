@@ -2,6 +2,7 @@ package com.project.evgo.user.internal;
 
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
+import com.project.evgo.user.CloudinaryService;
 import com.project.evgo.user.UserService;
 import com.project.evgo.user.internal.token.RefreshTokenService;
 import com.project.evgo.user.internal.token.TokenBlacklistService;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,7 +33,7 @@ public class UserServiceImpl implements UserService {
     private final UserDtoConverter userDtoConverter;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
-    private final TokenBlacklistService tokenBlacklistService;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     public Optional<UserResponse> findById(Long id) {
@@ -99,35 +101,33 @@ public class UserServiceImpl implements UserService {
         refreshTokenService.deleteAllForUser(user.getId());
     }
 
-    // @Override
-    // public UserResponse uploadAvatar(String email, MultipartFile file) {
-    // if (file.isEmpty()) {
-    // throw new AppException(ErrorCode.FILE_UPLOAD_ERROR, "File upload error");
-    // }
-    //
-    // // Validate file type
-    // String contentType = file.getContentType();
-    // if (contentType == null || !contentType.startsWith("image/")) {
-    // throw new AppException(ErrorCode.FILE_TYPE_NOT_SUPPORTED);
-    // }
-    //
-    // User user = userRepository.findByEmail(email)
-    // .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-    //
-    // // TODO: Implement file storage logic (e.g., save to disk, cloud storage)
-    // // For now, just store the filename
-    // String avatarUrl = "/uploads/avatars/" + file.getOriginalFilename();
-    // user.setAvatarUrl(avatarUrl);
-    //
-    // User updatedUser = userRepository.save(user);
-    // return userDtoConverter.convert(updatedUser);
-    // }
-
     private Long getCurrentUserId() {
         Long userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
         }
         return userId;
+    }
+
+    @Transactional
+    @Override
+    public UserResponse updateAvatar(Long userId, String avatarUrl, String publicId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        // Delete old avatar from Cloudinary if exists
+        if (user.getAvatarPublicId() != null && !user.getAvatarPublicId().isEmpty()) {
+            try {
+                cloudinaryService.deleteImage(user.getAvatarPublicId());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        user.setAvatarUrl(avatarUrl);
+        user.setAvatarPublicId(publicId);
+
+        userRepository.save(user);
+        return userDtoConverter.convert(user);
+
     }
 }
