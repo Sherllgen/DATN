@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -58,12 +57,8 @@ public class UserController {
 
     @PostMapping("/me/avatar/upload-signature")
     @Operation(summary = "Get Cloudinary upload signature for avatar")
-    public ResponseEntity<ApiResponse<?>> getAvatarUploadSignature(Authentication authentication) {
+    public ResponseEntity<ApiResponse<?>> getAvatarUploadSignature() {
         try {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new ApiResponse<>(401, "Unauthorized", null));
-            }
             Map<String, String> signature = cloudinaryService.generateUploadSignature();
 
             UploadSignatureResponse uploadSignatureResponse = new UploadSignatureResponse(
@@ -83,13 +78,8 @@ public class UserController {
     @PostMapping("/me/avatar")
     @Operation(summary = "Update user avatar")
     public ResponseEntity<ApiResponse<UserResponse>> updateAvatar(
-            Authentication authentication,
             @Valid @RequestBody UpdateAvatarRequest request) {
         try {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new ApiResponse<>(401, "Unauthorized", null));
-            }
             UserResponse currentUser = userService.getCurrentUser();
             Long userId = currentUser.id();
             UserResponse response = userService.updateAvatar(userId, request.avatarUrl(), request.publicId());
