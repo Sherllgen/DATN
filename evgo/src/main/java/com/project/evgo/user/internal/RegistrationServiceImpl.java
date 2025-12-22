@@ -1,5 +1,6 @@
 package com.project.evgo.user.internal;
 
+import com.cloudinary.Cloudinary;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.user.PdfParsingService;
@@ -18,6 +19,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -28,8 +31,10 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final StationOwnerProfileRepository stationOwnerProfileRepository;
     private final PdfParsingService pdfParsingService;
 
-    @Value("${app.upload.directory}")
-    private String uploadDirectory;
+//    @Value("${app.upload.directory}")
+//    private String uploadDirectory;
+
+    private final Cloudinary cloudinary;
 
     @Value("${app.upload.max-size}")
     private long maxFileSize;
@@ -81,22 +86,26 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     private String savePdfFile(MultipartFile file) {
         try {
-            Path uploadPath = Paths.get(uploadDirectory);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
+            Map<String, Object> uploadParams = new HashMap<>();
+            uploadParams.put("resource_type", "raw");
+            uploadParams.put("folder", "registration-forms");
+            uploadParams.put("public_id", UUID.randomUUID().toString());
+            uploadParams.put("format", "pdf");
 
-            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Path filePath = uploadPath.resolve(fileName);
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    uploadParams
+            );
 
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            String cloudinaryUrl = (String) uploadResult.get("secure_url");
+            log.info("PDF file uploaded to Cloudinary successfully: {}", cloudinaryUrl);
 
-            log.info("PDF file saved successfully: {}", filePath);
-            return filePath.toString();
+            return cloudinaryUrl;
 
         } catch (IOException e) {
-            log.error("Failed to save PDF file: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED, "Failed to save PDF file");
+            log.error("Failed to upload PDF file to Cloudinary: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED, "Failed to upload PDF file to Cloudinary");
         }
     }
+
 }
