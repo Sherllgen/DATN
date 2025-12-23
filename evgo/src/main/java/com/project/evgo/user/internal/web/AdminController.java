@@ -24,15 +24,19 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
     private final AdminReviewService adminReviewService;
 
-    @PostMapping("/station-owner/pending")
+    @GetMapping("/station-owner/pending")
     @Operation(summary = "Get pending registrations", description = "Retrieve all pending station owner registrations with pagination (Admin only)")
     public ResponseEntity<ApiResponse<PageResponse<PendingRegistrationResponse>>> getPendingRegistrations(
-            @RequestBody PaginationRequest request) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "ASC") String sortDir,
+            @RequestParam(defaultValue = "submittedAt") String sortBy) {
+
         Pageable pageable = PageRequest.of(
-                request.page(),
-                request.size(),
-                Sort.Direction.fromString(request.sortDirection()),
-                request.sortBy()
+                page,
+                size,
+                Sort.Direction.fromString(sortDir),
+                sortBy
         );
 
         PageResponse<PendingRegistrationResponse> registrations = adminReviewService.getPendingRegistrations(pageable);

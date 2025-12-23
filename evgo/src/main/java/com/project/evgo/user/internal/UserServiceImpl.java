@@ -2,10 +2,9 @@ package com.project.evgo.user.internal;
 
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
-import com.project.evgo.user.CloudinaryService;
+import com.project.evgo.sharedkernel.infra.FileStorageService;
 import com.project.evgo.user.UserService;
 import com.project.evgo.user.internal.token.RefreshTokenService;
-import com.project.evgo.user.internal.token.TokenBlacklistService;
 import com.project.evgo.user.request.ChangePasswordRequest;
 import com.project.evgo.user.request.UpdateProfileRequest;
 import com.project.evgo.user.response.UserResponse;
@@ -16,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,7 +31,7 @@ public class UserServiceImpl implements UserService {
     private final UserDtoConverter userDtoConverter;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
-    private final CloudinaryService cloudinaryService;
+    private final FileStorageService fileStorageService;
 
     @Override
     public Optional<UserResponse> findById(Long id) {
@@ -116,7 +114,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         // Delete old avatar from Cloudinary if exists
         if (user.getAvatarPublicId() != null && !user.getAvatarPublicId().isEmpty()) {
-            cloudinaryService.deleteImage(user.getAvatarPublicId());
+            fileStorageService.deleteImage(user.getAvatarPublicId());
         }
 
         user.setAvatarUrl(avatarUrl);

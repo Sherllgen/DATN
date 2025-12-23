@@ -3,8 +3,9 @@ package com.project.evgo.user.internal;
 import com.cloudinary.Cloudinary;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
+import com.project.evgo.sharedkernel.infra.FileStorageService;
 import com.project.evgo.user.PdfParsingService;
-import com.project.evgo.user.RegistrationService;
+import com.project.evgo.user.FileRegistrationService;
 import com.project.evgo.user.request.RegistrationRequest;
 import com.project.evgo.user.response.RegistrationResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +23,11 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RegistrationServiceImpl implements RegistrationService {
+public class FileRegistrationServiceImpl implements FileRegistrationService {
 
     private final StationOwnerProfileRepository stationOwnerProfileRepository;
     private final PdfParsingService pdfParsingService;
+    private final FileStorageService fileStorageService;
 
     private final Cloudinary cloudinary;
 
@@ -80,7 +82,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private String savePdfFile(MultipartFile file) {
         try {
             Map<String, Object> uploadParams = new HashMap<>();
-            uploadParams.put("resource_type", "raw");
+            uploadParams.put("resource_type", "image");
             uploadParams.put("folder", "registration-forms");
             uploadParams.put("public_id", UUID.randomUUID().toString());
             uploadParams.put("format", "pdf");
