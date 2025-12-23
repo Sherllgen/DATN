@@ -2,7 +2,7 @@ package com.project.evgo.user.internal.web;
 
 import com.project.evgo.sharedkernel.dto.ApiResponse;
 import com.project.evgo.user.AuthService;
-import com.project.evgo.user.RegistrationService;
+import com.project.evgo.user.FileRegistrationService;
 import com.project.evgo.user.request.*;
 import com.project.evgo.user.response.AuthResponse;
 import com.project.evgo.user.response.RegistrationResponse;
@@ -30,7 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AuthController {
 
     private final AuthService authService;
-    private final RegistrationService registrationService;
+    private final FileRegistrationService registrationService;
 
     @Value("${cookie.access-token.name:accessToken}")
     private String accessTokenCookieName;

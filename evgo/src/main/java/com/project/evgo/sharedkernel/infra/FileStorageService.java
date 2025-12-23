@@ -1,9 +1,8 @@
-package com.project.evgo.user;
+package com.project.evgo.sharedkernel.infra;
 
-import java.io.IOException;
 import java.util.Map;
 
-public interface CloudinaryService {
+public interface FileStorageService {
     Map<String,String> generateUploadSignature();
     void deleteImage(String publicId);
 }

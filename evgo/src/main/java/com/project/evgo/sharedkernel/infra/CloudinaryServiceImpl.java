@@ -1,12 +1,11 @@
-package com.project.evgo.user.internal;
+package com.project.evgo.sharedkernel.infra;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
-import com.project.evgo.user.CloudinaryService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -15,7 +14,8 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class CloudinaryServiceImpl implements CloudinaryService {
+@Slf4j
+public class CloudinaryServiceImpl implements FileStorageService {
 
     private final Cloudinary cloudinary;
 

@@ -47,6 +47,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 profile.getOwnerType() == StationOwnerType.INDIVIDUAL
                         ? profile.getFullName()
                         : profile.getBusinessName(),
+                profile.getPdfFilePath(),
                 profile.getSubmittedAt()
         ));
 

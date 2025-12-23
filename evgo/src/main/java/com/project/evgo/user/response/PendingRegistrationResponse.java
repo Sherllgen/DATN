@@ -11,5 +11,6 @@ public record PendingRegistrationResponse(
         String email,
         String phone,
         String name,
+        String pdfFileUrl,
         LocalDateTime submittedAt
 ) {}

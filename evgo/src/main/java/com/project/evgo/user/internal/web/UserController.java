@@ -1,7 +1,7 @@
 package com.project.evgo.user.internal.web;
 
 import com.project.evgo.sharedkernel.dto.ApiResponse;
-import com.project.evgo.user.CloudinaryService;
+import com.project.evgo.sharedkernel.infra.FileStorageService;
 import com.project.evgo.user.UserService;
 import com.project.evgo.user.request.UpdateAvatarRequest;
 import com.project.evgo.user.request.UpdateProfileRequest;
@@ -30,7 +30,7 @@ public class UserController {
 
     private final UserService userService;
 
-    private final CloudinaryService cloudinaryService;
+    private final FileStorageService fileStorageService;
 
     @GetMapping("/me")
     @Operation(summary = "Get current user profile")
@@ -59,7 +59,7 @@ public class UserController {
     @Operation(summary = "Get Cloudinary upload signature for avatar")
     public ResponseEntity<ApiResponse<?>> getAvatarUploadSignature() {
         try {
-            Map<String, String> signature = cloudinaryService.generateUploadSignature();
+            Map<String, String> signature = fileStorageService.generateUploadSignature();
 
             UploadSignatureResponse uploadSignatureResponse = new UploadSignatureResponse(
                     signature.get("cloudName"),
