@@ -9,11 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -108,10 +106,10 @@ public class PdfParsingServiceImpl implements PdfParsingService {
 
             // 2. Get common fields
             String email = formData.get(PDF_KEY_EMAIL);
-            profile.setEmail(email);
+            profile.setContactEmail(email);
 
             String phone = formData.get(PDF_KEY_PHONE);
-            profile.setPhone(phone);
+            profile.setContactPhone(phone);
 
             String bankAccount = formData.get(PDF_KEY_BANK_ACCOUNT);
             profile.setBankAccount(bankAccount);
@@ -144,11 +142,11 @@ public class PdfParsingServiceImpl implements PdfParsingService {
     }
 
     private void validateRequiredFields(StationOwnerProfile profile) {
-        if (profile.getEmail() == null || profile.getEmail().trim().isEmpty()) {
+        if (profile.getContactEmail() == null || profile.getContactEmail().trim().isEmpty()) {
             throw new AppException(ErrorCode.PDF_PARSING_FAILED, "Email is required in PDF");
         }
 
-        if (profile.getPhone() == null || profile.getPhone().trim().isEmpty()) {
+        if (profile.getContactPhone() == null || profile.getContactPhone().trim().isEmpty()) {
             throw new AppException(ErrorCode.PDF_PARSING_FAILED, "Phone is required in PDF");
         }
 
