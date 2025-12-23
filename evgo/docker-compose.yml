@@ -1,7 +1,9 @@
-version: '3.8'
+version: "3.8"
 
 services:
+  # =====================
   # PostgreSQL Database
+  # =====================
   postgres:
     image: postgres:17-alpine
     container_name: evgo-postgres
@@ -22,7 +24,9 @@ services:
       timeout: 5s
       retries: 5
 
+  # =====================
   # Redis Cache
+  # =====================
   redis:
     image: redis:7-alpine
     container_name: evgo-redis
@@ -39,6 +43,42 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # =====================
+  # Backend API
+  # =====================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: evgo-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+
+      # DB
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+    networks:
+      - evgo-network
 
 volumes:
   postgres_data:

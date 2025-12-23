@@ -21,24 +21,23 @@ import java.util.Map;
 @Service
 public class PdfParsingServiceImpl implements PdfParsingService {
 
-    private static final String PDF_KEY_IS_ENTERPRISE1 = "checkbox_1mujk";
-    private static final String PDF_KEY_IS_ENTERPRISE2 = "checkbox_2bbne";
-    private static final String PDF_VAL_ENTERPRISE_CHECKED = "Yes_jfop";
+    private static final String PDF_KEY_OWNER_TYPE_RADIO = "radio_group_1kyib";
+    private static final String PDF_VAL_TYPE_ENTERPRISE = "Value_fecy";
 
-    private static final String PDF_KEY_EMAIL = "text_3nnvd";
-    private static final String PDF_KEY_PHONE = "text_4ucpl";
+    private static final String PDF_KEY_EMAIL = "text_3qgxw";
+    private static final String PDF_KEY_PHONE = "text_4fdea";
 
     // Enterprise Fields
-    private static final String PDF_KEY_BUSINESS_NAME = "text_5nbzl";
-    private static final String PDF_KEY_TAX_CODE = "text_6pifz";
+    private static final String PDF_KEY_BUSINESS_NAME = "text_5brvf";
+    private static final String PDF_KEY_TAX_CODE = "text_6otuv";
 
     // Individual Fields
-    private static final String PDF_KEY_FULL_NAME = "text_7jfmj";
-    private static final String PDF_KEY_ID_NUMBER = "text_8olwt";
+    private static final String PDF_KEY_FULL_NAME = "text_7aclf";
+    private static final String PDF_KEY_ID_NUMBER = "text_8dyha";
 
     // Bank Fields
-    private static final String PDF_KEY_BANK_ACCOUNT = "text_9rvpu";
-    private static final String PDF_KEY_BANK_NAME = "text_10knbc";
+    private static final String PDF_KEY_BANK_ACCOUNT = "text_9eifn";
+    private static final String PDF_KEY_BANK_NAME = "text_10epel";
 
     @Override
     public StationOwnerProfile parseRegistrationPdf(MultipartFile file) {
@@ -95,15 +94,17 @@ public class PdfParsingServiceImpl implements PdfParsingService {
                 throw new AppException(ErrorCode.PDF_PARSING_FAILED, "No form data found in PDF");
             }
 
-            if (!formData.containsKey(PDF_KEY_IS_ENTERPRISE1) || !formData.containsKey(PDF_KEY_IS_ENTERPRISE2)) {
+            if (!formData.containsKey(PDF_KEY_OWNER_TYPE_RADIO)) {
                 throw new AppException(ErrorCode.PDF_PARSING_FAILED, "Owner type information is missing in PDF");
             }
 
-            String enterpriseVal = formData.get(PDF_KEY_IS_ENTERPRISE1);
-            boolean isEnterprise = PDF_VAL_ENTERPRISE_CHECKED.equals(enterpriseVal);
+            String ownerTypeVal = formData.get(PDF_KEY_OWNER_TYPE_RADIO);
+
+            boolean isEnterprise = PDF_VAL_TYPE_ENTERPRISE.equals(ownerTypeVal);
 
             StationOwnerType ownerType = isEnterprise ? StationOwnerType.ENTERPRISE : StationOwnerType.INDIVIDUAL;
             profile.setOwnerType(ownerType);
+
 
             // 2. Get common fields
             String email = formData.get(PDF_KEY_EMAIL);
@@ -118,12 +119,6 @@ public class PdfParsingServiceImpl implements PdfParsingService {
             String bankName = formData.get(PDF_KEY_BANK_NAME);
             profile.setBankName(bankName);
 
-            // 3. Get specific fields based on owner type
-            String businessName = null;
-            String taxCode = null;
-            String fullName = null;
-            String idNumber = null;
-
             if (ownerType == StationOwnerType.ENTERPRISE) {
                 profile.setBusinessName(formData.get(PDF_KEY_BUSINESS_NAME));
                 profile.setTaxCode(formData.get(PDF_KEY_TAX_CODE));
@@ -135,23 +130,6 @@ public class PdfParsingServiceImpl implements PdfParsingService {
             if (email == null || phone == null) {
                 throw new AppException(ErrorCode.EMAIL_OR_PHONE_REQUIRED);
             }
-
-//            String ownerTypeStr = formData.getOrDefault("ownerType", "INDIVIDUAL");
-//            profile.setOwnerType(StationOwnerType.valueOf(ownerTypeStr.toUpperCase()));
-//
-//            profile.setEmail(formData.get("email"));
-//            profile.setPhone(formData.get("phone"));
-//
-//            if (profile.getOwnerType() == StationOwnerType.ENTERPRISE) {
-//                profile.setBusinessName(formData.get("businessName"));
-//                profile.setTaxCode(formData.get("taxCode"));
-//            } else {
-//                profile.setFullName(formData.get("fullName"));
-//                profile.setIdNumber(formData.get("idNumber"));
-//            }
-//
-//            profile.setBankName(formData.get("bankName"));
-//            profile.setBankAccount(formData.get("bankAccount"));
 
             profile.setStatus(StationOwnerStatus.PENDING);
 
