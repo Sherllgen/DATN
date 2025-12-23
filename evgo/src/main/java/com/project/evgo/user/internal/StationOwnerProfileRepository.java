@@ -6,9 +6,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface StationOwnerProfileRepository extends JpaRepository<StationOwnerProfile, Long> {
     Page<StationOwnerProfile> findByStatus(StationOwnerStatus status, Pageable pageable);
-    Boolean existsByEmail(String email);
-    Boolean existsByPhone(String phone);
+    Boolean existsByContactEmail(String contactEmail);
+    Boolean existsByContactPhone(String contactPhone);
+    Optional<StationOwnerProfile> findByContactEmail(String contactEmail);
 }
