@@ -17,21 +17,20 @@ public class EvgoApplication {
     }
 
     public static void loadEnvFile() {
-        try {
-            File envFile = new File(".env");
-            if (envFile.exists()) {
-                Properties props = new Properties();
-                props.load(new FileInputStream(envFile));
+		try {
+			File envFile = new File(".env");
+			if (envFile.exists()) {
+				Properties props = new Properties();
+				props.load(new FileInputStream(envFile));
 
-                props.forEach((key, value) -> {
-                    System.setProperty(key.toString(), value.toString());
-                });
+				props.forEach((key, value) -> {
+					System.setProperty(key.toString(), value.toString());
+				});
 
-                System.out.println("Loaded " + props.size() + " properties from .env file");
-            }
-        } catch (IOException e) {
-            System.err.println("Could not load .env file: " + e.getMessage());
-        }
-    }
-
+				System.out.println("Loaded " + props.size() + " properties from .env file");
+			}
+		} catch (IOException e) {
+			System.err.println("Could not load .env file: " + e.getMessage());
+		}
+	}
 }
