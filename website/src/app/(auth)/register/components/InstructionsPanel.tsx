@@ -12,7 +12,7 @@ export function InstructionsPanel() {
                     </CardTitle>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 mt-2">
                 {/* Step 1 Guide */}
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -29,7 +29,7 @@ export function InstructionsPanel() {
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
                             <span>
-                                Download the Excel template from the system
+                                Download the Pdf template from the system
                             </span>
                         </li>
                         <li className="flex items-start gap-2">
@@ -37,10 +37,6 @@ export function InstructionsPanel() {
                             <span>
                                 Fill in all information for each section
                             </span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Review carefully before saving the file</span>
                         </li>
                     </ul>
                 </div>
@@ -63,10 +59,6 @@ export function InstructionsPanel() {
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
                             <span>Select the completed file</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />
-                            <span>Supports .xlsx, .xls, .pdf formats</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <div className="bg-primary/20 mt-1.5 rounded-full w-1 h-1 shrink-0" />

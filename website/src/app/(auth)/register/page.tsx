@@ -26,10 +26,10 @@ export default function RegisterPage() {
     const totalSteps = 3;
 
     const handleDownloadTemplate = () => {
-        // Simulate template download
+        // Download PDF template
         const link = document.createElement("a");
-        link.href = "/templates/charging-station-registration-template.xlsx";
-        link.download = "mau-ho-so-dang-ky-tram-sac.xlsx";
+        link.href = "/templates/registration-form.pdf";
+        link.download = "mau-ho-so-dang-ky-tram-sac.pdf";
         link.click();
 
         setTimeout(() => {
