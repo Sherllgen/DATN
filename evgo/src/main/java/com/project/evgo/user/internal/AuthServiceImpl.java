@@ -26,10 +26,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -70,9 +67,19 @@ public class AuthServiceImpl implements AuthService {
 
         // Check if email already exists
         if (request.email() != null && !request.email().isBlank()) {
-            if (userRepository.existsByEmail(request.email())) {
-                throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            Optional<User> userOpt = userRepository.findByEmail(request.email());
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                if (user.getStatus().equals(UserStatus.INACTIVE)) {
+                    throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS,
+                            "Email already registered but not verified. Please verify your email or use a different one.");
+                } else {
+                    throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+                }
             }
+//            if (userRepository.existsByEmail(request.email())) {
+//                throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+//            }
         }
 
         // Check if phone already exists
