@@ -1,14 +1,15 @@
 import { loginApi } from "@/apis/authApi/authApi";
 import SvgLogoGoogle from "@/assets/svg/SvgLogoGoogle";
-import { userStore } from "@/contexts/userContext";
+import { useAuthStore } from "@/contexts/auth.store";
+import { useUserStore } from "@/contexts/user.store";
 import { logAxiosError } from "@/utils/errorLogger";
-import { setAccessToken } from "@/utils/saveToken";
 import { isValidEmail } from "@/utils/validators";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
+    ActivityIndicator,
     ScrollView,
     Text,
     TextInput,
@@ -22,10 +23,14 @@ export default function LoginScreen() {
     const [password, setPassword] = useState<string>("");
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [showError, setShowError] = useState<string>("");
+    const [loading, setLoading] = useState<boolean>(false);
 
     const passwordInputRef = useRef<TextInput>(null);
+
     const router = useRouter();
-    const { setUser } = userStore();
+
+    const setUser = useUserStore((s) => s.setUser);
+    const setAccessToken = useAuthStore((s) => s.setAccessToken);
 
     const handleSignIn = async () => {
         const isUserNameValid = isValidEmail(username);
@@ -35,15 +40,19 @@ export default function LoginScreen() {
             return;
         }
 
+        setLoading(true);
+        setShowError("");
+
         try {
             const res = await loginApi(username, password);
             if (res.status === 200) {
                 setAccessToken(res.data.accessToken);
+
                 const data = {
-                    name: res.data.fullName,
-                    email: res.data.email,
-                    id: res.data.id,
-                    avatarUrl: res.data.avatarUrl,
+                    name: res.data.user.fullName,
+                    email: res.data.user.email,
+                    id: res.data.user.id,
+                    avatarUrl: res.data.user.avatarUrl,
                 };
                 setUser(data);
                 router.replace("/(tabs)/home");
@@ -54,9 +63,18 @@ export default function LoginScreen() {
                 return;
             }
 
+            if (error.status === 401) {
+                setShowError(
+                    "Email hoặc mật khẩu không đúng. Vui lòng thử lại."
+                );
+                return;
+            }
+
             setShowError("Đã có lỗi xảy ra. Vui lòng thử lại.");
 
             logAxiosError(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -150,10 +168,15 @@ export default function LoginScreen() {
                         className="items-center bg-secondary mb-6 py-4 rounded-full"
                         onPress={handleSignIn}
                         activeOpacity={0.8}
+                        disabled={loading}
                     >
-                        <Text className="font-semibold text-white text-base">
-                            Sign In
-                        </Text>
+                        {loading ? (
+                            <ActivityIndicator color="#FFFFFF" size="small" />
+                        ) : (
+                            <Text className="font-semibold text-white text-base">
+                                Sign In
+                            </Text>
+                        )}
                     </TouchableOpacity>
 
                     {/* Divider */}

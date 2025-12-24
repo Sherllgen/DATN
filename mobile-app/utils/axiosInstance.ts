@@ -1,5 +1,7 @@
+import { useAuthStore } from "@/contexts/auth.store";
 import axios from "axios";
-import { getAccessToken } from "./saveToken";
+
+const { accessToken } = useAuthStore();
 
 const axiosInstance = axios.create({
     withCredentials: true,
@@ -8,9 +10,8 @@ const axiosInstance = axios.create({
 // REQUEST INTERCEPTOR — gắn token & log yêu cầu
 axiosInstance.interceptors.request.use(
     async (config) => {
-        const token = await getAccessToken();
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
         }
 
         // Log request

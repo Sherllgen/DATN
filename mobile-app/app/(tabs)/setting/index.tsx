@@ -8,32 +8,23 @@ import {
     View,
 } from "react-native";
 
-import { getProfile } from "@/apis/profileApi/profileApi";
 import MenuItem from "@/components/setting_page/MenuItem";
-import { logAxiosError } from "@/utils/errorLogger";
+import { useAuthStore } from "@/contexts/auth.store";
+import { useUserStore } from "@/contexts/user.store";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingPage() {
-    const router = useRouter();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const router = useRouter();
 
-    const fetchUserData = async () => {
-        try {
-            const res = await getProfile();
-            if (res.status === 200) {
-                console.log("User Profile:", res.data);
-            }
-        } catch (error) {
-            logAxiosError(error);
-        }
-    };
+    const user = useUserStore((state) => state.user);
 
-    useEffect(() => {
-        fetchUserData();
-    }, []);
+    useFocusEffect(() => {
+        console.log(user);
+    });
 
     return (
         <LinearGradient
@@ -45,29 +36,62 @@ export default function SettingPage() {
             <SafeAreaView>
                 <ScrollView>
                     {/* Profile Section */}
-                    <TouchableOpacity
-                        className="flex-row items-center"
-                        activeOpacity={0.7}
-                        onPress={() => router.push("/setting/profile")}
-                    >
-                        <Image
-                            source={{ uri: "https://i.pravatar.cc/150?img=12" }}
-                            className="bg-[#4A5568] rounded-full w-[60px] h-[60px]"
-                        />
-                        <View className="flex-1 ml-4">
-                            <Text className="mb-1 font-semibold text-white text-lg">
-                                Andrew Ainsley
-                            </Text>
-                            <Text className="text-[#9BA1A6] text-sm">
-                                +1111467378399
-                            </Text>
-                        </View>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color="#9BA1A6"
-                        />
-                    </TouchableOpacity>
+                    {user ? (
+                        <TouchableOpacity
+                            className="flex-row items-center"
+                            activeOpacity={0.7}
+                            onPress={() => router.push("/setting/profile")}
+                        >
+                            <Image
+                                source={{
+                                    uri:
+                                        user.avatarUrl ||
+                                        "https://i.pravatar.cc/150?img=12",
+                                }}
+                                className="bg-[#4A5568] rounded-full w-[60px] h-[60px]"
+                            />
+                            <View className="flex-1 ml-4">
+                                <Text className="mb-1 font-semibold text-white text-lg">
+                                    {user.name || "User"}
+                                </Text>
+                                <Text className="text-[#9BA1A6] text-sm">
+                                    {user.email || ""}
+                                </Text>
+                            </View>
+                            <Ionicons
+                                name="chevron-forward"
+                                size={20}
+                                color="#9BA1A6"
+                            />
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            className="flex-row items-center py-4"
+                            activeOpacity={0.7}
+                            onPress={() => router.push("/auth/login")}
+                        >
+                            <View className="justify-center items-center bg-[#4A5568] rounded-full w-[60px] h-[60px]">
+                                <Ionicons
+                                    name="person-outline"
+                                    size={32}
+                                    color="#9BA1A6"
+                                />
+                            </View>
+                            <View className="flex-1 ml-6">
+                                <Text className="mb-1 font-semibold text-white">
+                                    Welcome back
+                                </Text>
+                                <Text className="text-[#9BA1A6] text-sm">
+                                    Tap to login or register
+                                </Text>
+                            </View>
+                            <Ionicons
+                                name="chevron-forward"
+                                size={20}
+                                color="#9BA1A6"
+                            />
+                        </TouchableOpacity>
+                    )}
 
                     <View className="bg-[#4A5568]/50 my-4 h-[1px]" />
 
@@ -117,15 +141,17 @@ export default function SettingPage() {
                     </View>
 
                     {/* Logout Button */}
-                    <TouchableOpacity
-                        className="mt-8 py-5"
-                        onPress={() => setShowLogoutModal(true)}
-                        activeOpacity={0.7}
-                    >
-                        <Text className="font-semibold text-[#FF3B30]">
-                            Logout
-                        </Text>
-                    </TouchableOpacity>
+                    {user && (
+                        <TouchableOpacity
+                            className="mt-8 py-5"
+                            onPress={() => setShowLogoutModal(true)}
+                            activeOpacity={0.7}
+                        >
+                            <Text className="font-semibold text-[#FF3B30]">
+                                Logout
+                            </Text>
+                        </TouchableOpacity>
+                    )}
 
                     <View className="h-10" />
                 </ScrollView>
@@ -165,6 +191,7 @@ export default function SettingPage() {
                             <TouchableOpacity
                                 className="flex-1 bg-secondary py-3 rounded-full"
                                 onPress={() => {
+                                    useAuthStore.getState().logout();
                                     setShowLogoutModal(false);
                                     router.replace("/auth/login");
                                 }}
