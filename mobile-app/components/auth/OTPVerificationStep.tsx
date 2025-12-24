@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 
 interface OTPVerificationStepProps {
-    phoneNumber: string;
+    email: string;
     otp: string[];
     onOTPChange: (index: number, value: string) => void;
     onOTPKeyPress: (index: number, key: string) => number | null;
@@ -13,7 +13,7 @@ interface OTPVerificationStepProps {
 }
 
 export default function OTPVerificationStep({
-    phoneNumber,
+    email,
     otp,
     onOTPChange,
     onOTPKeyPress,
@@ -67,7 +67,7 @@ export default function OTPVerificationStep({
                 Verify Code
             </Text>
             <Text className="mb-10 text-gray-400 text-sm text-center leading-5">
-                Please enter the verification code we sent to {phoneNumber}
+                Please enter the verification code we sent to {email}
             </Text>
 
             {/* OTP Input */}

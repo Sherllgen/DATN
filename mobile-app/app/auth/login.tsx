@@ -1,8 +1,11 @@
+import { loginApi } from "@/apis/authApi/authApi";
 import SvgLogoGoogle from "@/assets/svg/SvgLogoGoogle";
+import { setAccessToken } from "@/utils/saveToken";
+import { isValidEmail } from "@/utils/validators";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
     ScrollView,
     Text,
@@ -13,24 +16,41 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
+    const [username, setUsername] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [showError, setShowError] = useState<string>("");
 
+    const passwordInputRef = useRef<TextInput>(null);
     const router = useRouter();
 
-    const handleSignIn = () => {
-        router.replace("/(tabs)/home");
+    const handleSignIn = async () => {
+        const isUserNameValid = isValidEmail(username);
+
+        if (!isUserNameValid) {
+            setShowError("Email không hợp lệ. Vui lòng thử lại.");
+            return;
+        }
+
+        try {
+            const res = await loginApi(username, password);
+            if (res.status === 200) {
+                setAccessToken(res.data.accessToken);
+                router.replace("/(tabs)/home");
+            }
+        } catch (error: any) {
+            if (error.status === 409) {
+                setShowError("Email đã được sử dụng. Vui lòng thử lại.");
+                return;
+            }
+
+            setShowError("Đã có lỗi xảy ra. Vui lòng thử lại.");
+        }
     };
 
     const handleGoogleSignIn = () => {
         // Handle Google sign in
         console.log("Sign in with Google");
-    };
-
-    const handleFacebookSignIn = () => {
-        // Handle Facebook sign in
-        console.log("Sign in with Facebook");
     };
 
     return (
@@ -64,6 +84,10 @@ export default function LoginScreen() {
                             onChangeText={setUsername}
                             autoCapitalize="none"
                             keyboardType="email-address"
+                            returnKeyType="next"
+                            onSubmitEditing={() =>
+                                passwordInputRef.current?.focus()
+                            }
                         />
                     </View>
 
@@ -73,6 +97,7 @@ export default function LoginScreen() {
                     </Text>
                     <View className="flex-row items-center bg-primary/90 mb-4 px-2 py-[2px] rounded-full">
                         <TextInput
+                            ref={passwordInputRef}
                             className="flex-1 ml-3 text-white text-base"
                             placeholder="••••••••"
                             placeholderTextColor="#999"
@@ -80,6 +105,8 @@ export default function LoginScreen() {
                             onChangeText={setPassword}
                             secureTextEntry={!showPassword}
                             autoCapitalize="none"
+                            returnKeyType="done"
+                            onSubmitEditing={handleSignIn}
                         />
                         <TouchableOpacity
                             onPress={() => setShowPassword(!showPassword)}

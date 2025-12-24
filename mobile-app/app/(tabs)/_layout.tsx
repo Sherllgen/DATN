@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs, useRouter } from "expo-router";
 import React from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,11 +7,20 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { AppColors } from "@/constants/theme";
+import { getAccessToken } from "@/utils/saveToken";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 export default function TabLayout() {
-    const insets = useSafeAreaInsets();
     const TAB_HEIGHT = 80;
+
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
+
+    const isAuthenticated = getAccessToken();
+
+    if (!isAuthenticated) {
+        return <Redirect href="/auth/login" />;
+    }
 
     const CenterTabButton = ({ children, onPress }: any) => {
         return (
