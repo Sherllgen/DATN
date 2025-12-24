@@ -1,3 +1,4 @@
+import { setAccessToken } from "@/utils/saveToken";
 import { create } from "zustand";
 
 type User = {
@@ -13,8 +14,11 @@ type AuthState = {
     logout: () => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const userStore = create<AuthState>((set) => ({
     user: null,
     setUser: (u) => set({ user: u }),
-    logout: () => set({ user: null }),
+    logout: () => {
+        set({ user: null });
+        setAccessToken(null);
+    },
 }));

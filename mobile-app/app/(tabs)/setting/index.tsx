@@ -8,15 +8,32 @@ import {
     View,
 } from "react-native";
 
+import { getProfile } from "@/apis/profileApi/profileApi";
 import MenuItem from "@/components/setting_page/MenuItem";
+import { logAxiosError } from "@/utils/errorLogger";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingPage() {
     const router = useRouter();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const fetchUserData = async () => {
+        try {
+            const res = await getProfile();
+            if (res.status === 200) {
+                console.log("User Profile:", res.data);
+            }
+        } catch (error) {
+            logAxiosError(error);
+        }
+    };
+
+    useEffect(() => {
+        fetchUserData();
+    }, []);
 
     return (
         <LinearGradient

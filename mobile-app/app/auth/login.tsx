@@ -1,5 +1,7 @@
 import { loginApi } from "@/apis/authApi/authApi";
 import SvgLogoGoogle from "@/assets/svg/SvgLogoGoogle";
+import { userStore } from "@/contexts/userContext";
+import { logAxiosError } from "@/utils/errorLogger";
 import { setAccessToken } from "@/utils/saveToken";
 import { isValidEmail } from "@/utils/validators";
 import { FontAwesome5 } from "@expo/vector-icons";
@@ -23,6 +25,7 @@ export default function LoginScreen() {
 
     const passwordInputRef = useRef<TextInput>(null);
     const router = useRouter();
+    const { setUser } = userStore();
 
     const handleSignIn = async () => {
         const isUserNameValid = isValidEmail(username);
@@ -36,6 +39,13 @@ export default function LoginScreen() {
             const res = await loginApi(username, password);
             if (res.status === 200) {
                 setAccessToken(res.data.accessToken);
+                const data = {
+                    name: res.data.fullName,
+                    email: res.data.email,
+                    id: res.data.id,
+                    avatarUrl: res.data.avatarUrl,
+                };
+                setUser(data);
                 router.replace("/(tabs)/home");
             }
         } catch (error: any) {
@@ -45,6 +55,8 @@ export default function LoginScreen() {
             }
 
             setShowError("Đã có lỗi xảy ra. Vui lòng thử lại.");
+
+            logAxiosError(error);
         }
     };
 
@@ -126,6 +138,12 @@ export default function LoginScreen() {
                             Forget Password?
                         </Text>
                     </TouchableOpacity>
+
+                    {showError ? (
+                        <Text className="mb-4 text-red-500 text-center">
+                            {showError}
+                        </Text>
+                    ) : null}
 
                     {/* Sign In Button */}
                     <TouchableOpacity
