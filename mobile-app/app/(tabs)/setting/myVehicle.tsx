@@ -34,16 +34,21 @@ export default function MyVehiclePage() {
         { id: "1", brand: "VINFAST", modelName: "Evo Neo" },
         { id: "2", brand: "YADEA", modelName: "ODORA S2" },
     ]);
+
     const [refreshing, setRefreshing] = useState(false);
+
     const [showModal, setShowModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+
     const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(
         null
     );
     const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+
     const [selectedBrand, setSelectedBrand] = useState<VehicleBrand>("VINFAST");
     const [modelName, setModelName] = useState("");
     const [connectorTypes, setConnectorTypes] = useState<string[]>([]);
+
     const [errorMessage, setErrorMessage] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -57,16 +62,20 @@ export default function MyVehiclePage() {
         { label: "OTHER", value: "OTHER" },
     ]);
 
-    const handleAddVehicle = () => {
-        setEditingVehicle(null);
+    const resetVehicleForm = () => {
         setSelectedBrand("VINFAST");
         setModelName("");
         setConnectorTypes([]);
         setErrorMessage("");
+    };
+
+    const openCreateVehicleModal = () => {
+        setEditingVehicle(null);
+        resetVehicleForm();
         setShowModal(true);
     };
 
-    const handleEditVehicle = (vehicle: Vehicle) => {
+    const openEditVehicleModal = (vehicle: Vehicle) => {
         setEditingVehicle(vehicle);
         setSelectedBrand(vehicle.brand);
         setModelName(vehicle.modelName);
@@ -75,20 +84,18 @@ export default function MyVehiclePage() {
         setShowModal(true);
     };
 
-    const handleDeleteVehicle = (vehicleId: string) => {
+    const openDeleteVehicleModal = (vehicleId: string) => {
         setDeletingVehicleId(vehicleId);
         setShowDeleteModal(true);
     };
 
-    const confirmDelete = async () => {
-        if (!deletingVehicleId) {
-            return;
-        }
+    const deleteSelectedVehicle = async () => {
+        if (!deletingVehicleId) return;
 
         setIsDeleting(true);
         try {
             await deleteVehicleApi(deletingVehicleId);
-            await fetchAllVehicles();
+            await loadVehicles();
             Toast.success("Vehicle deleted successfully");
             setShowDeleteModal(false);
             setDeletingVehicleId(null);
@@ -100,7 +107,7 @@ export default function MyVehiclePage() {
         }
     };
 
-    const validateVehicleInput = () => {
+    const validateVehicleForm = () => {
         if (!modelName.trim()) {
             setErrorMessage("Vui lòng nhập tên xe");
             return false;
@@ -115,8 +122,8 @@ export default function MyVehiclePage() {
         return true;
     };
 
-    const handleAddNewVehicle = async () => {
-        if (!validateVehicleInput()) return;
+    const createVehicle = async () => {
+        if (!validateVehicleForm()) return;
 
         setIsSaving(true);
         try {
@@ -128,7 +135,7 @@ export default function MyVehiclePage() {
 
             if (res.status === 200 || res.status === 201) {
                 Toast.success("Vehicle added successfully");
-                await fetchAllVehicles();
+                await loadVehicles();
                 setShowModal(false);
             }
         } catch (error) {
@@ -139,8 +146,8 @@ export default function MyVehiclePage() {
         }
     };
 
-    const handleUpdateVehicle = async () => {
-        if (!validateVehicleInput() || !editingVehicle) return;
+    const updateVehicle = async () => {
+        if (!validateVehicleForm() || !editingVehicle) return;
 
         setIsSaving(true);
         try {
@@ -153,7 +160,7 @@ export default function MyVehiclePage() {
 
             if (res.status === 200 || res.status === 201) {
                 Toast.success("Vehicle updated successfully");
-                await fetchAllVehicles();
+                await loadVehicles();
                 setShowModal(false);
             }
         } catch (error) {
@@ -164,15 +171,15 @@ export default function MyVehiclePage() {
         }
     };
 
-    const handleSaveVehicle = async () => {
+    const submitVehicleForm = async () => {
         if (editingVehicle) {
-            await handleUpdateVehicle();
+            await updateVehicle();
         } else {
-            await handleAddNewVehicle();
+            await createVehicle();
         }
     };
 
-    const fetchAllVehicles = async () => {
+    const loadVehicles = async () => {
         try {
             const res = await getAllVehicleApi();
 
@@ -180,6 +187,7 @@ export default function MyVehiclePage() {
                 id: item.id,
                 brand: item.brand,
                 modelName: item.modelName,
+                connectorTypes: item.connectorTypes,
             }));
 
             setVehicles(data);
@@ -190,7 +198,7 @@ export default function MyVehiclePage() {
 
     useFocusEffect(
         useCallback(() => {
-            fetchAllVehicles();
+            loadVehicles();
         }, [])
     );
 
@@ -202,10 +210,8 @@ export default function MyVehiclePage() {
             className="flex-1 pb-[80px]"
         >
             <SafeAreaView className="flex-1">
-                {/* Header */}
                 <AppHeader title="My Vehicles" />
 
-                {/* Vehicle List Section */}
                 <ScrollView
                     className="flex-1 px-6"
                     refreshControl={
@@ -213,7 +219,7 @@ export default function MyVehiclePage() {
                             refreshing={refreshing}
                             onRefresh={async () => {
                                 setRefreshing(true);
-                                await fetchAllVehicles();
+                                await loadVehicles();
                                 setRefreshing(false);
                             }}
                             tintColor="#4CAF50"
@@ -226,7 +232,7 @@ export default function MyVehiclePage() {
                             <TouchableOpacity
                                 className="bg-secondary mb-4 px-4 py-2 rounded-lg"
                                 activeOpacity={0.7}
-                                onPress={handleAddVehicle}
+                                onPress={openCreateVehicleModal}
                             >
                                 <Text className="px-2 font-medium text-white">
                                     New
@@ -234,7 +240,6 @@ export default function MyVehiclePage() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Vehicle Cards */}
                         {vehicles.length === 0 ? (
                             <EmptyVehicleState />
                         ) : (
@@ -242,8 +247,8 @@ export default function MyVehiclePage() {
                                 <VehicleCard
                                     key={vehicle.id}
                                     vehicle={vehicle}
-                                    onEdit={handleEditVehicle}
-                                    onDelete={handleDeleteVehicle}
+                                    onEdit={openEditVehicleModal}
+                                    onDelete={openDeleteVehicleModal}
                                 />
                             ))
                         )}
@@ -253,7 +258,6 @@ export default function MyVehiclePage() {
                 </ScrollView>
             </SafeAreaView>
 
-            {/* Add/Edit Vehicle Modal */}
             <VehicleFormModal
                 visible={showModal}
                 editingVehicle={editingVehicle}
@@ -266,15 +270,14 @@ export default function MyVehiclePage() {
                 onBrandChange={setSelectedBrand}
                 onModelNameChange={setModelName}
                 onConnectorTypesChange={setConnectorTypes}
-                onSave={handleSaveVehicle}
+                onSave={submitVehicleForm}
                 isSaving={isSaving}
             />
 
-            {/* Delete Confirmation Modal */}
             <DeleteConfirmModal
                 visible={showDeleteModal}
                 onCancel={() => setShowDeleteModal(false)}
-                onConfirm={confirmDelete}
+                onConfirm={deleteSelectedVehicle}
                 isDeleting={isDeleting}
             />
         </LinearGradient>
