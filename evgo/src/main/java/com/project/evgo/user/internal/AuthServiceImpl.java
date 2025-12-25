@@ -77,9 +77,9 @@ public class AuthServiceImpl implements AuthService {
                     throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
                 }
             }
-//            if (userRepository.existsByEmail(request.email())) {
-//                throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
-//            }
+            // if (userRepository.existsByEmail(request.email())) {
+            //     throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            // }
         }
 
         // Check if phone already exists
@@ -305,7 +305,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void resendVerification(ResendVerificationRequest request) {
-        if (request.isEmail()) {
+        if (request.isEmailProvided()) {
             User user = userRepository.findByEmail(request.email())
                     .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "User not found"));
 
@@ -333,7 +333,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void forgotPassword(ForgotPasswordRequest request) {
         User user;
-        if (request.isEmail()) {
+        if (request.isEmailProvided()) {
             user = userRepository.findByEmail(request.email())
                     .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "User not found"));
 

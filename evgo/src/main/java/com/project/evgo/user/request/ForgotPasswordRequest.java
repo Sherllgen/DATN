@@ -18,7 +18,7 @@ public record ForgotPasswordRequest(
     }
 
     @com.fasterxml.jackson.annotation.JsonIgnore
-    public boolean isEmail() {
+    public boolean isEmailProvided() {
         return email != null && !email.isBlank();
     }
 }
