@@ -4,12 +4,14 @@ interface DeleteConfirmModalProps {
     visible: boolean;
     onCancel: () => void;
     onConfirm: () => void;
+    isDeleting?: boolean;
 }
 
 export default function DeleteConfirmModal({
     visible,
     onCancel,
     onConfirm,
+    isDeleting = false,
 }: DeleteConfirmModalProps) {
     return (
         <Modal
@@ -39,18 +41,22 @@ export default function DeleteConfirmModal({
                             className="flex-1 py-3 border border-gray-400 rounded-full"
                             activeOpacity={0.7}
                             onPress={onCancel}
+                            disabled={isDeleting}
                         >
                             <Text className="font-semibold text-white text-base text-center">
                                 Hủy
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            className="flex-1 bg-red-500 py-3 rounded-full"
+                            className={`flex-1 py-3 rounded-full ${
+                                isDeleting ? "bg-red-500/50" : "bg-red-500"
+                            }`}
                             activeOpacity={0.7}
                             onPress={onConfirm}
+                            disabled={isDeleting}
                         >
                             <Text className="font-semibold text-white text-base text-center">
-                                Xóa
+                                {isDeleting ? "Đang xóa..." : "Xóa"}
                             </Text>
                         </TouchableOpacity>
                     </View>

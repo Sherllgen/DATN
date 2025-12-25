@@ -9,22 +9,37 @@ interface DropdownItem {
 
 interface DropdownProps {
     label: string;
-    value: string;
+    value?: string;
+    defaultValue?: string;
     items: DropdownItem[];
     onValueChange: (value: string) => void;
     placeholder?: string;
+    disabled?: boolean;
 }
 
 export default function Dropdown({
     label,
     value,
+    defaultValue,
     items,
     onValueChange,
     placeholder = "Select an option",
+    disabled = false,
 }: DropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [internalValue, setInternalValue] = useState(defaultValue || "");
 
-    const selectedItem = items.find((item) => item.value === value);
+    // Use controlled value if provided, otherwise use internal value
+    const currentValue = value !== undefined ? value : internalValue;
+    const selectedItem = items.find((item) => item.value === currentValue);
+
+    const handleValueChange = (newValue: string) => {
+        if (value === undefined) {
+            setInternalValue(newValue);
+        }
+        onValueChange(newValue);
+        setIsOpen(false);
+    };
 
     return (
         <View className="mt-4">
@@ -32,10 +47,11 @@ export default function Dropdown({
             <TouchableOpacity
                 className="flex-row justify-between items-center pb-3 border-[#4A5568] border-b"
                 activeOpacity={0.7}
-                onPress={() => setIsOpen(!isOpen)}
+                onPress={() => !disabled && setIsOpen(!isOpen)}
+                disabled={disabled}
             >
                 <Text className="text-[#4CAF50] text-base">
-                    {selectedItem?.label || placeholder}
+                    {selectedItem?.label || defaultValue || placeholder}
                 </Text>
                 <Ionicons
                     name={isOpen ? "chevron-up" : "chevron-down"}
@@ -54,24 +70,21 @@ export default function Dropdown({
                                 index !== items.length - 1
                                     ? "border-b border-[#4A5568]"
                                     : ""
-                            } ${value === item.value ? "bg-[#4CAF50]/20" : ""}`}
+                            } ${currentValue === item.value ? "bg-[#4CAF50]/20" : ""}`}
                             activeOpacity={0.7}
-                            onPress={() => {
-                                onValueChange(item.value);
-                                setIsOpen(false);
-                            }}
+                            onPress={() => handleValueChange(item.value)}
                         >
                             <View className="flex-row justify-between items-center">
                                 <Text
                                     className={`text-base ${
-                                        value === item.value
+                                        currentValue === item.value
                                             ? "text-[#4CAF50] font-semibold"
                                             : "text-white"
                                     }`}
                                 >
                                     {item.label}
                                 </Text>
-                                {value === item.value && (
+                                {currentValue === item.value && (
                                     <Ionicons
                                         name="checkmark"
                                         size={20}

@@ -4,9 +4,8 @@ import "react-native-reanimated";
 
 import * as SplashScreen from "expo-splash-screen";
 
-import { AuthProvider } from "@/contexts/AuthContext";
-
 import { LinearGradient } from "expo-linear-gradient";
+import ToastManager from "toastify-react-native";
 import "../global.css";
 
 export const unstable_settings = {
@@ -31,35 +30,34 @@ const BlackTheme = {
 
 export default function RootLayout() {
     return (
-        <AuthProvider>
-            <LinearGradient
-                colors={["#33404F", "#000000"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                className="flex-1"
-            >
-                <ThemeProvider value={BlackTheme}>
-                    <Stack
-                        screenOptions={{
-                            animation: "fade",
-                            animationDuration: 1550,
-                        }}
-                    >
-                        <Stack.Screen
-                            name="(tabs)"
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="auth"
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="payment"
-                            options={{ headerShown: false }}
-                        />
-                    </Stack>
-                </ThemeProvider>
-            </LinearGradient>
-        </AuthProvider>
+        <LinearGradient
+            colors={["#33404F", "#000000"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            className="flex-1"
+        >
+            <ThemeProvider value={BlackTheme}>
+                <Stack
+                    screenOptions={{
+                        animation: "fade",
+                        animationDuration: 1550,
+                    }}
+                >
+                    <Stack.Screen
+                        name="(tabs)"
+                        options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="auth"
+                        options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="payment"
+                        options={{ headerShown: false }}
+                    />
+                </Stack>
+            </ThemeProvider>
+            <ToastManager duration={1500} />
+        </LinearGradient>
     );
 }

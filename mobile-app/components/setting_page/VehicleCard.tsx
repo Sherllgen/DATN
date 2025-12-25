@@ -13,6 +13,7 @@ export interface Vehicle {
     id: string;
     brand: VehicleBrand;
     modelName: string;
+    connectorTypes?: string[];
 }
 
 interface VehicleCardProps {
