@@ -25,7 +25,14 @@ export async function registerApi(
     return res.data;
 }
 
-export async function verifyEmailOtp(otp: string, email: string) {
+export async function loginGoogleApi(idToken: string) {
+    const res = await axios.post(`${API_BACKEND_URL}/api/v1/auth/google`, {
+        idToken,
+    });
+    return res.data;
+}
+
+export async function verifyEmailOtpApi(otp: string, email: string) {
     const res = await axios.post(
         `${API_BACKEND_URL}/api/v1/auth/verify-email`,
         {
@@ -37,12 +44,44 @@ export async function verifyEmailOtp(otp: string, email: string) {
     return res.data;
 }
 
-export async function resendEmailOtp(email: string) {
+export async function changePasswordApi(
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string
+) {
+    const res = await axios.put(`${API_BACKEND_URL}/api/v1/users/me/password`, {
+        currentPassword,
+        newPassword,
+        confirmPassword,
+    });
+
+    return res.data;
+}
+
+export async function forgotPasswordApi(email: string) {
     const res = await axios.post(
-        `${API_BACKEND_URL}/api/v1/auth/resend-email-otp`,
+        `${API_BACKEND_URL}/api/v1/auth/forgot-password`,
         {
             email,
         }
     );
+
+    return res.data;
+}
+
+export async function resetPasswordApi(
+    token: string,
+    newPassword: string,
+    confirmPassword: string
+) {
+    const res = await axios.post(
+        `${API_BACKEND_URL}/api/v1/auth/reset-password`,
+        {
+            token,
+            newPassword,
+            confirmPassword,
+        }
+    );
+
     return res.data;
 }
