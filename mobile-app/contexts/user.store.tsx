@@ -2,8 +2,11 @@ import { create } from "zustand";
 
 type User = {
     id: string;
-    name: string;
+    fullName: string;
     email: string;
+    phone?: string;
+    gender?: string;
+    birthday?: string;
     avatarUrl?: string;
 };
 

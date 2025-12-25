@@ -12,7 +12,7 @@ import MenuItem from "@/components/setting_page/MenuItem";
 import { useAuthStore } from "@/contexts/auth.store";
 import { useUserStore } from "@/contexts/user.store";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,10 +21,6 @@ export default function SettingPage() {
     const router = useRouter();
 
     const user = useUserStore((state) => state.user);
-
-    useFocusEffect(() => {
-        console.log(user);
-    });
 
     return (
         <LinearGradient
@@ -46,13 +42,13 @@ export default function SettingPage() {
                                 source={{
                                     uri:
                                         user.avatarUrl ||
-                                        "https://i.pravatar.cc/150?img=12",
+                                        "https://i.pravatar.cc/150",
                                 }}
                                 className="bg-[#4A5568] rounded-full w-[60px] h-[60px]"
                             />
                             <View className="flex-1 ml-4">
                                 <Text className="mb-1 font-semibold text-white text-lg">
-                                    {user.name || "User"}
+                                    {user.fullName || "User"}
                                 </Text>
                                 <Text className="text-[#9BA1A6] text-sm">
                                     {user.email || ""}
@@ -97,22 +93,29 @@ export default function SettingPage() {
 
                     {/* Menu Items */}
                     <View>
-                        <MenuItem
-                            title="Personal Info"
-                            onPress={() => router.push("/setting/profile")}
-                        />
-
-                        <MenuItem
-                            title="My Vehicle"
-                            onPress={() => router.push("/setting/myVehicle")}
-                        />
-
-                        <View className="bg-[#4A5568]/50 my-2 h-[1px]" />
-
-                        <MenuItem
-                            title="Payment Methods"
-                            onPress={() => console.log("Payment Methods")}
-                        />
+                        {user && (
+                            <>
+                                <MenuItem
+                                    title="Personal Info"
+                                    onPress={() =>
+                                        router.push("/setting/profile")
+                                    }
+                                />
+                                <MenuItem
+                                    title="My Vehicle"
+                                    onPress={() =>
+                                        router.push("/setting/myVehicle")
+                                    }
+                                />
+                                <View className="bg-[#4A5568]/50 my-2 h-[1px]" />
+                                <MenuItem
+                                    title="Payment Methods"
+                                    onPress={() =>
+                                        console.log("Payment Methods")
+                                    }
+                                />
+                            </>
+                        )}
                         <MenuItem
                             title="Security"
                             onPress={() => console.log("Security")}
@@ -121,14 +124,11 @@ export default function SettingPage() {
                             title="Privacy Policy"
                             onPress={() => console.log("Privacy Policy")}
                         />
-
                         <View className="bg-[#4A5568]/50 my-2 h-[1px]" />
-
                         <MenuItem
                             title="Help Center"
                             onPress={() => console.log("Help Center")}
                         />
-
                         <MenuItem
                             title="Language"
                             rightText="English (US)"

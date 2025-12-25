@@ -47,17 +47,12 @@ export default function LoginScreen() {
             const res = await loginApi(username, password);
             if (res.status === 200) {
                 setAccessToken(res.data.accessToken);
-
-                const data = {
-                    name: res.data.user.fullName,
-                    email: res.data.user.email,
-                    id: res.data.user.id,
-                    avatarUrl: res.data.user.avatarUrl,
-                };
-                setUser(data);
+                setUser(res.data.user);
                 router.replace("/(tabs)/home");
             }
         } catch (error: any) {
+            logAxiosError(error);
+
             if (error.status === 409) {
                 setShowError("Email đã được sử dụng. Vui lòng thử lại.");
                 return;
@@ -70,9 +65,19 @@ export default function LoginScreen() {
                 return;
             }
 
-            setShowError("Đã có lỗi xảy ra. Vui lòng thử lại.");
+            // Xử lý lỗi tài khoản chưa xác thực
+            if (
+                error.status === 403 &&
+                (error.response?.data?.status === 1006 ||
+                    error.response?.data?.message === "Account not verified")
+            ) {
+                setShowError(
+                    "Tài khoản chưa được xác thực. Vui lòng kiểm tra email để xác thực tài khoản."
+                );
+                return;
+            }
 
-            logAxiosError(error);
+            setShowError("Đã có lỗi xảy ra. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }

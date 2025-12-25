@@ -57,7 +57,7 @@ export default function RootLayout() {
                     />
                 </Stack>
             </ThemeProvider>
-            <ToastManager duration={1000} />
+            <ToastManager duration={1500} />
         </LinearGradient>
     );
 }

@@ -56,7 +56,7 @@ export default function VehicleFormModal({
                 activeOpacity={1}
             >
                 <TouchableOpacity activeOpacity={1}>
-                    <View className="bg-[#33404F] pb-8 rounded-t-3xl">
+                    <View className="bg-[#333739] pb-8 rounded-t-3xl">
                         <View className="flex-row justify-between items-center px-6 py-4 border-[#4A5568] border-b">
                             <Text className="font-semibold text-white text-lg">
                                 {editingVehicle
