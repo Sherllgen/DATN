@@ -12,7 +12,7 @@ import MenuItem from "@/components/setting_page/MenuItem";
 import { useAuthStore } from "@/contexts/auth.store";
 import { useUserStore } from "@/contexts/user.store";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { Href, useRouter } from "expo-router";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -118,7 +118,9 @@ export default function SettingPage() {
                         )}
                         <MenuItem
                             title="Security"
-                            onPress={() => console.log("Security")}
+                            onPress={() =>
+                                router.push("/setting/security" as Href)
+                            }
                         />
                         <MenuItem
                             title="Privacy Policy"

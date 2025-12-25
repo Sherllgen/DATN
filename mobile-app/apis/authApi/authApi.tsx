@@ -36,3 +36,13 @@ export async function verifyEmailOtp(otp: string, email: string) {
 
     return res.data;
 }
+
+export async function resendEmailOtp(email: string) {
+    const res = await axios.post(
+        `${API_BACKEND_URL}/api/v1/auth/resend-email-otp`,
+        {
+            email,
+        }
+    );
+    return res.data;
+}

@@ -20,3 +20,19 @@ export async function updateProfileApi(data: {
 
     return res.data;
 }
+
+export async function getUploadSignature() {
+    const res = await axiosInstance.post(
+        `${API_BACKEND_URL}/api/v1/users/me/avatar/upload-signature`,
+        {}
+    );
+    return res.data;
+}
+
+export async function uploadAvatarApi(avatarUrl: string, publicId: string) {
+    const res = await axiosInstance.post(
+        `${API_BACKEND_URL}/api/v1/users/me/avatar`,
+        { avatarUrl, publicId }
+    );
+    return res.data;
+}

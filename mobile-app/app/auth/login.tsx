@@ -65,15 +65,16 @@ export default function LoginScreen() {
                 return;
             }
 
-            // Xử lý lỗi tài khoản chưa xác thực
+            // Xử lý lỗi tài khoản chưa xác thực - chuyển đến màn hình verify
             if (
                 error.status === 403 &&
                 (error.response?.data?.status === 1006 ||
                     error.response?.data?.message === "Account not verified")
             ) {
-                setShowError(
-                    "Tài khoản chưa được xác thực. Vui lòng kiểm tra email để xác thực tài khoản."
-                );
+                router.push({
+                    pathname: "/auth/otp-verify",
+                    params: { email: username },
+                });
                 return;
             }
 

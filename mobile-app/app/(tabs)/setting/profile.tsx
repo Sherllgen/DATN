@@ -1,4 +1,9 @@
-import { getProfileApi, updateProfileApi } from "@/apis/profileApi/profileApi";
+import {
+    getProfileApi,
+    getUploadSignature,
+    updateProfileApi,
+    uploadAvatarApi,
+} from "@/apis/profileApi/profileApi";
 import AppHeader from "@/components/ui/AppHeader";
 import Dropdown from "@/components/ui/Dropdown";
 import ImagePickerModal from "@/components/ui/ImagePickerModal";
@@ -12,6 +17,7 @@ import { useCallback, useState } from "react";
 
 import {
     Image,
+    RefreshControl,
     ScrollView,
     Text,
     TextInput,
@@ -29,6 +35,7 @@ export default function ProfilePage() {
     const user = useUserStore((state) => state.user);
     const setUser = useUserStore((state) => state.setUser);
     const [isChanged, setIsChanged] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [state, setState] = useState({
         fullName: user?.fullName || "",
         gender: (user?.gender as Gender) || "",
@@ -63,10 +70,12 @@ export default function ProfilePage() {
         });
 
         if (!result.canceled && result.assets[0]) {
+            const imageUri = result.assets[0].uri;
             setState((prev) => ({
                 ...prev,
-                profileImage: result.assets[0].uri,
+                profileImage: imageUri,
             }));
+            await updateAvatar(imageUri);
         }
     };
 
@@ -89,10 +98,12 @@ export default function ProfilePage() {
         });
 
         if (!result.canceled && result.assets[0]) {
+            const imageUri = result.assets[0].uri;
             setState((prev) => ({
                 ...prev,
-                profileImage: result.assets[0].uri,
+                profileImage: imageUri,
             }));
+            await updateAvatar(imageUri);
         }
     };
 
@@ -118,6 +129,67 @@ export default function ProfilePage() {
         }
 
         return true;
+    };
+
+    const updateAvatar = async (imageUri: string) => {
+        try {
+            // Bước 1: Lấy signature từ backend
+            const signatureRes = await getUploadSignature();
+            const { signature, timestamp, apiKey, cloudName, folder } =
+                signatureRes.data;
+
+            // Bước 2: Upload lên Cloudinary
+            const formData = new FormData();
+            const imageFile = {
+                uri: imageUri,
+                type: "image/jpeg",
+                name: "avatar.jpg",
+            } as any;
+
+            formData.append("file", imageFile);
+            formData.append("signature", signature);
+            formData.append("timestamp", timestamp);
+            formData.append("api_key", apiKey);
+            formData.append("folder", folder);
+
+            console.log("Uploading to Cloudinary with:", {
+                cloudName,
+                folder,
+                timestamp,
+            });
+
+            const cloudinaryResponse = await fetch(
+                `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+                {
+                    method: "POST",
+                    body: formData,
+                }
+            );
+
+            const cloudinaryData = await cloudinaryResponse.json();
+            console.log("Cloudinary response:", cloudinaryData);
+
+            if (!cloudinaryResponse.ok) {
+                console.error("Cloudinary error details:", cloudinaryData);
+                throw new Error(
+                    `Cloudinary upload failed: ${cloudinaryData.error?.message || "Unknown error"}`
+                );
+            }
+
+            // Bước 3: Lưu URL vào database
+            const { secure_url, public_id } = cloudinaryData;
+            const res = await uploadAvatarApi(secure_url, public_id);
+
+            if (res.status === 200 || res.status === 201) {
+                setUser(res.data);
+                Toast.success("Avatar updated successfully!");
+                await fetchProfile();
+            }
+        } catch (error) {
+            console.error("Upload avatar error:", error);
+            logAxiosError(error);
+            Toast.error("Failed to update avatar");
+        }
     };
 
     const updateProfile = async () => {
@@ -153,6 +225,8 @@ export default function ProfilePage() {
                 profileImage: res.data.avatarUrl,
                 phoneNumber: res.data.phone,
             }));
+
+            setIsChanged(false);
         } catch (error) {
             logAxiosError(error);
         }
@@ -212,7 +286,21 @@ export default function ProfilePage() {
                 )}
 
                 {/* Form Section */}
-                <ScrollView className="flex-1 mt-6 px-6">
+                <ScrollView
+                    className="flex-1 mt-6 px-6"
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={async () => {
+                                setRefreshing(true);
+                                await fetchProfile();
+                                setRefreshing(false);
+                            }}
+                            tintColor="#4CAF50"
+                            colors={["#4CAF50"]}
+                        />
+                    }
+                >
                     {/* Full name */}
                     <View className="mt-5">
                         <Text className="mb-1 text-[#9BA1A6] text-sm">
