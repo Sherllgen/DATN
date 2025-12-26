@@ -42,8 +42,8 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         Page<PendingRegistrationResponse> responsePage = profiles.map(profile -> new PendingRegistrationResponse(
                 profile.getId(),
                 profile.getOwnerType(),
-                profile.getEmail(),
-                profile.getPhone(),
+                profile.getContactEmail(),
+                profile.getContactPhone(),
                 profile.getOwnerType() == StationOwnerType.INDIVIDUAL
                         ? profile.getFullName()
                         : profile.getBusinessName(),
@@ -69,8 +69,8 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 profile.getIdNumber(),
                 profile.getBusinessName(),
                 profile.getTaxCode(),
-                profile.getEmail(),
-                profile.getPhone(),
+                profile.getContactEmail(),
+                profile.getContactPhone(),
                 profile.getBankAccount(),
                 profile.getBankName(),
                 profile.getStatus(),
@@ -128,15 +128,15 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         profile.setReviewedAt(LocalDateTime.now());
         stationOwnerProfileRepository.save(profile);
 
-        emailService.sendRejectionEmail(profile.getEmail(), request.reason());
+        emailService.sendRejectionEmail(profile.getContactEmail(), request.reason());
 
         log.info("Registration rejected for profile ID: {}", profileId);
     }
 
     private User createUserFromProfile(StationOwnerProfile profile, String rawPassword) {
         User user = new User();
-        user.setEmail(profile.getEmail());
-        user.setPhoneNumber(profile.getPhone());
+        user.setEmail(profile.getContactEmail());
+        user.setPhoneNumber(profile.getContactPhone());
         user.setPassword(passwordEncoder.encode(rawPassword));
 
         String fullName = profile.getOwnerType() == StationOwnerType.ENTERPRISE

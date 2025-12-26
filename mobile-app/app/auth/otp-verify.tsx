@@ -1,4 +1,6 @@
+import { verifyEmailOtp } from "@/apis/authApi/authApi";
 import OTPVerificationStep from "@/components/auth/OTPVerificationStep";
+import { logAxiosError } from "@/utils/errorLogger";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
@@ -6,7 +8,7 @@ import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function OTPVerifyScreen() {
-    const { phoneNumber } = useLocalSearchParams<{ phoneNumber: string }>();
+    const { email } = useLocalSearchParams<{ email: string }>();
     const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
     const handleOTPChange = (index: number, value: string) => {
@@ -29,16 +31,21 @@ export default function OTPVerifyScreen() {
         return null;
     };
 
-    const handleVerifyOTP = () => {
+    const handleVerifyOTP = async () => {
         const otpCode = otp.join("");
         console.log("Verifying OTP:", otpCode);
-        // Logic to verify OTP
-        // After successful verification, navigate to next screen
-        // router.replace("/(tabs)/home");
+        try {
+            const res = await verifyEmailOtp(otpCode, email);
+            if (res.status === 200 || res.status === 201) {
+                router.replace("/auth/login");
+            }
+        } catch (error) {
+            logAxiosError(error);
+        }
     };
 
     const handleResendOTP = () => {
-        console.log("Resending OTP to:", phoneNumber);
+        console.log("Resending OTP to:", email);
         // Logic to resend OTP
         setOtp(["", "", "", "", "", ""]);
     };
@@ -61,7 +68,7 @@ export default function OTPVerifyScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     <OTPVerificationStep
-                        phoneNumber={phoneNumber || ""}
+                        email={email || ""}
                         otp={otp}
                         onOTPChange={handleOTPChange}
                         onOTPKeyPress={handleOTPKeyPress}

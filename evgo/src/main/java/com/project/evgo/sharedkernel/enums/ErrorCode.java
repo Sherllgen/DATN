@@ -38,7 +38,8 @@ public enum ErrorCode {
     // Station Owner Profile errors
     PROFILE_NOT_FOUND(4001, HttpStatus.NOT_FOUND, "Station owner profile not found"),
     INVALID_STATUS(4002, HttpStatus.BAD_REQUEST, "Invalid station owner status"),
-    TOKEN_ALREADY_USED(4003, HttpStatus.BAD_REQUEST, "This activation token has already been used")
+    TOKEN_ALREADY_USED(4003, HttpStatus.BAD_REQUEST, "This activation token has already been used"),
+    RESOURCE_ALREADY_EXISTS(4004, HttpStatus.BAD_REQUEST, "The resource is already in use")
     ;
 
     private final int code;

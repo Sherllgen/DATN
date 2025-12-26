@@ -1,9 +1,17 @@
+import { loginApi, loginGoogleApi } from "@/apis/authApi/authApi";
 import SvgLogoGoogle from "@/assets/svg/SvgLogoGoogle";
+import { useAuthStore } from "@/contexts/auth.store";
+import { useUserStore } from "@/contexts/user.store";
+import { logAxiosError } from "@/utils/errorLogger";
+import { isValidEmail } from "@/utils/validators";
 import { FontAwesome5 } from "@expo/vector-icons";
+import * as Google from "expo-auth-session/providers/google";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
-import React, { useState } from "react";
+import * as WebBrowser from "expo-web-browser";
+import React, { useEffect, useRef, useState } from "react";
 import {
+    ActivityIndicator,
     ScrollView,
     Text,
     TextInput,
@@ -12,26 +20,137 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+WebBrowser.maybeCompleteAuthSession();
+
 export default function LoginScreen() {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
+    const [username, setUsername] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [showError, setShowError] = useState<string>("");
+    const [loading, setLoading] = useState<boolean>(false);
+    const [googleLoading, setGoogleLoading] = useState<boolean>(false);
+
+    const passwordInputRef = useRef<TextInput>(null);
 
     const router = useRouter();
 
-    const handleSignIn = () => {
-        router.replace("/(tabs)/home");
+    const setUser = useUserStore((s) => s.setUser);
+    const setAccessToken = useAuthStore((s) => s.setAccessToken);
+
+    // Google OAuth với expo-auth-session/providers/google
+    const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+        clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || "",
+    });
+
+    // Log redirect URI để thêm vào Google Console
+
+    const handleSignIn = async () => {
+        const isUserNameValid = isValidEmail(username);
+
+        if (!isUserNameValid) {
+            setShowError("Email không hợp lệ. Vui lòng thử lại.");
+            return;
+        }
+
+        setLoading(true);
+        setShowError("");
+
+        try {
+            const res = await loginApi(username, password);
+            if (res.status === 200) {
+                setAccessToken(res.data.accessToken);
+                setUser(res.data.user);
+                router.replace("/(tabs)/home");
+            }
+        } catch (error: any) {
+            logAxiosError(error);
+
+            if (error.status === 409) {
+                setShowError("Email đã được sử dụng. Vui lòng thử lại.");
+                return;
+            }
+
+            if (error.status === 401) {
+                setShowError(
+                    "Email hoặc mật khẩu không đúng. Vui lòng thử lại."
+                );
+                return;
+            }
+
+            // Xử lý lỗi tài khoản chưa xác thực - chuyển đến màn hình verify
+            if (
+                error.status === 403 &&
+                (error.response?.data?.status === 1006 ||
+                    error.response?.data?.message === "Account not verified")
+            ) {
+                router.push({
+                    pathname: "/auth/otp-verify",
+                    params: { email: username },
+                });
+                return;
+            }
+
+            setShowError("Đã có lỗi xảy ra. Vui lòng thử lại.");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleGoogleSignIn = () => {
-        // Handle Google sign in
-        console.log("Sign in with Google");
+    const handleGoogleLogin = async (idToken: string) => {
+        try {
+            setGoogleLoading(true);
+            setShowError("");
+
+            const res = await loginGoogleApi(idToken);
+            if (res.status === 200) {
+                setAccessToken(res.data.accessToken);
+                setUser(res.data.user);
+                router.replace("/(tabs)/home");
+            }
+        } catch (error: any) {
+            logAxiosError(error);
+            setShowError("Đăng nhập Google thất bại. Vui lòng thử lại.");
+        } finally {
+            setGoogleLoading(false);
+        }
     };
 
-    const handleFacebookSignIn = () => {
-        // Handle Facebook sign in
-        console.log("Sign in with Facebook");
+    const handleGoogleSignIn = async () => {
+        setGoogleLoading(true);
+        setShowError("");
+        try {
+            await promptAsync();
+        } catch (error) {
+            console.error("Google Sign In Error:", error);
+            setShowError("Đăng nhập Google thất bại. Vui lòng thử lại.");
+            setGoogleLoading(false);
+        }
     };
+
+    useEffect(() => {
+        if (request?.redirectUri) {
+            console.log("🔗 Add this Redirect URI to Google Console:");
+            console.log(request.redirectUri);
+        }
+    }, [request]);
+
+    useEffect(() => {
+        if (response?.type === "success") {
+            const { id_token } = response.params;
+            if (id_token) {
+                handleGoogleLogin(id_token);
+            }
+        } else if (response?.type === "error") {
+            console.error("Google Auth Error:", response.error);
+            setShowError("Đăng nhập Google thất bại. Vui lòng thử lại.");
+            setGoogleLoading(false);
+        } else if (
+            response?.type === "dismiss" ||
+            response?.type === "cancel"
+        ) {
+            setGoogleLoading(false);
+        }
+    }, [response]);
 
     return (
         <LinearGradient
@@ -64,6 +183,10 @@ export default function LoginScreen() {
                             onChangeText={setUsername}
                             autoCapitalize="none"
                             keyboardType="email-address"
+                            returnKeyType="next"
+                            onSubmitEditing={() =>
+                                passwordInputRef.current?.focus()
+                            }
                         />
                     </View>
 
@@ -73,6 +196,7 @@ export default function LoginScreen() {
                     </Text>
                     <View className="flex-row items-center bg-primary/90 mb-4 px-2 py-[2px] rounded-full">
                         <TextInput
+                            ref={passwordInputRef}
                             className="flex-1 ml-3 text-white text-base"
                             placeholder="••••••••"
                             placeholderTextColor="#999"
@@ -80,6 +204,8 @@ export default function LoginScreen() {
                             onChangeText={setPassword}
                             secureTextEntry={!showPassword}
                             autoCapitalize="none"
+                            returnKeyType="done"
+                            onSubmitEditing={handleSignIn}
                         />
                         <TouchableOpacity
                             onPress={() => setShowPassword(!showPassword)}
@@ -94,21 +220,35 @@ export default function LoginScreen() {
                     </View>
 
                     {/* Forget Password */}
-                    <TouchableOpacity className="items-end mb-10">
+                    {/* <TouchableOpacity
+                        className="items-end mb-10"
+                        onPress={() => router.push("/auth/forgot-password")}
+                    >
                         <Text className="text-gray-400 text-sm">
                             Forget Password?
                         </Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
+
+                    {showError ? (
+                        <Text className="mb-4 text-red-500 text-center">
+                            {showError}
+                        </Text>
+                    ) : null}
 
                     {/* Sign In Button */}
                     <TouchableOpacity
                         className="items-center bg-secondary mb-6 py-4 rounded-full"
                         onPress={handleSignIn}
                         activeOpacity={0.8}
+                        disabled={loading}
                     >
-                        <Text className="font-semibold text-white text-base">
-                            Sign In
-                        </Text>
+                        {loading ? (
+                            <ActivityIndicator color="#FFFFFF" size="small" />
+                        ) : (
+                            <Text className="font-semibold text-white text-base">
+                                Sign In
+                            </Text>
+                        )}
                     </TouchableOpacity>
 
                     {/* Divider */}

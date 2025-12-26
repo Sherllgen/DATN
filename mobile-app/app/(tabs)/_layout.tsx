@@ -10,8 +10,8 @@ import { AppColors } from "@/constants/theme";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 export default function TabLayout() {
-    const insets = useSafeAreaInsets();
     const TAB_HEIGHT = 80;
+    const insets = useSafeAreaInsets();
 
     const CenterTabButton = ({ children, onPress }: any) => {
         return (

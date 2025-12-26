@@ -7,10 +7,12 @@ import com.project.evgo.sharedkernel.exceptions.AppException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +50,31 @@ public class CloudinaryServiceImpl implements FileStorageService {
             } catch (IOException e) {
                 throw new AppException(ErrorCode.AVATAR_UPLOAD_FAILED, "Failed to delete image from Cloudinary: " + publicId);
             }
+        }
+    }
+
+    @Override
+    public String savePdfFile(MultipartFile file) {
+        try {
+            Map<String, Object> uploadParams = new HashMap<>();
+            uploadParams.put("resource_type", "image");
+            uploadParams.put("folder", "registration-forms");
+            uploadParams.put("public_id", UUID.randomUUID().toString());
+            uploadParams.put("format", "pdf");
+
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    uploadParams
+            );
+
+            String cloudinaryUrl = (String) uploadResult.get("secure_url");
+            log.info("PDF file uploaded to Cloudinary successfully: {}", cloudinaryUrl);
+
+            return cloudinaryUrl;
+
+        } catch (IOException e) {
+            log.error("Failed to upload PDF file to Cloudinary: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED, "Failed to upload PDF file to Cloudinary");
         }
     }
 

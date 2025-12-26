@@ -1,21 +1,8 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomePage() {
-    const fetchData = () => {
-        console.log("Fetching Home...");
-    };
-
-    useFocusEffect(
-        useCallback(() => {
-            fetchData();
-
-            return () => {};
-        }, [])
-    );
     return (
         <LinearGradient
             colors={["#33404F", "#000000"]}

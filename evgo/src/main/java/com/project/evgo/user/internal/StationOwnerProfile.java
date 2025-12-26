@@ -56,11 +56,11 @@ public class StationOwnerProfile {
     private String taxCode;
 
     // ===== COMMON =====
-    @Column(nullable = false)
-    private String email;
+    @Column(name = "contact_email", nullable = false)
+    private String contactEmail;
 
-    @Column(nullable = false)
-    private String phone;
+    @Column(name = "contact_phone", nullable = false)
+    private String contactPhone;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -76,7 +76,7 @@ public class StationOwnerProfile {
     @Column(columnDefinition = "TEXT")
     private String rejectionReason;
 
-    @Column(nullable = false)
+    @Column(name = "pdf_file_path", nullable = false)
     private String pdfFilePath;
 
     @CreationTimestamp

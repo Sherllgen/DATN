@@ -13,6 +13,7 @@ export interface Vehicle {
     id: string;
     brand: VehicleBrand;
     modelName: string;
+    connectorTypes?: string[];
 }
 
 interface VehicleCardProps {
@@ -26,6 +27,8 @@ export default function VehicleCard({
     onEdit,
     onDelete,
 }: VehicleCardProps) {
+    console.log("vehile: ", vehicle);
+
     return (
         <View className="bg-[#4A5568]/20 mb-4 p-4 border border-[#4A5568] rounded-lg">
             <View className="flex-row justify-between items-start">
@@ -42,6 +45,10 @@ export default function VehicleCard({
                     </View>
                     <Text className="mt-2 text-[#ccc] text-sm">
                         Model: {vehicle.modelName}
+                    </Text>
+                    <Text className="mt-2 text-[#ccc] text-sm">
+                        Connectors:{" "}
+                        {vehicle.connectorTypes?.join(", ") || "N/A"}
                     </Text>
                 </View>
 
