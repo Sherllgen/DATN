@@ -5,6 +5,9 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.project.evgo.user.security.JwtTokenProvider;
+
+import jakarta.annotation.PostConstruct;
+
 import com.project.evgo.notification.EmailService;
 import com.project.evgo.notification.SmsService;
 import com.project.evgo.sharedkernel.enums.AuthProvider;
@@ -57,6 +60,16 @@ public class AuthServiceImpl implements AuthService {
     @Value("${google.client-id:}")
     private String googleClientId;
 
+    private GoogleIdTokenVerifier googleIdTokenVerifier;
+
+    @PostConstruct
+    public void init() {
+        this.googleIdTokenVerifier = new GoogleIdTokenVerifier.Builder(
+                new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                .setAudience(Arrays.asList(googleClientId.split(",")))
+                .build();
+    }
+
     @Override
     @Transactional
     public void register(RegisterRequest request) {
@@ -78,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
                 }
             }
             // if (userRepository.existsByEmail(request.email())) {
-            //     throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            // throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
             // }
         }
 
@@ -134,10 +147,8 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
         }
 
-        // Check if account is active
-        if (user.getStatus() == UserStatus.BLOCKED) {
-            throw new AppException(ErrorCode.ACCOUNT_DISABLED);
-        }
+        // Check if account status allows login
+        validateAccountStatus(user);
 
         log.info("User logged in successfully: {}", user.getId());
         return generateAuthResponse(user);
@@ -167,6 +178,9 @@ public class AuthServiceImpl implements AuthService {
             }
             userRepository.save(user);
         }
+
+        // Check if account status allows login
+        validateAccountStatus(user);
 
         log.info("User logged in with Google: {}", user.getId());
         return generateAuthResponse(user);
@@ -238,6 +252,9 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "User not found"));
 
+        // Check if account status allows token refresh
+        validateAccountStatus(user);
+
         // Delete old refresh token
         refreshTokenService.delete(refreshToken);
 
@@ -276,7 +293,10 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "User not found"));
 
         user.setEmailVerified(true);
-        user.setStatus(UserStatus.ACTIVE);
+        // Only activate if account is INACTIVE (not BLOCKED/DELETED)
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            user.setStatus(UserStatus.ACTIVE);
+        }
         userRepository.save(user);
 
         log.info("Email verified for user: {}", user.getId());
@@ -297,7 +317,10 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "User not found"));
 
         user.setPhoneVerified(true);
-        user.setStatus(UserStatus.ACTIVE);
+        // Only activate if account is INACTIVE (not BLOCKED/DELETED)
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            user.setStatus(UserStatus.ACTIVE);
+        }
         userRepository.save(user);
 
         log.info("Phone verified for user: {}", user.getId());
@@ -383,6 +406,22 @@ public class AuthServiceImpl implements AuthService {
         return userRepository.findByEmail(identifier)
                 .or(() -> userRepository.findByPhoneNumber(identifier))
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
+    }
+
+    /**
+     * Validate that user account status allows access.
+     * Throws exception if account is BLOCKED or DELETED.
+     */
+    private void validateAccountStatus(User user) {
+        if (user.getStatus() == UserStatus.BLOCKED) {
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is blocked");
+        }
+        if (user.getStatus() == UserStatus.DELETED) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND, "Account not found");
+        }
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED, "Account is not verified");
+        }
     }
 
     private AuthResponse generateAuthResponse(User user) {
