@@ -33,8 +33,6 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Logo } from "@/components/logo";
-import { MegaMenu } from "@/components/landing/mega-menu";
-import { ModeToggle } from "@/components/mode-toggle";
 import { useTheme } from "@/hooks/use-theme";
 
 const navigationItems = [
@@ -103,31 +101,19 @@ export function LandingNavbar() {
                     <NavigationMenuList>
                         {navigationItems.map((item: any) => (
                             <NavigationMenuItem key={item.name}>
-                                {item.hasMegaMenu ? (
-                                    <>
-                                        <NavigationMenuTrigger className="bg-transparent data-[state=open]:bg-transparent data-active:bg-transparent hover:bg-transparent focus:bg-transparent px-4 py-2 font-medium hover:text-primary focus:text-primary text-sm transition-colors cursor-pointer">
-                                            {item.name}
-                                        </NavigationMenuTrigger>
-                                        <NavigationMenuContent>
-                                            <MegaMenu />
-                                        </NavigationMenuContent>
-                                    </>
-                                ) : (
-                                    <NavigationMenuLink
-                                        className="group inline-flex justify-center items-center px-4 py-2 focus:outline-none w-max h-10 font-medium hover:text-primary focus:text-primary text-sm transition-colors cursor-pointer"
-                                        onClick={(e: React.MouseEvent) => {
-                                            e.preventDefault();
-                                            if (item.href.startsWith("#")) {
-                                                smoothScrollTo(item.href);
-                                            } else {
-                                                window.location.href =
-                                                    item.href;
-                                            }
-                                        }}
-                                    >
-                                        {item.name}
-                                    </NavigationMenuLink>
-                                )}
+                                <NavigationMenuLink
+                                    className="group inline-flex justify-center items-center px-4 py-2 focus:outline-none w-max h-10 font-medium hover:text-primary focus:text-primary text-sm transition-colors cursor-pointer"
+                                    onClick={(e: React.MouseEvent) => {
+                                        e.preventDefault();
+                                        if (item.href.startsWith("#")) {
+                                            smoothScrollTo(item.href);
+                                        } else {
+                                            window.location.href = item.href;
+                                        }
+                                    }}
+                                >
+                                    {item.name}
+                                </NavigationMenuLink>
                             </NavigationMenuItem>
                         ))}
                     </NavigationMenuList>

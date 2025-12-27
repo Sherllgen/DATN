@@ -8,16 +8,33 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import Link from "next/link";
 import Image from "next/image";
+import { loginAction } from "../actions";
+import { useActionState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export function LoginForm3({
     className,
     ...props
 }: React.ComponentProps<"div">) {
+    const router = useRouter();
+    const formRef = useRef<HTMLFormElement>(null);
+    const [state, formAction, isPending] = useActionState(
+        async (prevState: any, formData: FormData) => {
+            const result = await loginAction(formData);
+            return result;
+        },
+        { success: false, message: "" }
+    );
+
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card className="p-0 overflow-hidden">
                 <CardContent className="grid md:grid-cols-2 p-0">
-                    <form className="p-6 md:p-8" action="/dashboard">
+                    <form
+                        ref={formRef}
+                        className="p-6 md:p-8"
+                        action={formAction}
+                    >
                         <div className="flex flex-col gap-6">
                             <div className="flex justify-center mb-2">
                                 <Link
@@ -44,10 +61,12 @@ export function LoginForm3({
                                 <Label htmlFor="email">Email</Label>
                                 <Input
                                     id="email"
+                                    name="email"
                                     type="email"
                                     placeholder="test@example.com"
                                     tabIndex={1}
                                     required
+                                    disabled={isPending}
                                 />
                             </div>
                             <div className="gap-3 grid">
@@ -62,17 +81,34 @@ export function LoginForm3({
                                 </div>
                                 <Input
                                     id="password"
+                                    name="password"
                                     type="password"
-                                    defaultValue="password"
+                                    placeholder="********"
                                     tabIndex={2}
                                     required
+                                    disabled={isPending}
                                 />
                             </div>
+
+                            {state.message && (
+                                <div
+                                    className={cn(
+                                        "p-3 rounded-md text-sm",
+                                        state.success
+                                            ? "bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                                            : "bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                                    )}
+                                >
+                                    {state.message}
+                                </div>
+                            )}
+
                             <Button
                                 type="submit"
                                 className="w-full cursor-pointer"
+                                disabled={isPending}
                             >
-                                Login
+                                {isPending ? "Logging in..." : "Login"}
                             </Button>
 
                             <div className="text-sm text-center">

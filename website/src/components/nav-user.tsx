@@ -8,6 +8,7 @@ import {
     CircleUser,
 } from "lucide-react";
 import Link from "next/link";
+import { logoutAction } from "@/app/(auth)/sign-in-3/actions";
 
 import { Logo } from "@/components/logo";
 import {
@@ -125,11 +126,14 @@ export function NavUser({
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild className="cursor-pointer">
-                            <Link href="/auth/sign-in">
-                                <LogOut />
-                                Log out
-                            </Link>
+                        <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={async () => {
+                                await logoutAction();
+                            }}
+                        >
+                            <LogOut />
+                            Log out
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
