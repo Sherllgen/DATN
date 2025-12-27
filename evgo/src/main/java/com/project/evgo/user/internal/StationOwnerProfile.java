@@ -27,6 +27,9 @@ public class StationOwnerProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "registration_code", nullable = false, unique = true)
+    private String registrationCode;
+
 //    @Column(name = "user_id", nullable = false, unique = true)
 //    private Long userId;
 
@@ -84,10 +87,13 @@ public class StationOwnerProfile {
 
     private LocalDateTime reviewedAt;
 
+    @Column(name = "pdf_public_id", nullable = false, unique = true)
+    private String pdfPublicId;
+
     @PrePersist
     protected void onCreate() {
         if (status == null) {
-            status = StationOwnerStatus.PENDING;
+            status = StationOwnerStatus.SUBMITTED;
         }
     }
 }

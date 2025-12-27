@@ -1,7 +1,8 @@
 package com.project.evgo.sharedkernel.enums;
 
 public enum StationOwnerStatus {
-    PENDING,
+    SUBMITTED,
+    UNDER_REVIEW,
     APPROVED,
     REJECTED
 }

@@ -129,7 +129,7 @@ public class PdfParsingServiceImpl implements PdfParsingService {
                 throw new AppException(ErrorCode.EMAIL_OR_PHONE_REQUIRED);
             }
 
-            profile.setStatus(StationOwnerStatus.PENDING);
+            profile.setStatus(StationOwnerStatus.SUBMITTED);
 
             validateRequiredFields(profile);
 
@@ -146,8 +146,18 @@ public class PdfParsingServiceImpl implements PdfParsingService {
             throw new AppException(ErrorCode.PDF_PARSING_FAILED, "Email is required in PDF");
         }
 
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        if (!profile.getContactEmail().matches(emailRegex)) {
+            throw new AppException(ErrorCode.PDF_PARSING_FAILED, "Invalid email format in PDF");
+        }
+
         if (profile.getContactPhone() == null || profile.getContactPhone().trim().isEmpty()) {
             throw new AppException(ErrorCode.PDF_PARSING_FAILED, "Phone is required in PDF");
+        }
+
+        String phoneRegex = "^(\\+?84|0)[0-9]{9,10}$";
+        if (!profile.getContactPhone().matches(phoneRegex)) {
+            throw new AppException(ErrorCode.PDF_PARSING_FAILED, "Invalid phone format in PDF");
         }
 
         if (profile.getOwnerType() == StationOwnerType.ENTERPRISE) {
