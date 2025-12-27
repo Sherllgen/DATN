@@ -78,13 +78,14 @@ public class FileRegistrationServiceImpl implements FileRegistrationService {
 
         StationOwnerProfile savedProfile = stationOwnerProfileRepository.save(finalProfile);
         if (oldPdfPublicId != null && !oldPdfPublicId.equals(uploadResponse.publicId())) {
-            fileStorageService.deleteImage(oldPdfPublicId);
+            fileStorageService.deleteFile(oldPdfPublicId);
         }
 
         log.info("Registration submitted successfully for: {}", profile.getContactEmail());
 
         return new RegistrationResponse(
                 savedProfile.getId(),
+                savedProfile.getRegistrationCode(),
                 savedProfile.getContactEmail(),
                 savedProfile.getStatus(),
                 savedProfile.getSubmittedAt()

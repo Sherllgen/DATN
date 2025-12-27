@@ -44,7 +44,7 @@ public class CloudinaryServiceImpl implements FileStorageService {
     }
 
     @Override
-    public void deleteImage(String publicId) {
+    public void deleteFile(String publicId) {
         if (publicId != null && !publicId.isEmpty()) {
             try {
                 cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());

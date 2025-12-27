@@ -7,6 +7,6 @@ import java.util.Map;
 
 public interface FileStorageService {
     Map<String,String> generateUploadSignature();
-    void deleteImage(String publicId);
+    void deleteFile(String publicId);
     FileUploadResponse savePdfFile(MultipartFile file);
 }
