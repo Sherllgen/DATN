@@ -37,7 +37,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     @Transactional(readOnly = true)
     public PageResponse<PendingRegistrationResponse> getPendingRegistrations(Pageable pageable) {
         Page<StationOwnerProfile> profiles = stationOwnerProfileRepository
-                .findByStatus(StationOwnerStatus.PENDING, pageable);
+                .findByStatus(StationOwnerStatus.SUBMITTED, pageable);
 
         Page<PendingRegistrationResponse> responsePage = profiles.map(profile -> new PendingRegistrationResponse(
                 profile.getId(),
@@ -88,9 +88,9 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND,
                         "Station owner profile not found"));
 
-        if (profile.getStatus() != StationOwnerStatus.PENDING) {
+        if (profile.getStatus() != StationOwnerStatus.UNDER_REVIEW) {
             throw new AppException(ErrorCode.INVALID_STATUS,
-                    "Only pending registrations can be approved");
+                    "Only under review registrations can be approved");
         }
 
         String generatedPassword = generateRandomPassword(10);
@@ -118,9 +118,9 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND,
                         "Station owner profile not found"));
 
-        if (profile.getStatus() != StationOwnerStatus.PENDING) {
+        if (profile.getStatus() != StationOwnerStatus.UNDER_REVIEW) {
             throw new AppException(ErrorCode.INVALID_STATUS,
-                    "Only pending registrations can be rejected");
+                    "Only under review registrations can be rejected");
         }
 
         profile.setStatus(StationOwnerStatus.REJECTED);

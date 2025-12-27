@@ -129,7 +129,7 @@ public class PdfParsingServiceImpl implements PdfParsingService {
                 throw new AppException(ErrorCode.EMAIL_OR_PHONE_REQUIRED);
             }
 
-            profile.setStatus(StationOwnerStatus.PENDING);
+            profile.setStatus(StationOwnerStatus.SUBMITTED);
 
             validateRequiredFields(profile);
 

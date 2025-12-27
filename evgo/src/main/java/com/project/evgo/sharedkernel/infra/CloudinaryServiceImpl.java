@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
+import com.project.evgo.user.response.FileUploadResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -54,7 +55,7 @@ public class CloudinaryServiceImpl implements FileStorageService {
     }
 
     @Override
-    public String savePdfFile(MultipartFile file) {
+    public FileUploadResponse savePdfFile(MultipartFile file) {
         try {
             Map<String, Object> uploadParams = new HashMap<>();
             uploadParams.put("resource_type", "image");
@@ -70,7 +71,12 @@ public class CloudinaryServiceImpl implements FileStorageService {
             String cloudinaryUrl = (String) uploadResult.get("secure_url");
             log.info("PDF file uploaded to Cloudinary successfully: {}", cloudinaryUrl);
 
-            return cloudinaryUrl;
+            String publicId = (String) uploadResult.get("public_id");
+
+            return FileUploadResponse.builder()
+                    .fileUrl(cloudinaryUrl)
+                    .publicId(publicId)
+                    .build();
 
         } catch (IOException e) {
             log.error("Failed to upload PDF file to Cloudinary: {}", e.getMessage(), e);

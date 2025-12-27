@@ -8,9 +8,11 @@ import com.project.evgo.sharedkernel.infra.FileStorageService;
 import com.project.evgo.user.PdfParsingService;
 import com.project.evgo.user.FileRegistrationService;
 import com.project.evgo.user.request.RegistrationRequest;
+import com.project.evgo.user.response.FileUploadResponse;
 import com.project.evgo.user.response.RegistrationResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.fileupload.FileUpload;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,18 +49,17 @@ public class FileRegistrationServiceImpl implements FileRegistrationService {
         Optional<StationOwnerProfile> existingProfileOpt = stationOwnerProfileRepository.findByContactEmail(contactEmail);
 
         StationOwnerProfile finalProfile;
+        String oldPdfPublicId = null;
+
         if (existingProfileOpt.isPresent()) {
             StationOwnerProfile existingProfile = existingProfileOpt.get();
 
-            if (existingProfile.getStatus() == StationOwnerStatus.APPROVED) {
-                throw new AppException(ErrorCode.RESOURCE_ALREADY_EXISTS,
-                        "Email is already registered with an approved profile");
-            }
+            checkStatus(existingProfile);
+            oldPdfPublicId = existingProfile.getPdfPublicId();
 
-//            profile.setStatus(StationOwnerStatus.PENDING);
             updateProfileData(existingProfile, profile);
 
-            existingProfile.setStatus(StationOwnerStatus.PENDING);
+            existingProfile.setStatus(StationOwnerStatus.SUBMITTED);
             existingProfile.setRejectionReason(null);
 
             finalProfile = existingProfile;
@@ -66,18 +67,19 @@ public class FileRegistrationServiceImpl implements FileRegistrationService {
             // Check email/phone conflict with existing users
             checkExistingProfile(profile);
 
-//            profile.setStatus(StationOwnerStatus.PENDING);
             finalProfile = profile;
-            finalProfile.setStatus(StationOwnerStatus.PENDING);
+            finalProfile.setStatus(StationOwnerStatus.SUBMITTED);
+            finalProfile.setRegistrationCode(generateRegistrationCode());
         }
 
-        String pdfFilePath = fileStorageService.savePdfFile(request.registrationForm());
-//        profile.setPdfFilePath(pdfFilePath);
-//
-//        StationOwnerProfile savedProfile = stationOwnerProfileRepository.save(profile);
-        finalProfile.setPdfFilePath(pdfFilePath);
+        FileUploadResponse uploadResponse = fileStorageService.savePdfFile(request.registrationForm());
+        finalProfile.setPdfFilePath(uploadResponse.fileUrl());
+        finalProfile.setPdfPublicId(uploadResponse.publicId());
 
         StationOwnerProfile savedProfile = stationOwnerProfileRepository.save(finalProfile);
+        if (oldPdfPublicId != null && !oldPdfPublicId.equals(uploadResponse.publicId())) {
+            fileStorageService.deleteImage(oldPdfPublicId);
+        }
 
         log.info("Registration submitted successfully for: {}", profile.getContactEmail());
 
@@ -110,6 +112,18 @@ public class FileRegistrationServiceImpl implements FileRegistrationService {
         }
     }
 
+    private void checkStatus(StationOwnerProfile profile) {
+        if (profile.getStatus() == StationOwnerStatus.APPROVED) {
+            throw new AppException(ErrorCode.RESOURCE_ALREADY_EXISTS,
+                    "Email is already registered with an approved profile");
+        }
+
+        if (profile.getStatus() == StationOwnerStatus.UNDER_REVIEW) {
+            throw new AppException(ErrorCode.RESOURCE_ALREADY_EXISTS,
+                    "A registration is already under review for this email, please wait for the review to complete");
+        }
+    }
+
     private void updateProfileData(StationOwnerProfile target, StationOwnerProfile source) {
         target.setFullName(source.getFullName());
         target.setIdNumber(source.getIdNumber());
@@ -122,6 +136,12 @@ public class FileRegistrationServiceImpl implements FileRegistrationService {
 
         target.setBankAccount(source.getBankAccount());
         target.setBankName(source.getBankName());
+    }
+
+    private String generateRegistrationCode() {
+        String prefix = "REG";
+        String randomPart = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        return prefix + "-" + randomPart;
     }
 
 }
