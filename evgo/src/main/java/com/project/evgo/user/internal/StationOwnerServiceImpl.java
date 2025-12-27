@@ -18,7 +18,7 @@ public class StationOwnerServiceImpl implements StationOwnerService {
 
     @Override
     public TrackingResponse getStatus(TrackingRequest request) {
-        if (!request.email().isEmpty()) {
+        if (request.email() != null && !request.email().isEmpty()) {
         Optional<StationOwnerProfile> profile = stationOwnerProfileRepository.findByContactEmail(request.email());
             if (profile.isPresent()) {
                 return TrackingResponse.builder()
@@ -28,7 +28,7 @@ public class StationOwnerServiceImpl implements StationOwnerService {
             } else {
                 throw new AppException(ErrorCode.NOT_FOUND, "Profile not found for the provided email");
             }
-        } else if (!request.registrationCode().isEmpty()) {
+        } else if (request.registrationCode() != null && !request.registrationCode().isEmpty()) {
             Optional<StationOwnerProfile> profile = stationOwnerProfileRepository.findByRegistrationCode(request.registrationCode());
             if (profile.isPresent()) {
                 return TrackingResponse.builder()

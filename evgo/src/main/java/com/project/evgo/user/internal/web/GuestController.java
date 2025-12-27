@@ -6,6 +6,7 @@ import com.project.evgo.user.request.TrackingRequest;
 import com.project.evgo.user.response.TrackingResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class GuestController {
     @GetMapping("/track")
     @Operation(summary = "Track Station Owner Registration Status", description = "Allows guest users to track the status of their station owner registration using email or registration code.")
     public ResponseEntity<ApiResponse<TrackingResponse>> trackGuestUserRegistrationStatus(
-            @RequestBody TrackingRequest request) {
+            @RequestBody @Valid TrackingRequest request) {
         TrackingResponse response = stationOwnerService.getStatus(request);
         return ResponseEntity.ok(new ApiResponse<>(
                 200,
