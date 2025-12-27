@@ -14,7 +14,6 @@ import java.util.Optional;
 public interface StationOwnerProfileRepository extends JpaRepository<StationOwnerProfile, Long> {
     @Query("SELECT s FROM StationOwnerProfile s WHERE (:status IS NULL OR s.status = :status)")
     Page<StationOwnerProfile> findAllByStatusOptionally(@Param("status") StationOwnerStatus status, Pageable pageable);
-    Boolean existsByContactEmail(String contactEmail);
-    Boolean existsByContactPhone(String contactPhone);
+    Optional<StationOwnerProfile> findByRegistrationCode(String registrationCode);
     Optional<StationOwnerProfile> findByContactEmail(String contactEmail);
 }
