@@ -50,6 +50,11 @@ const navGroupsRaw = [
                 url: "/manage_accounts",
                 icon: Users,
             },
+            {
+                title: "Registration",
+                url: "/registration",
+                icon: LayoutTemplate,
+            },
         ],
     },
     {

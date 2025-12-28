@@ -12,7 +12,7 @@ export async function getListAccounts() {
 
 export async function getListRegistration() {
     const res = await axiosInstance.get(
-        `${API_BACKEND_URL}/api/v1/admin/station-owners`
+        `${API_BACKEND_URL}/api/v1/admin/station-owner`
     );
 
     return res.data;

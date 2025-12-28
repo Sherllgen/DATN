@@ -11,6 +11,7 @@ export const protectedRoutes: RoutePermission[] = [
     { path: "/calendar", roles: [UserRole.ADMIN] },
     { path: "/tasks", roles: [UserRole.ADMIN] },
     { path: "/manage_accounts", roles: [UserRole.ADMIN] },
+    { path: "/registration", roles: [UserRole.ADMIN] },
     { path: "/settings", roles: [UserRole.ADMIN, UserRole.STATION_OWNER] },
     { path: "/faqs" }, // Tất cả user authenticated
     { path: "/pricing" }, // Tất cả user authenticated

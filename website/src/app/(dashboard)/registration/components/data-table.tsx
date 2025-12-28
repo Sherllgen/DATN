@@ -54,22 +54,15 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { AccountFormDialog } from "./user-form-dialog";
-import { Accounts, AccountsFormValues, AccountStatus } from "@/types/accounts";
 import { UserRole } from "@/types/user";
+import { OwnerType, Profile, ProfileStatus } from "@/types/profileRegistration";
 
 interface DataTableProps {
-    accounts: Accounts[];
-    onDeleteAccount: (id: number) => void;
-    onEditAccount: (account: Accounts) => void;
-    onAddAccount: (accountData: AccountsFormValues) => void;
+    profiles: Profile[];
+    onEditProfile: (profile: Profile) => void;
 }
 
-export function DataTable({
-    accounts,
-    onDeleteAccount,
-    onEditAccount,
-    onAddAccount,
-}: DataTableProps) {
+export function DataTable({ profiles, onEditProfile }: DataTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
@@ -80,31 +73,31 @@ export function DataTable({
 
     console.log("render");
 
-    const getStatusColor = (status: AccountStatus) => {
+    const getStatusColor = (status: ProfileStatus) => {
         switch (status) {
-            case "ACTIVE":
+            case "APPROVED":
                 return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
-            case "BLOCKED":
+            case "SUBMITTED":
                 return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20";
-            case "DELETED":
+            case "REJECTED":
                 return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-            case "INACTIVE":
+            case "UNDER_REVIEW":
                 return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
             default:
                 return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
         }
     };
 
-    const getRoleColor = (role: UserRole) => {
+    const getOwnerTypeColor = (role: OwnerType) => {
         switch (role) {
-            case "SUPER_ADMIN":
-                return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-            case "STATION_OWNER":
-                return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20";
-            case "STAFF":
-                return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
-            case "USER":
+            case "ENTERPRISE":
                 return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
+            case "INDIVIDUAL":
+                return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
+            // case "":
+            //     return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
+            // case "USER":
+            //     return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
             // case "Subscriber":
             //     return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20";
             default:
@@ -113,14 +106,14 @@ export function DataTable({
     };
 
     const exactFilter = (
-        row: Row<Accounts>,
+        row: Row<Profile>,
         columnId: string,
         value: string
     ) => {
         return row.getValue(columnId) === value;
     };
 
-    const columns = useMemo<ColumnDef<Accounts>[]>(
+    const columns = useMemo<ColumnDef<Profile>[]>(
         () => [
             {
                 id: "select",
@@ -155,60 +148,94 @@ export function DataTable({
                 size: 50,
             },
             {
-                accessorKey: "name",
-                header: "Name",
+                accessorKey: "email",
+                header: "Email",
                 cell: ({ row }) => {
-                    const user = row.original;
+                    const profile = row.original;
                     return (
                         <div className="flex items-center gap-3">
                             <div className="flex flex-col">
-                                <span className="font-medium">{user.name}</span>
-                                <span className="text-muted-foreground text-sm">
-                                    {user.email}
+                                <span className="font-medium">
+                                    {profile.email}
                                 </span>
+                                {/* <span className="text-muted-foreground text-sm">
+                                    {profile.profileId}
+                                </span> */}
                             </div>
                         </div>
                     );
                 },
             },
             {
-                accessorKey: "role",
-                header: "Role",
+                accessorKey: "ownerType",
+                header: "Owner Type",
                 cell: ({ row }) => {
-                    const role = row.getValue("role") as UserRole;
+                    const ownerType = row.getValue("ownerType") as OwnerType;
                     return (
                         <Badge
                             variant="secondary"
-                            className={getRoleColor(role)}
+                            className={getOwnerTypeColor(ownerType)}
                         >
-                            {role}
+                            {ownerType}
                         </Badge>
                     );
                 },
-                filterFn: exactFilter,
+                // filterFn: exactFilter,
             },
             {
-                accessorKey: "gender",
-                header: "Gender",
+                accessorKey: "pdfFileUrl",
+                header: "PDF File URL",
                 cell: ({ row }) => {
-                    const gender = row.getValue("gender") as string;
-                    return <span className="font-medium">{gender}</span>;
+                    const pdfFileUrl = row.getValue("pdfFileUrl") as string;
+                    // Rút ngắn URL nếu quá dài
+                    const displayUrl =
+                        pdfFileUrl && pdfFileUrl.length > 30
+                            ? pdfFileUrl.slice(0, 10) +
+                              "..." +
+                              pdfFileUrl.slice(-10)
+                            : pdfFileUrl;
+                    return pdfFileUrl ? (
+                        <a
+                            href={pdfFileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-blue-600 hover:underline"
+                            title={pdfFileUrl}
+                        >
+                            {displayUrl}
+                        </a>
+                    ) : null;
                 },
                 filterFn: exactFilter,
             },
             {
-                accessorKey: "birthday",
-                header: "Birthday",
+                accessorKey: "submittedAt",
+                header: "Submitted At",
                 cell: ({ row }) => {
-                    const birthday = row.getValue("birthday") as string;
-                    return <span className="text-sm">{birthday}</span>;
+                    const submittedAt = row.getValue("submittedAt") as string;
+                    let formatted = "";
+                    if (submittedAt) {
+                        const date = new Date(submittedAt);
+                        if (!isNaN(date.getTime())) {
+                            const pad = (n: number) =>
+                                n.toString().padStart(2, "0");
+                            formatted = `${pad(date.getDate())}/${pad(
+                                date.getMonth() + 1
+                            )}/${date.getFullYear()} ${pad(
+                                date.getHours()
+                            )}:${pad(date.getMinutes())}`;
+                        } else {
+                            formatted = submittedAt;
+                        }
+                    }
+                    return <span className="text-sm">{formatted}</span>;
                 },
             },
             {
                 accessorKey: "status",
                 header: "Status",
                 cell: ({ row }) => {
-                    const status = row.getValue("status") as AccountStatus;
+                    const status = row.getValue("status") as ProfileStatus;
                     return (
                         <Badge
                             variant="secondary"
@@ -224,7 +251,7 @@ export function DataTable({
                 id: "actions",
                 header: "Actions",
                 cell: ({ row }) => {
-                    const user = row.original;
+                    const profile = row.original;
                     return (
                         <div className="flex items-center gap-2">
                             <Button
@@ -233,16 +260,16 @@ export function DataTable({
                                 className="w-8 h-8 cursor-pointer"
                             >
                                 <Eye className="size-4" />
-                                <span className="sr-only">View user</span>
+                                <span className="sr-only">View profile</span>
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 className="w-8 h-8 cursor-pointer"
-                                onClick={() => onEditAccount(user)}
+                                onClick={() => onEditProfile(profile)}
                             >
                                 <Pencil className="size-4" />
-                                <span className="sr-only">Edit user</span>
+                                <span className="sr-only">Edit profile</span>
                             </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -268,14 +295,6 @@ export function DataTable({
                                         Reset Password
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        variant="destructive"
-                                        className="cursor-pointer"
-                                        onClick={() => onDeleteAccount(user.id)}
-                                    >
-                                        <Trash2 className="mr-2 size-4" />
-                                        Delete User
-                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
@@ -283,11 +302,11 @@ export function DataTable({
                 },
             },
         ],
-        [onDeleteAccount, onEditAccount]
+        [onEditProfile]
     );
 
     const table = useReactTable({
-        data: accounts ?? [],
+        data: profiles ?? [],
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -307,7 +326,7 @@ export function DataTable({
         },
     });
 
-    const roleFilter = table.getColumn("role")?.getFilterValue() as string;
+    // const roleFilter = table.getColumn("role")?.getFilterValue() as string;
     const statusFilter = table.getColumn("status")?.getFilterValue() as string;
 
     return (
@@ -334,12 +353,12 @@ export function DataTable({
                         <Download className="mr-2 size-4" />
                         Export
                     </Button>
-                    <AccountFormDialog onAddAccount={onAddAccount} />
+                    {/* <AccountFormDialog onAddAccount={onAddAccount} /> */}
                 </div>
             </div>
 
             <div className="gap-2 sm:gap-4 grid sm:grid-cols-4 mt-6">
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                     <Label
                         htmlFor="role-filter"
                         className="font-medium text-sm"
@@ -373,7 +392,7 @@ export function DataTable({
                             </SelectItem>
                         </SelectContent>
                     </Select>
-                </div>
+                </div> */}
 
                 <div className="space-y-2">
                     <Label

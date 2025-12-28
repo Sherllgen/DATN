@@ -6,7 +6,7 @@ import { DataTable } from "./components/data-table";
 import { Accounts, AccountsFormValues } from "@/types/accounts";
 import { getListAccounts } from "@/apis/admin/adminApi";
 
-export default function UsersPage() {
+export default function MangeAccountsPage() {
     const [accounts, setAccounts] = useState<Accounts[]>([
         {
             id: 1,
@@ -44,7 +44,19 @@ export default function UsersPage() {
         try {
             const res = await getListAccounts();
 
-            setAccounts(res.content);
+            const data = res.data.content.map((item: any) => ({
+                id: item.id,
+                name: item.fullName,
+                email: item.email,
+                role: item.roles[0],
+                gender: item.gender,
+                birthday: item.birthday,
+                status: item.status,
+            }));
+
+            console.log("data", data);
+
+            setAccounts(data);
         } catch (error) {
             console.log(error);
         }
@@ -53,8 +65,6 @@ export default function UsersPage() {
     useEffect(() => {
         fetchAccounts();
     }, []);
-
-    console.log("helloooo");
 
     return (
         <div className="flex flex-col gap-4">
