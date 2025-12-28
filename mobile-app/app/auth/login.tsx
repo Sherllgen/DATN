@@ -1,5 +1,4 @@
-import { loginApi, loginGoogleApi } from "@/apis/authApi/authApi";
-import SvgLogoGoogle from "@/assets/svg/SvgLogoGoogle";
+import { loginApi } from "@/apis/authApi/authApi";
 import { useAuthStore } from "@/contexts/auth.store";
 import { useUserStore } from "@/contexts/user.store";
 import { logAxiosError } from "@/utils/errorLogger";
@@ -9,7 +8,7 @@ import * as Google from "expo-auth-session/providers/google";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -65,11 +64,6 @@ export default function LoginScreen() {
         } catch (error: any) {
             logAxiosError(error);
 
-            if (error.status === 409) {
-                setShowError("Email đã được sử dụng. Vui lòng thử lại.");
-                return;
-            }
-
             if (error.status === 401) {
                 setShowError(
                     "Email hoặc mật khẩu không đúng. Vui lòng thử lại."
@@ -85,7 +79,7 @@ export default function LoginScreen() {
             ) {
                 router.push({
                     pathname: "/auth/otp-verify",
-                    params: { email: username },
+                    params: { email: username, isResent: "true" },
                 });
                 return;
             }
@@ -96,61 +90,61 @@ export default function LoginScreen() {
         }
     };
 
-    const handleGoogleLogin = async (idToken: string) => {
-        try {
-            setGoogleLoading(true);
-            setShowError("");
+    // const handleGoogleLogin = async (idToken: string) => {
+    //     try {
+    //         setGoogleLoading(true);
+    //         setShowError("");
 
-            const res = await loginGoogleApi(idToken);
-            if (res.status === 200) {
-                setAccessToken(res.data.accessToken);
-                setUser(res.data.user);
-                router.replace("/(tabs)/home");
-            }
-        } catch (error: any) {
-            logAxiosError(error);
-            setShowError("Đăng nhập Google thất bại. Vui lòng thử lại.");
-        } finally {
-            setGoogleLoading(false);
-        }
-    };
+    //         const res = await loginGoogleApi(idToken);
+    //         if (res.status === 200) {
+    //             setAccessToken(res.data.accessToken);
+    //             setUser(res.data.user);
+    //             router.replace("/(tabs)/home");
+    //         }
+    //     } catch (error: any) {
+    //         logAxiosError(error);
+    //         setShowError("Đăng nhập Google thất bại. Vui lòng thử lại.");
+    //     } finally {
+    //         setGoogleLoading(false);
+    //     }
+    // };
 
-    const handleGoogleSignIn = async () => {
-        setGoogleLoading(true);
-        setShowError("");
-        try {
-            await promptAsync();
-        } catch (error) {
-            console.error("Google Sign In Error:", error);
-            setShowError("Đăng nhập Google thất bại. Vui lòng thử lại.");
-            setGoogleLoading(false);
-        }
-    };
+    // const handleGoogleSignIn = async () => {
+    //     setGoogleLoading(true);
+    //     setShowError("");
+    //     try {
+    //         await promptAsync();
+    //     } catch (error) {
+    //         console.error("Google Sign In Error:", error);
+    //         setShowError("Đăng nhập Google thất bại. Vui lòng thử lại.");
+    //         setGoogleLoading(false);
+    //     }
+    // };
 
-    useEffect(() => {
-        if (request?.redirectUri) {
-            console.log("🔗 Add this Redirect URI to Google Console:");
-            console.log(request.redirectUri);
-        }
-    }, [request]);
+    // useEffect(() => {
+    //     if (request?.redirectUri) {
+    //         console.log("🔗 Add this Redirect URI to Google Console:");
+    //         console.log(request.redirectUri);
+    //     }
+    // }, [request]);
 
-    useEffect(() => {
-        if (response?.type === "success") {
-            const { id_token } = response.params;
-            if (id_token) {
-                handleGoogleLogin(id_token);
-            }
-        } else if (response?.type === "error") {
-            console.error("Google Auth Error:", response.error);
-            setShowError("Đăng nhập Google thất bại. Vui lòng thử lại.");
-            setGoogleLoading(false);
-        } else if (
-            response?.type === "dismiss" ||
-            response?.type === "cancel"
-        ) {
-            setGoogleLoading(false);
-        }
-    }, [response]);
+    // useEffect(() => {
+    //     if (response?.type === "success") {
+    //         const { id_token } = response.params;
+    //         if (id_token) {
+    //             handleGoogleLogin(id_token);
+    //         }
+    //     } else if (response?.type === "error") {
+    //         console.error("Google Auth Error:", response.error);
+    //         setShowError("Đăng nhập Google thất bại. Vui lòng thử lại.");
+    //         setGoogleLoading(false);
+    //     } else if (
+    //         response?.type === "dismiss" ||
+    //         response?.type === "cancel"
+    //     ) {
+    //         setGoogleLoading(false);
+    //     }
+    // }, [response]);
 
     return (
         <LinearGradient
@@ -237,7 +231,7 @@ export default function LoginScreen() {
 
                     {/* Sign In Button */}
                     <TouchableOpacity
-                        className="items-center bg-secondary mb-6 py-4 rounded-full"
+                        className="items-center bg-secondary mt-6 mb-6 py-4 rounded-full"
                         onPress={handleSignIn}
                         activeOpacity={0.8}
                         disabled={loading}
@@ -259,7 +253,7 @@ export default function LoginScreen() {
                     </View>
 
                     {/* Google Sign In */}
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                         className="bg-white mb-4 py-3 border rounded-full"
                         onPress={handleGoogleSignIn}
                         activeOpacity={0.8}
@@ -270,7 +264,7 @@ export default function LoginScreen() {
                                 Sign In with Google
                             </Text>
                         </View>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
                     {/* Sign Up Link */}
                     <View className="flex-row justify-center mt-6">
