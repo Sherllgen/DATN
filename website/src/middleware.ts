@@ -12,7 +12,7 @@ const protectedRoutes = [
     "/settings",
 ];
 // Các route dành cho guest (chưa đăng nhập)
-const authRoutes = ["/landing", "/sign-in-3", "/register"];
+const authRoutes = ["/sign-in-3", "/register"];
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;

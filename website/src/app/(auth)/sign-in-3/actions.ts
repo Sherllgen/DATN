@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const API_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const API_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export async function loginAction(formData: FormData) {
     const email = formData.get("email") as string;
@@ -53,8 +53,6 @@ export async function loginAction(formData: FormData) {
                 });
             }
         }
-
-        redirect("/dashboard");
     } catch (error) {
         console.error("Login error:", error);
         return {
@@ -62,6 +60,8 @@ export async function loginAction(formData: FormData) {
             message: "An error occurred during login",
         };
     }
+
+    redirect("/dashboard");
 }
 
 export async function logoutAction() {

@@ -14,6 +14,7 @@ import { Step1Download } from "./components/Step1Download";
 import { Step2Upload } from "./components/Step2Upload";
 import { Step3Result } from "./components/Step3Result";
 import { LandingNavbar } from "@/app/landing/components/navbar";
+import { submitRegistrationApi } from "@/apis/authApi/authApi";
 
 export default function RegisterPage() {
     const [currentStep, setCurrentStep] = useState(1);
@@ -48,15 +49,16 @@ export default function RegisterPage() {
         if (!uploadedFile) return;
 
         setIsProcessing(true);
-
-        // Simulate file processing
-        setTimeout(() => {
-            setIsProcessing(false);
-            // Simulate random success/error for demo
-            const success = Math.random() > 0.3;
-            setRegistrationStatus(success ? "success" : "error");
+        try {
+            await submitRegistrationApi(uploadedFile);
+            setRegistrationStatus("success");
             setCurrentStep(3);
-        }, 2000);
+        } catch (error) {
+            setRegistrationStatus("error");
+            setCurrentStep(3);
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleReset = () => {

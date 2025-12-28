@@ -34,11 +34,6 @@ import {
 import Image from "next/image";
 
 const data = {
-    user: {
-        name: "Ed Sheeran",
-        email: "edsheeran@example.com",
-        avatar: "https://www.rophim.li/images/avatars/pack1/14.jpg",
-    },
     navGroups: [
         {
             label: "Dashboards",
@@ -153,7 +148,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarContent>
             <SidebarFooter>
                 {/* <SidebarNotification /> */}
-                <NavUser user={data.user} />
+                <NavUser />
             </SidebarFooter>
         </Sidebar>
     );

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-    withCredentials: true, // Quan trọng: cho phép gửi cookies với mỗi request
+    withCredentials: true,
 });
 
 // REQUEST INTERCEPTOR — log yêu cầu

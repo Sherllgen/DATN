@@ -11,6 +11,7 @@ import Image from "next/image";
 import { loginAction } from "../actions";
 import { useActionState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useUserStore } from "@/contexts/user.store";
 
 export function LoginForm3({
     className,
@@ -18,6 +19,7 @@ export function LoginForm3({
 }: React.ComponentProps<"div">) {
     const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
+    const setUser = useUserStore((state) => state.setUser);
     const [state, formAction, isPending] = useActionState(
         async (prevState: any, formData: FormData) => {
             const result = await loginAction(formData);
@@ -35,7 +37,7 @@ export function LoginForm3({
                         className="p-6 md:p-8"
                         action={formAction}
                     >
-                        <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-6 pb-6">
                             <div className="flex justify-center mb-2">
                                 <Link
                                     href="/"
@@ -110,16 +112,6 @@ export function LoginForm3({
                             >
                                 {isPending ? "Logging in..." : "Login"}
                             </Button>
-
-                            <div className="text-sm text-center">
-                                Don&apos;t have an account?{" "}
-                                <a
-                                    href="#"
-                                    className="underline underline-offset-4"
-                                >
-                                    Sign up
-                                </a>
-                            </div>
                         </div>
                     </form>
                     <div className="hidden md:block relative bg-muted">
