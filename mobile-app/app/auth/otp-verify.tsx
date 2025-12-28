@@ -1,4 +1,4 @@
-import { verifyEmailOtp } from "@/apis/authApi/authApi";
+import { verifyEmailOtpApi } from "@/apis/authApi/authApi";
 import OTPVerificationStep from "@/components/auth/OTPVerificationStep";
 import { logAxiosError } from "@/utils/errorLogger";
 import { LinearGradient } from "expo-linear-gradient";
@@ -35,7 +35,7 @@ export default function OTPVerifyScreen() {
         const otpCode = otp.join("");
         console.log("Verifying OTP:", otpCode);
         try {
-            const res = await verifyEmailOtp(otpCode, email);
+            const res = await verifyEmailOtpApi(otpCode, email);
             if (res.status === 200 || res.status === 201) {
                 router.replace("/auth/login");
             }
