@@ -2,13 +2,14 @@ package com.project.evgo.user.internal.web;
 
 import com.project.evgo.sharedkernel.dto.ApiResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
+import com.project.evgo.sharedkernel.enums.StationOwnerStatus;
 import com.project.evgo.sharedkernel.enums.UserStatus;
 import com.project.evgo.user.AccountManagementService;
 import com.project.evgo.user.AdminReviewService;
 import com.project.evgo.user.request.AccountFilterRequest;
 import com.project.evgo.user.request.RejectionRequest;
 import com.project.evgo.user.response.AdminAccountResponse;
-import com.project.evgo.user.response.PendingRegistrationResponse;
+import com.project.evgo.user.response.RegistrationAdminResponse;
 import com.project.evgo.user.response.RegistrationDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -101,9 +102,10 @@ public class AdminController {
 
 	// ==================== Station Owner Registration APIs ====================
 
-	@GetMapping("/station-owner/pending")
-	@Operation(summary = "Get pending registrations", description = "Retrieve all pending station owner registrations with pagination (Admin only)")
-	public ResponseEntity<ApiResponse<PageResponse<PendingRegistrationResponse>>> getPendingRegistrations(
+	@GetMapping("/station-owner")
+	@Operation(summary = "Get all registrations", description = "Get all or filter station owner registrations by status with pagination (Admin only)")
+	public ResponseEntity<ApiResponse<PageResponse<RegistrationAdminResponse>>> getPendingRegistrations(
+                    @RequestParam (required = false) StationOwnerStatus status,
 					@RequestParam(defaultValue = "0") int page,
 					@RequestParam(defaultValue = "10") int size,
 					@RequestParam(defaultValue = "ASC") String sortDir,
@@ -115,13 +117,23 @@ public class AdminController {
 						Sort.Direction.fromString(sortDir),
 						sortBy);
 
-		PageResponse<PendingRegistrationResponse> registrations = adminReviewService
-						.getPendingRegistrations(pageable);
+		PageResponse<RegistrationAdminResponse> registrations = adminReviewService
+						.getRegistrations(status, pageable);
 		return ResponseEntity.ok(new ApiResponse<>(
 						HttpStatus.OK.value(),
 						"Pending registrations retrieved successfully",
 						registrations));
 	}
+
+    @PutMapping("/station-owner/{profileId}")
+    @Operation(summary = "Mark registration as under review", description = "Mark a station owner registration as under review (Admin only)")
+    public ResponseEntity<ApiResponse<Void>> markRegistrationUnderReview(@PathVariable Long profileId) {
+        adminReviewService.markRegistrationUnderReview(profileId);
+        return ResponseEntity.ok(new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "Registration marked as under review successfully",
+                        null));
+    }
 
 	@GetMapping("/station-owner/{profileId}")
 	@Operation(summary = "Get registration details", description = "Get detailed information about a registration (Admin only)")

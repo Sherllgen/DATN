@@ -9,7 +9,7 @@ import com.project.evgo.sharedkernel.enums.UserStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.user.AdminReviewService;
 import com.project.evgo.user.request.RejectionRequest;
-import com.project.evgo.user.response.PendingRegistrationResponse;
+import com.project.evgo.user.response.RegistrationAdminResponse;
 import com.project.evgo.user.response.RegistrationDetailResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,12 +35,13 @@ public class AdminReviewServiceImpl implements AdminReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PendingRegistrationResponse> getPendingRegistrations(Pageable pageable) {
+    public PageResponse<RegistrationAdminResponse> getRegistrations(StationOwnerStatus status, Pageable pageable) {
         Page<StationOwnerProfile> profiles = stationOwnerProfileRepository
-                .findByStatus(StationOwnerStatus.PENDING, pageable);
+                .findAllByStatusOptionally(status, pageable);
 
-        Page<PendingRegistrationResponse> responsePage = profiles.map(profile -> new PendingRegistrationResponse(
+        Page<RegistrationAdminResponse> responsePage = profiles.map(profile -> new RegistrationAdminResponse(
                 profile.getId(),
+                profile.getRegistrationCode(),
                 profile.getOwnerType(),
                 profile.getContactEmail(),
                 profile.getContactPhone(),
@@ -48,6 +49,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                         ? profile.getFullName()
                         : profile.getBusinessName(),
                 profile.getPdfFilePath(),
+                profile.getStatus(),
                 profile.getSubmittedAt()
         ));
 
@@ -64,6 +66,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
 
         return new RegistrationDetailResponse(
                 profile.getId(),
+                profile.getRegistrationCode(),
                 profile.getOwnerType(),
                 profile.getFullName(),
                 profile.getIdNumber(),
@@ -88,9 +91,9 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND,
                         "Station owner profile not found"));
 
-        if (profile.getStatus() != StationOwnerStatus.PENDING) {
+        if (profile.getStatus() != StationOwnerStatus.UNDER_REVIEW) {
             throw new AppException(ErrorCode.INVALID_STATUS,
-                    "Only pending registrations can be approved");
+                    "Only under review registrations can be approved");
         }
 
         String generatedPassword = generateRandomPassword(10);
@@ -118,9 +121,9 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND,
                         "Station owner profile not found"));
 
-        if (profile.getStatus() != StationOwnerStatus.PENDING) {
+        if (profile.getStatus() != StationOwnerStatus.UNDER_REVIEW) {
             throw new AppException(ErrorCode.INVALID_STATUS,
-                    "Only pending registrations can be rejected");
+                    "Only under review registrations can be rejected");
         }
 
         profile.setStatus(StationOwnerStatus.REJECTED);
@@ -131,6 +134,20 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         emailService.sendRejectionEmail(profile.getContactEmail(), request.reason());
 
         log.info("Registration rejected for profile ID: {}", profileId);
+    }
+
+    @Override
+    @Transactional
+    public void markRegistrationUnderReview(Long profileId) {
+        StationOwnerProfile profile = stationOwnerProfileRepository.findById(profileId)
+                .orElseThrow(() -> new AppException(ErrorCode.PROFILE_NOT_FOUND,
+                        "Station owner profile not found"));
+        if (profile.getStatus() != StationOwnerStatus.SUBMITTED) {
+            throw new AppException(ErrorCode.INVALID_STATUS,
+                    "Only submitted registrations can be marked as under review");
+        }
+        profile.setStatus(StationOwnerStatus.UNDER_REVIEW);
+        stationOwnerProfileRepository.save(profile);
     }
 
     private User createUserFromProfile(StationOwnerProfile profile, String rawPassword) {

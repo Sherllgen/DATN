@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 public record RegistrationDetailResponse(
         Long id,
+        String registrationCode,
         StationOwnerType ownerType,
         String fullName,
         String idNumber,
