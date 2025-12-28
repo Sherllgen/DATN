@@ -23,6 +23,7 @@ export default function RegisterPage() {
     const [registrationStatus, setRegistrationStatus] = useState<
         "success" | "error" | null
     >(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const totalSteps = 3;
 
@@ -53,8 +54,9 @@ export default function RegisterPage() {
             await submitRegistrationApi(uploadedFile);
             setRegistrationStatus("success");
             setCurrentStep(3);
-        } catch (error) {
+        } catch (error: Error | any) {
             setRegistrationStatus("error");
+            setErrorMessage(error.response.data.message);
             setCurrentStep(3);
         } finally {
             setIsProcessing(false);
@@ -117,6 +119,7 @@ export default function RegisterPage() {
                                 {currentStep === 3 && (
                                     <Step3Result
                                         status={registrationStatus}
+                                        errorMessage={errorMessage}
                                         onReset={handleReset}
                                     />
                                 )}

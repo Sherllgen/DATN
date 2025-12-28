@@ -112,6 +112,16 @@ export function LoginForm3({
                             >
                                 {isPending ? "Logging in..." : "Login"}
                             </Button>
+
+                            <div className="text-muted-foreground text-sm text-center">
+                                Don&apos;t have an account?{" "}
+                                <Link
+                                    href="/register"
+                                    className="font-medium text-primary hover:underline underline-offset-2"
+                                >
+                                    Sign up
+                                </Link>
+                            </div>
                         </div>
                     </form>
                     <div className="hidden md:block relative bg-muted">
