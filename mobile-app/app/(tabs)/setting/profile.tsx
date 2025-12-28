@@ -69,6 +69,8 @@ export default function ProfilePage() {
             quality: 0.8,
         });
 
+        setIsChanged(true);
+
         if (!result.canceled && result.assets[0]) {
             const imageUri = result.assets[0].uri;
             setState((prev) => ({
@@ -96,6 +98,8 @@ export default function ProfilePage() {
             aspect: [1, 1],
             quality: 0.8,
         });
+
+        setIsChanged(true);
 
         if (!result.canceled && result.assets[0]) {
             const imageUri = result.assets[0].uri;

@@ -85,3 +85,13 @@ export async function resetPasswordApi(
 
     return res.data;
 }
+
+export async function resendEmailOtpApi(email: string) {
+    const res = await axios.post(
+        `${API_BACKEND_URL}/api/v1/auth/resend-verification`,
+        {
+            email,
+        }
+    );
+    return res.data;
+}

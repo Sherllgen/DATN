@@ -1,14 +1,18 @@
-import { verifyEmailOtp } from "@/apis/authApi/authApi";
+import { resendEmailOtpApi, verifyEmailOtpApi } from "@/apis/authApi/authApi";
 import OTPVerificationStep from "@/components/auth/OTPVerificationStep";
 import { logAxiosError } from "@/utils/errorLogger";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Toast } from "toastify-react-native";
 
 export default function OTPVerifyScreen() {
-    const { email } = useLocalSearchParams<{ email: string }>();
+    const { email, isResent } = useLocalSearchParams<{
+        email: string;
+        isResent: string;
+    }>();
     const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
     const handleOTPChange = (index: number, value: string) => {
@@ -35,7 +39,7 @@ export default function OTPVerifyScreen() {
         const otpCode = otp.join("");
         console.log("Verifying OTP:", otpCode);
         try {
-            const res = await verifyEmailOtp(otpCode, email);
+            const res = await verifyEmailOtpApi(otpCode, email);
             if (res.status === 200 || res.status === 201) {
                 router.replace("/auth/login");
             }
@@ -44,15 +48,30 @@ export default function OTPVerifyScreen() {
         }
     };
 
-    const handleResendOTP = () => {
-        console.log("Resending OTP to:", email);
-        // Logic to resend OTP
-        setOtp(["", "", "", "", "", ""]);
+    const handleResendOTP = async () => {
+        try {
+            const res = await resendEmailOtpApi(email);
+
+            if (res.status === 200 || res.status === 201) {
+                Toast.success(`OTP has been sent to ${email}`);
+            }
+        } catch (error) {
+            logAxiosError(error);
+            Toast.error("Failed to resend OTP. Please try again.");
+        } finally {
+            setOtp(["", "", "", "", "", ""]);
+        }
     };
 
     const handleBackToPhone = () => {
         router.back();
     };
+
+    useEffect(() => {
+        if (isResent === "true") {
+            handleResendOTP();
+        }
+    }, [isResent]);
 
     return (
         <LinearGradient
