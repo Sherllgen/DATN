@@ -29,6 +29,7 @@ public class UserDtoConverter {
                 .birthday(from.getBirthday())
                 .avatarUrl(from.getAvatarUrl())
                 .phoneNumber(from.getPhoneNumber())
+                .roles(from.getRoles().stream().map(Role::getName).toList())
                 .createdAt(from.getCreatedAt())
                 .updatedAt(from.getUpdatedAt())
                 .build();
