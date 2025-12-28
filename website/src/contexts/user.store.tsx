@@ -1,14 +1,5 @@
 import { create } from "zustand";
-
-type User = {
-    id: string;
-    fullName: string;
-    email: string;
-    phone?: string;
-    gender?: string;
-    birthday?: string;
-    avatarUrl?: string;
-};
+import type { User } from "@/types/user";
 
 type UserState = {
     user: User | null;

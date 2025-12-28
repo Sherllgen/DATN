@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
         // Xóa cookies
         cookieStore.delete("accessToken");
         cookieStore.delete("refreshToken");
+        cookieStore.delete("userRole");
 
         return NextResponse.json(
             { success: true, message: "Logged out successfully" },

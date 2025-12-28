@@ -41,17 +41,27 @@ export async function loginAction(formData: FormData) {
                 maxAge: 60 * 60 * 24 * 1, // 1 ngày
                 path: "/",
             });
+        }
 
-            // Có thể lưu thêm refreshToken nếu cần
-            if (data.data.refreshToken) {
-                (await cookies()).set("refreshToken", data.data.refreshToken, {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === "production",
-                    sameSite: "lax",
-                    maxAge: 60 * 60 * 24 * 30, // 30 ngày
-                    path: "/",
-                });
-            }
+        if (data.data.refreshToken) {
+            (await cookies()).set("refreshToken", data.data.refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+                maxAge: 60 * 60 * 24 * 30, // 30 ngày
+                path: "/",
+            });
+        }
+
+        // Lưu user role để middleware có thể check RBAC
+        if (data.data.user?.roles) {
+            (await cookies()).set("userRole", data.data.user.roles, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+                maxAge: 60 * 60 * 24 * 1,
+                path: "/",
+            });
         }
     } catch (error) {
         console.error("Login error:", error);
@@ -67,5 +77,6 @@ export async function loginAction(formData: FormData) {
 export async function logoutAction() {
     (await cookies()).delete("accessToken");
     (await cookies()).delete("refreshToken");
+    (await cookies()).delete("userRole");
     redirect("/sign-in-3");
 }

@@ -11,12 +11,12 @@ axiosInstance.interceptors.request.use(
         // nhờ withCredentials: true
 
         // Log request
-        console.log("➡️ AXIOS REQUEST:", {
-            method: config.method?.toUpperCase(),
-            url: config.baseURL ? `${config.baseURL}${config.url}` : config.url,
-            headers: config.headers,
-            data: config.data,
-        });
+        // console.log("➡️ AXIOS REQUEST:", {
+        //     method: config.method?.toUpperCase(),
+        //     url: config.baseURL ? `${config.baseURL}${config.url}` : config.url,
+        //     headers: config.headers,
+        //     data: config.data,
+        // });
 
         return config;
     },
@@ -29,11 +29,11 @@ axiosInstance.interceptors.request.use(
 // RESPONSE INTERCEPTOR — log lỗi chi tiết
 axiosInstance.interceptors.response.use(
     (response) => {
-        console.log("✅ AXIOS RESPONSE:", {
-            status: response.status,
-            url: response.config.url,
-            data: response.data,
-        });
+        // console.log("✅ AXIOS RESPONSE:", {
+        //     status: response.status,
+        //     url: response.config.url,
+        //     data: response.data,
+        // });
         return response;
     },
     (error) => {

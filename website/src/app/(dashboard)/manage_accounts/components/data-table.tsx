@@ -53,42 +53,21 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { UserFormDialog } from "./user-form-dialog";
-
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    avatar: string;
-    role: string;
-    plan: string;
-    billing: string;
-    status: string;
-    joinedDate: string;
-    lastLogin: string;
-}
-
-interface UserFormValues {
-    name: string;
-    email: string;
-    role: string;
-    plan: string;
-    billing: string;
-    status: string;
-}
+import { AccountFormDialog } from "./user-form-dialog";
+import { Accounts, AccountsFormValues, AccountStatus } from "@/types/accounts";
 
 interface DataTableProps {
-    users: User[];
-    onDeleteUser: (id: number) => void;
-    onEditUser: (user: User) => void;
-    onAddUser: (userData: UserFormValues) => void;
+    accounts: Accounts[];
+    onDeleteAccount: (id: number) => void;
+    onEditAccount: (account: Accounts) => void;
+    onAddAccount: (accountData: AccountsFormValues) => void;
 }
 
 export function DataTable({
-    users,
-    onDeleteUser,
-    onEditUser,
-    onAddUser,
+    accounts,
+    onDeleteAccount,
+    onEditAccount,
+    onAddAccount,
 }: DataTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -98,15 +77,15 @@ export function DataTable({
     const [rowSelection, setRowSelection] = useState({});
     const [globalFilter, setGlobalFilter] = useState("");
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status: AccountStatus) => {
         switch (status) {
-            case "Active":
+            case "ACTIVE":
                 return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
-            case "Pending":
+            case "BLOCKED":
                 return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20";
-            case "Error":
+            case "DELETED":
                 return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-            case "Inactive":
+            case "INACTIVE":
                 return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
             default:
                 return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
@@ -130,11 +109,15 @@ export function DataTable({
         }
     };
 
-    const exactFilter = (row: Row<User>, columnId: string, value: string) => {
+    const exactFilter = (
+        row: Row<Accounts>,
+        columnId: string,
+        value: string
+    ) => {
         return row.getValue(columnId) === value;
     };
 
-    const columns: ColumnDef<User>[] = [
+    const columns: ColumnDef<Accounts>[] = [
         {
             id: "select",
             header: ({ table }) => (
@@ -172,11 +155,6 @@ export function DataTable({
                 const user = row.original;
                 return (
                     <div className="flex items-center gap-3">
-                        <Avatar className="w-8 h-8">
-                            <AvatarFallback className="font-medium text-xs">
-                                {user.avatar}
-                            </AvatarFallback>
-                        </Avatar>
                         <div className="flex flex-col">
                             <span className="font-medium">{user.name}</span>
                             <span className="text-muted-foreground text-sm">
@@ -201,27 +179,27 @@ export function DataTable({
             filterFn: exactFilter,
         },
         {
-            accessorKey: "plan",
-            header: "Plan",
+            accessorKey: "gender",
+            header: "Gender",
             cell: ({ row }) => {
-                const plan = row.getValue("plan") as string;
-                return <span className="font-medium">{plan}</span>;
+                const gender = row.getValue("gender") as string;
+                return <span className="font-medium">{gender}</span>;
             },
             filterFn: exactFilter,
         },
         {
-            accessorKey: "billing",
-            header: "Billing",
+            accessorKey: "birthday",
+            header: "Birthday",
             cell: ({ row }) => {
-                const billing = row.getValue("billing") as string;
-                return <span className="text-sm">{billing}</span>;
+                const birthday = row.getValue("birthday") as string;
+                return <span className="text-sm">{birthday}</span>;
             },
         },
         {
             accessorKey: "status",
             header: "Status",
             cell: ({ row }) => {
-                const status = row.getValue("status") as string;
+                const status = row.getValue("status") as AccountStatus;
                 return (
                     <Badge
                         variant="secondary"
@@ -252,7 +230,7 @@ export function DataTable({
                             variant="ghost"
                             size="icon"
                             className="w-8 h-8 cursor-pointer"
-                            onClick={() => onEditUser(user)}
+                            onClick={() => onEditAccount(user)}
                         >
                             <Pencil className="size-4" />
                             <span className="sr-only">Edit user</span>
@@ -284,7 +262,7 @@ export function DataTable({
                                 <DropdownMenuItem
                                     variant="destructive"
                                     className="cursor-pointer"
-                                    onClick={() => onDeleteUser(user.id)}
+                                    onClick={() => onDeleteAccount(user.id)}
                                 >
                                     <Trash2 className="mr-2 size-4" />
                                     Delete User
@@ -298,7 +276,7 @@ export function DataTable({
     ];
 
     const table = useReactTable({
-        data: users,
+        data: accounts ?? [],
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -319,7 +297,6 @@ export function DataTable({
     });
 
     const roleFilter = table.getColumn("role")?.getFilterValue() as string;
-    const planFilter = table.getColumn("plan")?.getFilterValue() as string;
     const statusFilter = table.getColumn("status")?.getFilterValue() as string;
 
     return (
@@ -346,7 +323,7 @@ export function DataTable({
                         <Download className="mr-2 size-4" />
                         Export
                     </Button>
-                    <UserFormDialog onAddUser={onAddUser} />
+                    <AccountFormDialog onAddAccount={onAddAccount} />
                 </div>
             </div>
 
@@ -386,39 +363,7 @@ export function DataTable({
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-2">
-                    <Label
-                        htmlFor="plan-filter"
-                        className="font-medium text-sm"
-                    >
-                        Plan
-                    </Label>
-                    <Select
-                        value={planFilter || ""}
-                        onValueChange={(value) =>
-                            table
-                                .getColumn("plan")
-                                ?.setFilterValue(value === "all" ? "" : value)
-                        }
-                    >
-                        <SelectTrigger
-                            className="w-full cursor-pointer"
-                            id="plan-filter"
-                        >
-                            <SelectValue placeholder="Select Plan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Plans</SelectItem>
-                            <SelectItem value="Basic">Basic</SelectItem>
-                            <SelectItem value="Professional">
-                                Professional
-                            </SelectItem>
-                            <SelectItem value="Enterprise">
-                                Enterprise
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+
                 <div className="space-y-2">
                     <Label
                         htmlFor="status-filter"
