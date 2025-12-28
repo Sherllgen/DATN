@@ -1,4 +1,3 @@
-import SvgLogoGoogle from "@/assets/svg/SvgLogoGoogle";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -166,7 +165,7 @@ export default function PhoneNumberStep({
             </View>
 
             {/* Google Sign Up */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
                 className="bg-white mb-4 py-3 border rounded-full"
                 onPress={onContinue}
                 activeOpacity={0.8}
@@ -177,7 +176,7 @@ export default function PhoneNumberStep({
                         Sign up with Google
                     </Text>
                 </View>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {/* Sign In Link */}
             <View className="flex-row justify-center mt-6">
