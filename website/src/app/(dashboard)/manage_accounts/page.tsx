@@ -71,9 +71,9 @@ export default function MangeAccountsPage() {
             <div className="@container/main px-4 lg:px-6">
                 <DataTable
                     accounts={accounts}
-                    onDeleteAccount={handleDeleteAccount}
                     onEditAccount={handleEditAccount}
                     onAddAccount={handleAddAccount}
+                    onRefresh={fetchAccounts}
                 />
             </div>
         </div>

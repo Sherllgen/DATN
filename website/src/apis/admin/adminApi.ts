@@ -39,3 +39,23 @@ export async function rejectRegistrationApi(profileId: number, reason: string) {
     );
     return res.data;
 }
+
+export async function lockAccountApi(userId: number) {
+    const res = await axiosInstance.post(
+        `${API_BACKEND_URL}/api/v1/admin/accounts/${userId}/lock`
+    );
+    return res.data;
+}
+export async function unlockAccountApi(userId: number) {
+    const res = await axiosInstance.post(
+        `${API_BACKEND_URL}/api/v1/admin/accounts/${userId}/unlock`
+    );
+    return res.data;
+}
+
+export async function deleteAccountApi(userId: number) {
+    const res = await axiosInstance.delete(
+        `${API_BACKEND_URL}/api/v1/admin/accounts/${userId}`
+    );
+    return res.data;
+}
