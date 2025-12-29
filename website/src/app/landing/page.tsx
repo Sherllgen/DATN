@@ -3,7 +3,7 @@ import { LandingPageContent } from "./landing-page-content";
 
 // Metadata for the landing page
 export const metadata: Metadata = {
-    title: "ShadcnStore - Modern Admin Dashboard Template",
+    title: "EVM - Landing Page",
     description:
         "A beautiful and comprehensive admin dashboard template built with React, Next.js, TypeScript, and shadcn/ui. Perfect for building modern web applications.",
     keywords: [

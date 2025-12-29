@@ -3,10 +3,15 @@ import { CheckCircle2, AlertCircle } from "lucide-react";
 
 interface Step3ResultProps {
     status: "success" | "error" | null;
+    errorMessage?: string | null;
     onReset: () => void;
 }
 
-export function Step3Result({ status, onReset }: Step3ResultProps) {
+export function Step3Result({
+    status,
+    errorMessage,
+    onReset,
+}: Step3ResultProps) {
     return (
         <div className="space-y-6 text-center">
             {status === "success" ? (
@@ -52,8 +57,7 @@ export function Step3Result({ status, onReset }: Step3ResultProps) {
                     </div>
                     <div className="bg-red-500/5 mx-auto p-4 border border-red-500/20 rounded-lg max-w-md">
                         <p className="text-muted-foreground text-sm">
-                            Error: Incorrect file format or missing required
-                            information
+                            {errorMessage || "Unknown error occurred."}
                         </p>
                     </div>
                 </>

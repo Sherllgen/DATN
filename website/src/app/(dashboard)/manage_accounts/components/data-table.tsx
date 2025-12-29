@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -53,42 +53,22 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { UserFormDialog } from "./user-form-dialog";
-
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    avatar: string;
-    role: string;
-    plan: string;
-    billing: string;
-    status: string;
-    joinedDate: string;
-    lastLogin: string;
-}
-
-interface UserFormValues {
-    name: string;
-    email: string;
-    role: string;
-    plan: string;
-    billing: string;
-    status: string;
-}
+import { AccountFormDialog } from "./user-form-dialog";
+import { Accounts, AccountsFormValues, AccountStatus } from "@/types/accounts";
+import { UserRole } from "@/types/user";
 
 interface DataTableProps {
-    users: User[];
-    onDeleteUser: (id: number) => void;
-    onEditUser: (user: User) => void;
-    onAddUser: (userData: UserFormValues) => void;
+    accounts: Accounts[];
+    onDeleteAccount: (id: number) => void;
+    onEditAccount: (account: Accounts) => void;
+    onAddAccount: (accountData: AccountsFormValues) => void;
 }
 
 export function DataTable({
-    users,
-    onDeleteUser,
-    onEditUser,
-    onAddUser,
+    accounts,
+    onDeleteAccount,
+    onEditAccount,
+    onAddAccount,
 }: DataTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -98,207 +78,216 @@ export function DataTable({
     const [rowSelection, setRowSelection] = useState({});
     const [globalFilter, setGlobalFilter] = useState("");
 
-    const getStatusColor = (status: string) => {
+    console.log("render");
+
+    const getStatusColor = (status: AccountStatus) => {
         switch (status) {
-            case "Active":
+            case "ACTIVE":
                 return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
-            case "Pending":
+            case "BLOCKED":
                 return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20";
-            case "Error":
+            case "DELETED":
                 return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-            case "Inactive":
+            case "INACTIVE":
                 return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
             default:
                 return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
         }
     };
 
-    const getRoleColor = (role: string) => {
+    const getRoleColor = (role: UserRole) => {
         switch (role) {
-            case "Super Admin":
+            case "SUPER_ADMIN":
                 return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-            case "Station Owner":
+            case "STATION_OWNER":
                 return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20";
-            case "Service Staff":
+            case "STAFF":
                 return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
-            case "Station Staff":
+            case "USER":
                 return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
-            case "Subscriber":
-                return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20";
+            // case "Subscriber":
+            //     return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20";
             default:
                 return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
         }
     };
 
-    const exactFilter = (row: Row<User>, columnId: string, value: string) => {
+    const exactFilter = (
+        row: Row<Accounts>,
+        columnId: string,
+        value: string
+    ) => {
         return row.getValue(columnId) === value;
     };
 
-    const columns: ColumnDef<User>[] = [
-        {
-            id: "select",
-            header: ({ table }) => (
-                <div className="flex justify-center items-center px-2">
-                    <Checkbox
-                        checked={
-                            table.getIsAllPageRowsSelected() ||
-                            (table.getIsSomePageRowsSelected() &&
-                                "indeterminate")
-                        }
-                        onCheckedChange={(value) =>
-                            table.toggleAllPageRowsSelected(!!value)
-                        }
-                        aria-label="Select all"
-                    />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="flex justify-center items-center px-2">
-                    <Checkbox
-                        checked={row.getIsSelected()}
-                        onCheckedChange={(value) => row.toggleSelected(!!value)}
-                        aria-label="Select row"
-                    />
-                </div>
-            ),
-            enableSorting: false,
-            enableHiding: false,
-            size: 50,
-        },
-        {
-            accessorKey: "name",
-            header: "Name",
-            cell: ({ row }) => {
-                const user = row.original;
-                return (
-                    <div className="flex items-center gap-3">
-                        <Avatar className="w-8 h-8">
-                            <AvatarFallback className="font-medium text-xs">
-                                {user.avatar}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                            <span className="font-medium">{user.name}</span>
-                            <span className="text-muted-foreground text-sm">
-                                {user.email}
-                            </span>
+    const columns = useMemo<ColumnDef<Accounts>[]>(
+        () => [
+            {
+                id: "select",
+                header: ({ table }) => (
+                    <div className="flex justify-center items-center px-2">
+                        <Checkbox
+                            checked={
+                                table.getIsAllPageRowsSelected() ||
+                                (table.getIsSomePageRowsSelected() &&
+                                    "indeterminate")
+                            }
+                            onCheckedChange={(value) =>
+                                table.toggleAllPageRowsSelected(!!value)
+                            }
+                            aria-label="Select all"
+                        />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="flex justify-center items-center px-2">
+                        <Checkbox
+                            checked={row.getIsSelected()}
+                            onCheckedChange={(value) =>
+                                row.toggleSelected(!!value)
+                            }
+                            aria-label="Select row"
+                        />
+                    </div>
+                ),
+                enableSorting: false,
+                enableHiding: false,
+                size: 50,
+            },
+            {
+                accessorKey: "name",
+                header: "Name",
+                cell: ({ row }) => {
+                    const user = row.original;
+                    return (
+                        <div className="flex items-center gap-3">
+                            <div className="flex flex-col">
+                                <span className="font-medium">{user.name}</span>
+                                <span className="text-muted-foreground text-sm">
+                                    {user.email}
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                );
+                    );
+                },
             },
-        },
-        {
-            accessorKey: "role",
-            header: "Role",
-            cell: ({ row }) => {
-                const role = row.getValue("role") as string;
-                return (
-                    <Badge variant="secondary" className={getRoleColor(role)}>
-                        {role}
-                    </Badge>
-                );
-            },
-            filterFn: exactFilter,
-        },
-        {
-            accessorKey: "plan",
-            header: "Plan",
-            cell: ({ row }) => {
-                const plan = row.getValue("plan") as string;
-                return <span className="font-medium">{plan}</span>;
-            },
-            filterFn: exactFilter,
-        },
-        {
-            accessorKey: "billing",
-            header: "Billing",
-            cell: ({ row }) => {
-                const billing = row.getValue("billing") as string;
-                return <span className="text-sm">{billing}</span>;
-            },
-        },
-        {
-            accessorKey: "status",
-            header: "Status",
-            cell: ({ row }) => {
-                const status = row.getValue("status") as string;
-                return (
-                    <Badge
-                        variant="secondary"
-                        className={getStatusColor(status)}
-                    >
-                        {status}
-                    </Badge>
-                );
-            },
-            filterFn: exactFilter,
-        },
-        {
-            id: "actions",
-            header: "Actions",
-            cell: ({ row }) => {
-                const user = row.original;
-                return (
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-8 h-8 cursor-pointer"
+            {
+                accessorKey: "role",
+                header: "Role",
+                cell: ({ row }) => {
+                    const role = row.getValue("role") as UserRole;
+                    return (
+                        <Badge
+                            variant="secondary"
+                            className={getRoleColor(role)}
                         >
-                            <Eye className="size-4" />
-                            <span className="sr-only">View user</span>
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-8 h-8 cursor-pointer"
-                            onClick={() => onEditUser(user)}
-                        >
-                            <Pencil className="size-4" />
-                            <span className="sr-only">Edit user</span>
-                        </Button>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="w-8 h-8 cursor-pointer"
-                                >
-                                    <EllipsisVertical className="size-4" />
-                                    <span className="sr-only">
-                                        More actions
-                                    </span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem className="cursor-pointer">
-                                    View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
-                                    Send Email
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
-                                    Reset Password
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    variant="destructive"
-                                    className="cursor-pointer"
-                                    onClick={() => onDeleteUser(user.id)}
-                                >
-                                    <Trash2 className="mr-2 size-4" />
-                                    Delete User
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                );
+                            {role}
+                        </Badge>
+                    );
+                },
+                filterFn: exactFilter,
             },
-        },
-    ];
+            {
+                accessorKey: "gender",
+                header: "Gender",
+                cell: ({ row }) => {
+                    const gender = row.getValue("gender") as string;
+                    return <span className="font-medium">{gender}</span>;
+                },
+                filterFn: exactFilter,
+            },
+            {
+                accessorKey: "birthday",
+                header: "Birthday",
+                cell: ({ row }) => {
+                    const birthday = row.getValue("birthday") as string;
+                    return <span className="text-sm">{birthday}</span>;
+                },
+            },
+            {
+                accessorKey: "status",
+                header: "Status",
+                cell: ({ row }) => {
+                    const status = row.getValue("status") as AccountStatus;
+                    return (
+                        <Badge
+                            variant="secondary"
+                            className={getStatusColor(status)}
+                        >
+                            {status}
+                        </Badge>
+                    );
+                },
+                filterFn: exactFilter,
+            },
+            {
+                id: "actions",
+                header: "Actions",
+                cell: ({ row }) => {
+                    const user = row.original;
+                    return (
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="w-8 h-8 cursor-pointer"
+                            >
+                                <Eye className="size-4" />
+                                <span className="sr-only">View user</span>
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="w-8 h-8 cursor-pointer"
+                                onClick={() => onEditAccount(user)}
+                            >
+                                <Pencil className="size-4" />
+                                <span className="sr-only">Edit user</span>
+                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="w-8 h-8 cursor-pointer"
+                                    >
+                                        <EllipsisVertical className="size-4" />
+                                        <span className="sr-only">
+                                            More actions
+                                        </span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem className="cursor-pointer">
+                                        View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="cursor-pointer">
+                                        Send Email
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="cursor-pointer">
+                                        Reset Password
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        variant="destructive"
+                                        className="cursor-pointer"
+                                        onClick={() => onDeleteAccount(user.id)}
+                                    >
+                                        <Trash2 className="mr-2 size-4" />
+                                        Delete User
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    );
+                },
+            },
+        ],
+        [onDeleteAccount, onEditAccount]
+    );
 
     const table = useReactTable({
-        data: users,
+        data: accounts ?? [],
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -319,7 +308,6 @@ export function DataTable({
     });
 
     const roleFilter = table.getColumn("role")?.getFilterValue() as string;
-    const planFilter = table.getColumn("plan")?.getFilterValue() as string;
     const statusFilter = table.getColumn("status")?.getFilterValue() as string;
 
     return (
@@ -346,7 +334,7 @@ export function DataTable({
                         <Download className="mr-2 size-4" />
                         Export
                     </Button>
-                    <UserFormDialog onAddUser={onAddUser} />
+                    <AccountFormDialog onAddAccount={onAddAccount} />
                 </div>
             </div>
 
@@ -386,39 +374,7 @@ export function DataTable({
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-2">
-                    <Label
-                        htmlFor="plan-filter"
-                        className="font-medium text-sm"
-                    >
-                        Plan
-                    </Label>
-                    <Select
-                        value={planFilter || ""}
-                        onValueChange={(value) =>
-                            table
-                                .getColumn("plan")
-                                ?.setFilterValue(value === "all" ? "" : value)
-                        }
-                    >
-                        <SelectTrigger
-                            className="w-full cursor-pointer"
-                            id="plan-filter"
-                        >
-                            <SelectValue placeholder="Select Plan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Plans</SelectItem>
-                            <SelectItem value="Basic">Basic</SelectItem>
-                            <SelectItem value="Professional">
-                                Professional
-                            </SelectItem>
-                            <SelectItem value="Enterprise">
-                                Enterprise
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+
                 <div className="space-y-2">
                     <Label
                         htmlFor="status-filter"

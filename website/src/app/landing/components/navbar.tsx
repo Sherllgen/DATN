@@ -33,8 +33,6 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Logo } from "@/components/logo";
-import { MegaMenu } from "@/components/landing/mega-menu";
-import { ModeToggle } from "@/components/mode-toggle";
 import { useTheme } from "@/hooks/use-theme";
 
 const navigationItems = [
@@ -103,31 +101,19 @@ export function LandingNavbar() {
                     <NavigationMenuList>
                         {navigationItems.map((item: any) => (
                             <NavigationMenuItem key={item.name}>
-                                {item.hasMegaMenu ? (
-                                    <>
-                                        <NavigationMenuTrigger className="bg-transparent data-[state=open]:bg-transparent data-active:bg-transparent hover:bg-transparent focus:bg-transparent px-4 py-2 font-medium hover:text-primary focus:text-primary text-sm transition-colors cursor-pointer">
-                                            {item.name}
-                                        </NavigationMenuTrigger>
-                                        <NavigationMenuContent>
-                                            <MegaMenu />
-                                        </NavigationMenuContent>
-                                    </>
-                                ) : (
-                                    <NavigationMenuLink
-                                        className="group inline-flex justify-center items-center px-4 py-2 focus:outline-none w-max h-10 font-medium hover:text-primary focus:text-primary text-sm transition-colors cursor-pointer"
-                                        onClick={(e: React.MouseEvent) => {
-                                            e.preventDefault();
-                                            if (item.href.startsWith("#")) {
-                                                smoothScrollTo(item.href);
-                                            } else {
-                                                window.location.href =
-                                                    item.href;
-                                            }
-                                        }}
-                                    >
-                                        {item.name}
-                                    </NavigationMenuLink>
-                                )}
+                                <NavigationMenuLink
+                                    className="group inline-flex justify-center items-center px-4 py-2 focus:outline-none w-max h-10 font-medium hover:text-primary focus:text-primary text-sm transition-colors cursor-pointer"
+                                    onClick={(e: React.MouseEvent) => {
+                                        e.preventDefault();
+                                        if (item.href.startsWith("#")) {
+                                            smoothScrollTo(item.href);
+                                        } else {
+                                            window.location.href = item.href;
+                                        }
+                                    }}
+                                >
+                                    {item.name}
+                                </NavigationMenuLink>
                             </NavigationMenuItem>
                         ))}
                     </NavigationMenuList>
@@ -136,7 +122,7 @@ export function LandingNavbar() {
                 {/* Desktop CTA */}
                 <div className="hidden xl:flex items-center space-x-2">
                     <Button variant="ghost" asChild className="cursor-pointer">
-                        <Link href="/auth/sign-in">Sign In</Link>
+                        <Link href="/sign-in-3">Sign In</Link>
                     </Button>
                     <Button asChild className="cursor-pointer">
                         <Link href="/register">Get Started</Link>
@@ -144,7 +130,7 @@ export function LandingNavbar() {
                 </div>
 
                 {/* Mobile Menu */}
-                <Sheet open={isOpen} onOpenChange={setIsOpen}>
+                {/* <Sheet open={isOpen} onOpenChange={setIsOpen}>
                     <SheetTrigger asChild className="xl:hidden">
                         <Button
                             variant="ghost"
@@ -160,7 +146,7 @@ export function LandingNavbar() {
                         className="[&>button]:hidden flex flex-col gap-0 p-0 w-full sm:w-[400px] overflow-hidden"
                     >
                         <div className="flex flex-col h-full">
-                            {/* Header */}
+                            Header
                             <SheetHeader className="space-y-0 p-4 pb-2 border-b">
                                 <div className="flex items-center gap-2">
                                     <div className="bg-primary/10 p-2 rounded-lg">
@@ -212,7 +198,7 @@ export function LandingNavbar() {
                                 </div>
                             </SheetHeader>
 
-                            {/* Navigation Links */}
+                            Navigation Links
                             <div className="flex-1 overflow-y-auto">
                                 <nav className="space-y-1 p-6">
                                     {navigationItems.map((item: any) => (
@@ -315,10 +301,10 @@ export function LandingNavbar() {
                                 </nav>
                             </div>
 
-                            {/* Footer Actions */}
+                            Footer Actions
                             <div className="space-y-4 p-6 border-t">
-                                {/* Primary Actions */}
-                                <div className="space-y-3">
+                                // {/* Primary Actions */}
+                {/* <div className="space-y-3">
                                     <Button
                                         variant="outline"
                                         size="lg"
@@ -356,7 +342,7 @@ export function LandingNavbar() {
                             </div>
                         </div>
                     </SheetContent>
-                </Sheet>
+                </Sheet> */}
             </div>
         </header>
     );

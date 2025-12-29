@@ -54,7 +54,7 @@ export function Step2Upload({
                                     Click to select file
                                 </p>
                                 <p className="text-muted-foreground text-xs">
-                                    Supported: Excel (.xlsx, .xls) or PDF
+                                    Supported: PDF
                                 </p>
                             </>
                         )}

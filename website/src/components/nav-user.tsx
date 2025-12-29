@@ -8,6 +8,7 @@ import {
     CircleUser,
 } from "lucide-react";
 import Link from "next/link";
+import { logoutAction } from "@/app/(auth)/sign-in-3/actions";
 
 import { Logo } from "@/components/logo";
 import {
@@ -26,17 +27,12 @@ import {
     useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { useUserStore } from "@/contexts/user.store";
 
-export function NavUser({
-    user,
-}: {
-    user: {
-        name: string;
-        email: string;
-        avatar: string;
-    };
-}) {
+export function NavUser() {
     const { isMobile } = useSidebar();
+
+    const user = useUserStore((state) => state.user!);
 
     return (
         <SidebarMenu>
@@ -49,8 +45,8 @@ export function NavUser({
                         >
                             <Avatar className="rounded-lg w-8 h-8">
                                 <AvatarImage
-                                    src={user.avatar}
-                                    alt={user.name}
+                                    src={user.avatarUrl || ""}
+                                    alt={user.fullName}
                                 />
                                 <AvatarFallback className="rounded-lg">
                                     CN
@@ -58,7 +54,7 @@ export function NavUser({
                             </Avatar>
                             <div className="flex-1 grid text-sm text-left leading-tight">
                                 <span className="font-medium truncate">
-                                    {user.name}
+                                    {user.fullName}
                                 </span>
                                 <span className="text-muted-foreground text-xs truncate">
                                     {user.email}
@@ -77,8 +73,8 @@ export function NavUser({
                             <div className="flex items-center gap-2 px-1 py-1.5 text-sm text-left">
                                 <Avatar className="rounded-lg w-8 h-8">
                                     <AvatarImage
-                                        src={user.avatar}
-                                        alt={user.name}
+                                        src={user.avatarUrl}
+                                        alt={user.fullName}
                                     />
                                     <AvatarFallback className="rounded-lg">
                                         CN
@@ -86,7 +82,7 @@ export function NavUser({
                                 </Avatar>
                                 <div className="flex-1 grid text-sm text-left leading-tight">
                                     <span className="font-medium truncate">
-                                        {user.name}
+                                        {user.fullName}
                                     </span>
                                     <span className="text-muted-foreground text-xs truncate">
                                         {user.email}
@@ -125,11 +121,14 @@ export function NavUser({
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild className="cursor-pointer">
-                            <Link href="/auth/sign-in">
-                                <LogOut />
-                                Log out
-                            </Link>
+                        <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={async () => {
+                                await logoutAction();
+                            }}
+                        >
+                            <LogOut />
+                            Log out
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
