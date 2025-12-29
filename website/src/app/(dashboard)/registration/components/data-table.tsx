@@ -18,13 +18,10 @@ import {
     ChevronDown,
     EllipsisVertical,
     Eye,
-    Pencil,
-    Trash2,
     Download,
     Search,
 } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,6 +33,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -53,16 +57,28 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { AccountFormDialog } from "./user-form-dialog";
-import { UserRole } from "@/types/user";
 import { OwnerType, Profile, ProfileStatus } from "@/types/profileRegistration";
+import {
+    approveRegistrationApi,
+    rejectRegistrationApi,
+    underReviewRegistrationApi,
+} from "@/apis/admin/adminApi";
+import { toast } from "react-toastify";
+import { getOwnerTypeColor, getStatusColor } from "./utils";
+import RejectDialog from "./reject.dialog";
+import ActionCell from "./acction.cell";
 
 interface DataTableProps {
     profiles: Profile[];
     onEditProfile: (profile: Profile) => void;
+    onStatusChange: () => void;
 }
 
-export function DataTable({ profiles, onEditProfile }: DataTableProps) {
+export function DataTable({
+    profiles,
+    onEditProfile,
+    onStatusChange,
+}: DataTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
@@ -70,40 +86,6 @@ export function DataTable({ profiles, onEditProfile }: DataTableProps) {
     );
     const [rowSelection, setRowSelection] = useState({});
     const [globalFilter, setGlobalFilter] = useState("");
-
-    console.log("render");
-
-    const getStatusColor = (status: ProfileStatus) => {
-        switch (status) {
-            case "APPROVED":
-                return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
-            case "SUBMITTED":
-                return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20";
-            case "REJECTED":
-                return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-            case "UNDER_REVIEW":
-                return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
-            default:
-                return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
-        }
-    };
-
-    const getOwnerTypeColor = (role: OwnerType) => {
-        switch (role) {
-            case "ENTERPRISE":
-                return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
-            case "INDIVIDUAL":
-                return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
-            // case "":
-            //     return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
-            // case "USER":
-            //     return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
-            // case "Subscriber":
-            //     return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20";
-            default:
-                return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
-        }
-    };
 
     const exactFilter = (
         row: Row<Profile>,
@@ -158,9 +140,9 @@ export function DataTable({ profiles, onEditProfile }: DataTableProps) {
                                 <span className="font-medium">
                                     {profile.email}
                                 </span>
-                                {/* <span className="text-muted-foreground text-sm">
-                                    {profile.profileId}
-                                </span> */}
+                                <span className="text-muted-foreground text-sm">
+                                    {profile.registrationCode}
+                                </span>
                             </div>
                         </div>
                     );
@@ -180,7 +162,6 @@ export function DataTable({ profiles, onEditProfile }: DataTableProps) {
                         </Badge>
                     );
                 },
-                // filterFn: exactFilter,
             },
             {
                 accessorKey: "pdfFileUrl",
@@ -251,53 +232,8 @@ export function DataTable({ profiles, onEditProfile }: DataTableProps) {
                 id: "actions",
                 header: "Actions",
                 cell: ({ row }) => {
-                    const profile = row.original;
                     return (
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="w-8 h-8 cursor-pointer"
-                            >
-                                <Eye className="size-4" />
-                                <span className="sr-only">View profile</span>
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="w-8 h-8 cursor-pointer"
-                                onClick={() => onEditProfile(profile)}
-                            >
-                                <Pencil className="size-4" />
-                                <span className="sr-only">Edit profile</span>
-                            </Button>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="w-8 h-8 cursor-pointer"
-                                    >
-                                        <EllipsisVertical className="size-4" />
-                                        <span className="sr-only">
-                                            More actions
-                                        </span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem className="cursor-pointer">
-                                        View Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="cursor-pointer">
-                                        Send Email
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="cursor-pointer">
-                                        Reset Password
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
+                        <ActionCell row={row} onStatusChange={onStatusChange} />
                     );
                 },
             },
@@ -353,47 +289,10 @@ export function DataTable({ profiles, onEditProfile }: DataTableProps) {
                         <Download className="mr-2 size-4" />
                         Export
                     </Button>
-                    {/* <AccountFormDialog onAddAccount={onAddAccount} /> */}
                 </div>
             </div>
 
             <div className="gap-2 sm:gap-4 grid sm:grid-cols-4 mt-6">
-                {/* <div className="space-y-2">
-                    <Label
-                        htmlFor="role-filter"
-                        className="font-medium text-sm"
-                    >
-                        Role
-                    </Label>
-                    <Select
-                        value={roleFilter || ""}
-                        onValueChange={(value) =>
-                            table
-                                .getColumn("role")
-                                ?.setFilterValue(value === "all" ? "" : value)
-                        }
-                    >
-                        <SelectTrigger
-                            className="w-full cursor-pointer"
-                            id="role-filter"
-                        >
-                            <SelectValue placeholder="Select Role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Roles</SelectItem>
-                            <SelectItem value="Admin">Admin</SelectItem>
-                            <SelectItem value="Author">Author</SelectItem>
-                            <SelectItem value="Editor">Editor</SelectItem>
-                            <SelectItem value="Maintainer">
-                                Maintainer
-                            </SelectItem>
-                            <SelectItem value="Subscriber">
-                                Subscriber
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div> */}
-
                 <div className="space-y-2">
                     <Label
                         htmlFor="status-filter"

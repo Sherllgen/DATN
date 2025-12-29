@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { DataTable } from "./components/data-table";
 
-import { getListAccounts, getListRegistration } from "@/apis/admin/adminApi";
+import { getListRegistration } from "@/apis/admin/adminApi";
 import { Profile } from "@/types/profileRegistration";
 
 export default function RegistrationPage() {
@@ -43,6 +43,7 @@ export default function RegistrationPage() {
                 <DataTable
                     profiles={profiles}
                     onEditProfile={handleEditProfile}
+                    onStatusChange={fetchRegistrations}
                 />
             </div>
         </div>

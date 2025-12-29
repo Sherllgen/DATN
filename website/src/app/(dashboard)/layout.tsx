@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ToastContainer } from "react-toastify";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
@@ -12,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { useSidebarConfig } from "@/hooks/use-sidebar-config";
 import { useUserStore } from "@/contexts/user.store";
 import { getProfileApi } from "@/apis/stationOwner/stationOwnerApi";
-import { fi } from "date-fns/locale";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -150,6 +150,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
                     </div>
                 </div>
             </div>
+            <ToastContainer autoClose={3000} />
         </SidebarInset>
     );
 }
