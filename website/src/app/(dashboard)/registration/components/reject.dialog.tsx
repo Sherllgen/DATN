@@ -7,6 +7,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface RejectDialogProps {
     openRejectDialog: boolean;
@@ -29,13 +30,13 @@ export default function RejectDialog({
         <Dialog open={openRejectDialog} onOpenChange={setOpenRejectDialog}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Nhập lý do từ chối</DialogTitle>
+                    <DialogTitle>Enter Reject Reason</DialogTitle>
                 </DialogHeader>
-                <Input
-                    placeholder="Nhập lý do từ chối..."
+                <Textarea
+                    placeholder="Enter reject reason..."
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    className="mb-4"
+                    className="my-4"
                     autoFocus
                 />
                 <DialogFooter className="flex justify-end gap-2">
@@ -47,14 +48,14 @@ export default function RejectDialog({
                         }}
                         disabled={loading}
                     >
-                        Hủy
+                        Cancel
                     </Button>
                     <Button
-                        variant="destructive"
+                        variant="default"
                         onClick={handleReject}
                         disabled={loading || !rejectReason.trim()}
                     >
-                        Xác nhận từ chối
+                        Reject
                     </Button>
                 </DialogFooter>
             </DialogContent>

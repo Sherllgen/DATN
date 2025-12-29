@@ -15,6 +15,8 @@ import { Step2Upload } from "./components/Step2Upload";
 import { Step3Result } from "./components/Step3Result";
 import { LandingNavbar } from "@/app/landing/components/navbar";
 import { submitRegistrationApi } from "@/apis/authApi/authApi";
+import CheckStatus from "./components/checkStatus";
+import { Button } from "@/components/ui/button";
 
 export default function RegisterPage() {
     const [currentStep, setCurrentStep] = useState(1);
@@ -24,6 +26,7 @@ export default function RegisterPage() {
         "success" | "error" | null
     >(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [mainScreen, setMainScreen] = useState<"form" | "status">("form");
 
     const totalSteps = 3;
 
@@ -81,51 +84,55 @@ export default function RegisterPage() {
                     <InstructionsPanel />
 
                     {/* Main Form Card */}
-                    <Card className="shadow w-full">
-                        <CardHeader>
-                            <CardTitle className="text-2xl">
-                                Charging Station Registration
-                            </CardTitle>
-                            <CardDescription>
-                                Complete 3 steps to register as a charging
-                                station owner
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Progress Timeline */}
-                            <ProgressTimeline
-                                currentStep={currentStep}
-                                totalSteps={totalSteps}
-                            />
+                    {mainScreen === "form" && (
+                        <Card className="shadow w-full">
+                            <CardHeader>
+                                <CardTitle className="text-2xl">
+                                    Charging Station Registration
+                                </CardTitle>
+                                <CardDescription>
+                                    Complete 3 steps to register as a charging
+                                    station owner
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {/* Progress Timeline */}
+                                <ProgressTimeline
+                                    currentStep={currentStep}
+                                    totalSteps={totalSteps}
+                                />
 
-                            {/* Step Content */}
-                            <div className="flex flex-col justify-center min-h-75">
-                                {currentStep === 1 && (
-                                    <Step1Download
-                                        onDownload={handleDownloadTemplate}
-                                    />
-                                )}
+                                {/* Step Content */}
+                                <div className="flex flex-col justify-center min-h-75">
+                                    {currentStep === 1 && (
+                                        <Step1Download
+                                            onDownload={handleDownloadTemplate}
+                                        />
+                                    )}
 
-                                {currentStep === 2 && (
-                                    <Step2Upload
-                                        uploadedFile={uploadedFile}
-                                        isProcessing={isProcessing}
-                                        onFileUpload={handleFileUpload}
-                                        onSubmit={handleSubmit}
-                                        onBack={() => setCurrentStep(1)}
-                                    />
-                                )}
+                                    {currentStep === 2 && (
+                                        <Step2Upload
+                                            uploadedFile={uploadedFile}
+                                            isProcessing={isProcessing}
+                                            onFileUpload={handleFileUpload}
+                                            onSubmit={handleSubmit}
+                                            onBack={() => setCurrentStep(1)}
+                                        />
+                                    )}
 
-                                {currentStep === 3 && (
-                                    <Step3Result
-                                        status={registrationStatus}
-                                        errorMessage={errorMessage}
-                                        onReset={handleReset}
-                                    />
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                    {currentStep === 3 && (
+                                        <Step3Result
+                                            status={registrationStatus}
+                                            errorMessage={errorMessage}
+                                            onReset={handleReset}
+                                        />
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {mainScreen === "status" && <CheckStatus />}
                 </div>
             </div>
         </div>

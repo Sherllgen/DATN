@@ -56,7 +56,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 } catch (logoutErr) {
                     console.error("Logout API failed:", logoutErr);
                 } finally {
-                    router.replace("/sign-in-3");
+                    window.location.href = "/sign-in-3";
                     return;
                 }
             }
