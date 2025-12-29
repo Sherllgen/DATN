@@ -266,7 +266,7 @@ export default function ProfilePage() {
                             source={{
                                 uri:
                                     state.profileImage ||
-                                    "https://i.pravatar.cc/150",
+                                    "https://i.pravatar.cc/150?img=12",
                             }}
                             className="bg-white border-4 border-white rounded-full size-[100px]"
                         />

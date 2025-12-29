@@ -42,7 +42,7 @@ export default function SettingPage() {
                                 source={{
                                     uri:
                                         user.avatarUrl ||
-                                        "https://i.pravatar.cc/150",
+                                        "https://i.pravatar.cc/150?img=12",
                                 }}
                                 className="bg-[#4A5568] rounded-full w-[60px] h-[60px]"
                             />
