@@ -59,16 +59,16 @@ import { UserRole } from "@/types/user";
 
 interface DataTableProps {
     accounts: Accounts[];
-    onDeleteAccount: (id: number) => void;
     onEditAccount: (account: Accounts) => void;
     onAddAccount: (accountData: AccountsFormValues) => void;
+    onRefresh: () => void;
 }
 
 export function DataTable({
     accounts,
-    onDeleteAccount,
     onEditAccount,
     onAddAccount,
+    onRefresh,
 }: DataTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -225,6 +225,58 @@ export function DataTable({
                 header: "Actions",
                 cell: ({ row }) => {
                     const user = row.original;
+                    // Thêm state loading cho thao tác lock và xóa
+                    const [lockLoading, setLockLoading] = useState(false);
+                    const [deleteLoading, setDeleteLoading] = useState(false);
+                    const [openDeleteDialog, setOpenDeleteDialog] =
+                        useState(false);
+                    // ...existing code...
+                    const handleLockAccount = async () => {
+                        setLockLoading(true);
+                        try {
+                            const { lockAccountApi } = await import(
+                                "@/apis/admin/adminApi"
+                            );
+                            await lockAccountApi(user.id);
+                            onRefresh();
+                        } catch (error) {
+                            // Có thể thêm thông báo lỗi ở đây
+                        } finally {
+                            setLockLoading(false);
+                        }
+                    };
+
+                    const handleUnLockAccount = async () => {
+                        setLockLoading(true);
+                        try {
+                            const { unlockAccountApi } = await import(
+                                "@/apis/admin/adminApi"
+                            );
+                            await unlockAccountApi(user.id);
+                            onRefresh();
+                        } catch (error) {
+                            // Có thể thêm thông báo lỗi ở đây
+                            console.log(error);
+                        } finally {
+                            setLockLoading(false);
+                        }
+                    };
+
+                    const handleDeleteAccount = async () => {
+                        setDeleteLoading(true);
+                        try {
+                            const { deleteAccountApi } = await import(
+                                "@/apis/admin/adminApi"
+                            );
+                            await deleteAccountApi(user.id);
+                            setOpenDeleteDialog(false);
+                            onRefresh();
+                        } catch (error) {
+                            // Có thể thêm thông báo lỗi ở đây
+                        } finally {
+                            setDeleteLoading(false);
+                        }
+                    };
                     return (
                         <div className="flex items-center gap-2">
                             <Button
@@ -258,32 +310,80 @@ export function DataTable({
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem className="cursor-pointer">
-                                        View Details
+                                    <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={handleLockAccount}
+                                        disabled={lockLoading}
+                                    >
+                                        {lockLoading
+                                            ? "Locking..."
+                                            : "Lock Account"}
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="cursor-pointer">
-                                        Send Email
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="cursor-pointer">
-                                        Reset Password
+                                    <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={handleUnLockAccount}
+                                    >
+                                        Unlock Account
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                         variant="destructive"
                                         className="cursor-pointer"
-                                        onClick={() => onDeleteAccount(user.id)}
+                                        onClick={() =>
+                                            setOpenDeleteDialog(true)
+                                        }
                                     >
                                         <Trash2 className="mr-2 size-4" />
                                         Delete User
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            {/* Popup xác nhận xóa */}
+                            {openDeleteDialog && (
+                                <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/40">
+                                    <div className="bg-white dark:bg-gray-900 shadow-lg p-6 rounded-lg w-full max-w-sm">
+                                        <h2 className="mb-4 font-semibold text-lg">
+                                            Confirm Deletion
+                                        </h2>
+                                        <div className="mb-6">
+                                            <p>
+                                                Are you sure you want to delete
+                                                the account{" "}
+                                            </p>
+                                            <span className="font-bold">
+                                                {user.name}
+                                            </span>
+                                            ?
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setOpenDeleteDialog(false)
+                                                }
+                                                disabled={deleteLoading}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                onClick={handleDeleteAccount}
+                                                disabled={deleteLoading}
+                                            >
+                                                {deleteLoading
+                                                    ? "Deleting..."
+                                                    : "Delete"}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     );
                 },
             },
         ],
-        [onDeleteAccount, onEditAccount]
+        [onEditAccount]
     );
 
     const table = useReactTable({
