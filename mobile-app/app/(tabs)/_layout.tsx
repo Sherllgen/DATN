@@ -13,7 +13,7 @@ export default function TabLayout() {
     const TAB_HEIGHT = 80;
     const insets = useSafeAreaInsets();
 
-    const CenterTabButton = ({ children, onPress }: any) => {
+    const CenterTabButton = ({ children, onPress }: { children: React.ReactNode; onPress?: () => void }) => {
         return (
             <View
                 style={{
@@ -51,12 +51,13 @@ export default function TabLayout() {
                 tabBarButton: HapticTab,
                 tabBarStyle: {
                     position: "absolute",
-                    bottom: insets.bottom,
+                    bottom: 0,
                     left: 0,
                     right: 0,
                     backgroundColor: "#131315",
-                    height: TAB_HEIGHT,
+                    height: TAB_HEIGHT + insets.bottom,
                     paddingTop: 6,
+                    paddingBottom: insets.bottom,
                     borderColor: "#eee",
                 },
 
@@ -67,7 +68,7 @@ export default function TabLayout() {
                 name="home"
                 options={{
                     title: "Home",
-                    tabBarIcon: ({ color }) => (
+                    tabBarIcon: ({ color }: { color: string }) => (
                         <Ionicons name="compass" size={28} color={color} />
                     ),
                 }}
@@ -77,7 +78,7 @@ export default function TabLayout() {
                 name="charging"
                 options={{
                     title: "Charging",
-                    tabBarIcon: ({ color }) => (
+                    tabBarIcon: ({ color }: { color: string }) => (
                         <MaterialIcons
                             name="energy-savings-leaf"
                             size={28}
@@ -98,7 +99,7 @@ export default function TabLayout() {
                             color="white"
                         />
                     ),
-                    tabBarButton: (props) => <CenterTabButton {...props} />,
+                    tabBarButton: (props: any) => <CenterTabButton {...props} />,
                 }}
             />
 
@@ -106,7 +107,7 @@ export default function TabLayout() {
                 name="notifice"
                 options={{
                     title: "Notifice",
-                    tabBarIcon: ({ color }) => (
+                    tabBarIcon: ({ color }: { color: string }) => (
                         <MaterialCommunityIcons
                             name="bell"
                             size={30}
@@ -117,10 +118,24 @@ export default function TabLayout() {
             />
 
             <Tabs.Screen
+                name="component-gallery"
+                options={{
+                    title: "Gallery",
+                    tabBarIcon: ({ color }: { color: string }) => (
+                        <MaterialCommunityIcons
+                            name="palette"
+                            size={26}
+                            color={color}
+                        />
+                    ),
+                }}
+            />
+
+            <Tabs.Screen
                 name="setting"
                 options={{
                     title: "Setting",
-                    tabBarIcon: ({ color }) => (
+                    tabBarIcon: ({ color }: { color: string }) => (
                         <MaterialCommunityIcons
                             name="cog"
                             color={color}
