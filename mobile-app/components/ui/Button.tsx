@@ -41,7 +41,7 @@ export default function Button({
     const variantStyles = {
         primary: "bg-secondary",
         secondary: "bg-accent",
-        outline: "bg-transparent border-2 border-accent",
+        outline: "bg-transparent border-2 border-white",
         ghost: "bg-transparent",
         danger: "bg-error",
     };
@@ -68,7 +68,7 @@ export default function Button({
     const textColorStyles = {
         primary: "text-white",
         secondary: "text-white",
-        outline: "text-accent",
+        outline: "text-white",
         ghost: "text-accent",
         danger: "text-white",
     };

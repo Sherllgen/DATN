@@ -1,15 +1,10 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import GradientBackground from "@/components/ui/GradientBackground";
 
 export default function HomePage() {
     return (
-        <LinearGradient
-            colors={["#33404F", "#000000"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            className="flex-1 px-6 pt-6"
-        >
+        <GradientBackground className="flex-1 px-6 pt-6">
             <SafeAreaView className="flex-1">
                 <View>
                     <Text style={styles.h3}>EVGo</Text>
@@ -56,7 +51,7 @@ export default function HomePage() {
                     </View>
                 </View>
             </SafeAreaView>
-        </LinearGradient>
+        </GradientBackground>
     );
 }
 

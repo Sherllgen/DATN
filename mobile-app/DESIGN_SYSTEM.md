@@ -78,6 +78,55 @@ This Design System was extracted from the Frontend source code of the **EV-Go Mo
 | **Light Tint** | `#0a7ea4` | Tab navigation selected (light mode) |
 | **Dark Tint** | `#fff` | Tab navigation selected (dark mode) |
 
+#### Gradient Colors
+
+**Design Token Location:** `constants/gradients.ts`
+
+| Gradient Name | Colors | Direction | Usage |
+|---------------|--------|-----------|-------|
+| **main** | `#33404F` → `#000000` | Top to Bottom (↓) | Primary app background, main layouts |
+| **primaryDark** | `#33404F` → `#000000` | Top to Bottom (↓) | Alternative name for main gradient |
+
+**Usage with GradientBackground Component:**
+```tsx
+import GradientBackground from '@/components/ui/GradientBackground';
+
+// Use default gradient (main)
+<GradientBackground className="flex-1 px-6 pt-6">
+  <SafeAreaView className="flex-1">
+    {/* Your page content */}
+  </SafeAreaView>
+</GradientBackground>
+
+// Use named preset
+<GradientBackground preset="primaryDark" className="flex-1">
+  {children}
+</GradientBackground>
+
+// Or with custom colors
+<GradientBackground colors={["#FF0000", "#0000FF"]} className="flex-1">
+  {children}
+</GradientBackground>
+```
+
+**Adding New Gradients:**
+Edit `constants/gradients.ts` to add new preset gradients:
+```typescript
+export const GRADIENTS = {
+  main: {
+    colors: ["#33404F", "#000000"] as const,
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 1 },
+  },
+  // Add your new gradient here
+  yourGradient: {
+    colors: ["#color1", "#color2"] as const,
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 1 },
+  },
+};
+```
+
 ---
 
 ### 2. Typography
@@ -214,7 +263,51 @@ The project uses the default Tailwind spacing scale. Commonly used values:
 />
 ```
 
-#### 3. Icon
+#### 3. GradientBackground
+
+**Location:** `components/ui/GradientBackground.tsx` ✅
+
+**Props:**
+```typescript
+{
+  preset?: "main" | "primaryDark";
+  colors?: readonly [ColorValue, ColorValue, ...ColorValue[]];
+  className?: string;
+  children: React.ReactNode;
+}
+```
+
+**Features:**
+- Wraps `expo-linear-gradient`'s `LinearGradient` component
+- Uses design token gradients from `constants/gradients.ts`
+- Default gradient: `main` (Primary #33404F → Black #000000)
+- Supports custom colors override
+- Consistent gradient application across all pages
+
+**Usage:**
+```tsx
+// Default main gradient
+<GradientBackground className="flex-1 px-6 pt-6">
+  <SafeAreaView className="flex-1">
+    {/* Page content */}
+  </SafeAreaView>
+</GradientBackground>
+
+// Specific preset
+<GradientBackground preset="primaryDark" className="flex-1">
+  {children}
+</GradientBackground>
+
+// Custom colors (bypasses design tokens)
+<GradientBackground colors={["#FF0000", "#0000FF"]}>
+  {children}
+</GradientBackground>
+```
+
+**Design Recommendation:**
+Use `<GradientBackground>` as the root wrapper for all main app pages to maintain consistent visual identity. The component provides the signature primary-to-black gradient background seen throughout the app.
+
+#### 4. Icon
 
 **Library**: `@expo/vector-icons` (Ionicons, MaterialIcons, Feather, FontAwesome5)
 

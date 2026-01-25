@@ -43,6 +43,12 @@ module.exports = {
                     light: 'rgba(255,255,255,0.3)',
                 }
             },
+
+            // Gradients
+            backgroundImage: {
+                'gradient-main': 'linear-gradient(to bottom, #33404F, #000000)',
+                'gradient-primary-dark': 'linear-gradient(180deg, #33404F 0%, #000000 100%)',
+            },
             // Typography
             fontSize: {
                 'heading-xl': ['36px', { lineHeight: '40px', fontWeight: '700' }],
