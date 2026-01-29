@@ -1,7 +1,6 @@
 package com.project.evgo.notification.internal;
 
 import com.project.evgo.notification.EmailService;
-import com.project.evgo.user.internal.User;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

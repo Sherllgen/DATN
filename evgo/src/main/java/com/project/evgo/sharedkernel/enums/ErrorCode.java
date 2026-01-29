@@ -45,7 +45,12 @@ public enum ErrorCode {
     CANNOT_MODIFY_OWN_ACCOUNT(2010, HttpStatus.FORBIDDEN, "Cannot modify your own account"),
     ACCOUNT_ALREADY_LOCKED(2011, HttpStatus.BAD_REQUEST, "Account is already locked"),
     ACCOUNT_NOT_LOCKED(2012, HttpStatus.BAD_REQUEST, "Account is not locked"),
-    ACCOUNT_ALREADY_DELETED(2013, HttpStatus.BAD_REQUEST, "Account is already deleted");
+    ACCOUNT_ALREADY_DELETED(2013, HttpStatus.BAD_REQUEST, "Account is already deleted"),
+
+    // Station errors (5xxx)
+    STATION_NOT_FOUND(5001, HttpStatus.NOT_FOUND, "Station not found"),
+    STATION_NOT_OWNED(5002, HttpStatus.FORBIDDEN, "You are not the owner of this station"),
+    STATION_NAME_ALREADY_EXISTS(5003, HttpStatus.CONFLICT, "Station name already exists for this owner");
 
     private final int code;
     private final HttpStatus status;

@@ -3,16 +3,26 @@ package com.project.evgo.station.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+
 /**
- * Request DTO for creating/updating a station.
+ * Request DTO for creating a station.
  * Public API - accessible by other modules.
  */
 public record CreateStationRequest(
-        @NotBlank(message = "Station name is required") String name,
+    @NotBlank(message = "Station name is required") 
+    String name,
 
-        @NotBlank(message = "Address is required") String address,
+    String description,
 
-        @NotNull(message = "Latitude is required") Double latitude,
+    @NotBlank(message = "Address is required") 
+    String address,
 
-        @NotNull(message = "Longitude is required") Double longitude) {
+    @NotNull(message = "Latitude is required") 
+    Double latitude,
+
+    @NotNull(message = "Longitude is required") 
+    Double longitude,
+
+    List<String> imageUrls) {
 }
