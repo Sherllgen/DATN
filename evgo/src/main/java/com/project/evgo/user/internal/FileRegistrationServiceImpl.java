@@ -1,6 +1,5 @@
 package com.project.evgo.user.internal;
 
-import com.cloudinary.Cloudinary;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.enums.StationOwnerStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
@@ -8,19 +7,14 @@ import com.project.evgo.sharedkernel.infra.FileStorageService;
 import com.project.evgo.user.PdfParsingService;
 import com.project.evgo.user.FileRegistrationService;
 import com.project.evgo.user.request.RegistrationRequest;
-import com.project.evgo.user.response.FileUploadResponse;
+import com.project.evgo.sharedkernel.dto.FileUploadResult;
 import com.project.evgo.user.response.RegistrationResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tomcat.util.http.fileupload.FileUpload;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,13 +34,14 @@ public class FileRegistrationServiceImpl implements FileRegistrationService {
     @Override
     @Transactional
     public RegistrationResponse submitRegistration(RegistrationRequest request) {
-        //1. Validate PDF file is present and within size limits
+        // 1. Validate PDF file is present and within size limits
         validatePdfFile(request.registrationForm());
-        //2. Parse PDF to extract form data
+        // 2. Parse PDF to extract form data
         StationOwnerProfile profile = pdfParsingService.parseRegistrationPdf(request.registrationForm());
         String contactEmail = profile.getContactEmail();
-        //3. Check for existing profiles with same email or phone
-        Optional<StationOwnerProfile> existingProfileOpt = stationOwnerProfileRepository.findByContactEmail(contactEmail);
+        // 3. Check for existing profiles with same email or phone
+        Optional<StationOwnerProfile> existingProfileOpt = stationOwnerProfileRepository
+                .findByContactEmail(contactEmail);
 
         StationOwnerProfile finalProfile;
         String oldPdfPublicId = null;
@@ -72,7 +67,7 @@ public class FileRegistrationServiceImpl implements FileRegistrationService {
             finalProfile.setRegistrationCode(generateRegistrationCode());
         }
 
-        FileUploadResponse uploadResponse = fileStorageService.savePdfFile(request.registrationForm());
+        FileUploadResult uploadResponse = fileStorageService.savePdfFile(request.registrationForm());
         finalProfile.setPdfFilePath(uploadResponse.fileUrl());
         finalProfile.setPdfPublicId(uploadResponse.publicId());
 
@@ -88,8 +83,7 @@ public class FileRegistrationServiceImpl implements FileRegistrationService {
                 savedProfile.getRegistrationCode(),
                 savedProfile.getContactEmail(),
                 savedProfile.getStatus(),
-                savedProfile.getSubmittedAt()
-        );
+                savedProfile.getSubmittedAt());
     }
 
     private void validatePdfFile(org.springframework.web.multipart.MultipartFile file) {

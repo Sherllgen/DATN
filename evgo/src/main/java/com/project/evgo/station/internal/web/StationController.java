@@ -1,10 +1,21 @@
 package com.project.evgo.station.internal.web;
 
+import com.project.evgo.sharedkernel.dto.ApiResponse;
+import com.project.evgo.sharedkernel.enums.StationStatus;
 import com.project.evgo.station.StationService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.project.evgo.station.request.CreateStationRequest;
+import com.project.evgo.station.request.UpdateStationRequest;
+import com.project.evgo.station.response.StationResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * REST Controller for station management.
@@ -16,5 +27,94 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Stations", description = "Station management APIs")
 public class StationController {
 
-    private final StationService stationService;
+	private final StationService stationService;
+
+	@GetMapping
+	@Operation(summary = "Get all stations", description = "Get all active stations (public)")
+	public ResponseEntity<ApiResponse<List<StationResponse>>> getAll() {
+		List<StationResponse> result = stationService.findAll();
+		return ResponseEntity.ok(ApiResponse.<List<StationResponse>>builder()
+						.status(HttpStatus.OK.value())
+						.message("Success")
+						.data(result)
+						.build());
+	}
+
+	@GetMapping("/{id}")
+	@Operation(summary = "Get station by ID", description = "Get station details by ID (public)")
+	public ResponseEntity<ApiResponse<StationResponse>> getById(@PathVariable Long id) {
+		StationResponse result = stationService.findById(id)
+						.orElseThrow(() -> new com.project.evgo.sharedkernel.exceptions.AppException(
+										com.project.evgo.sharedkernel.enums.ErrorCode.STATION_NOT_FOUND));
+		return ResponseEntity.ok(ApiResponse.<StationResponse>builder()
+						.status(HttpStatus.OK.value())
+						.message("Success")
+						.data(result)
+						.build());
+	}
+
+	@GetMapping("/me")
+	@PreAuthorize("hasRole('STATION_OWNER')")
+	@Operation(summary = "Get my stations", description = "Get all stations owned by the current user")
+	public ResponseEntity<ApiResponse<List<StationResponse>>> getMyStations() {
+		List<StationResponse> result = stationService.getMyStations();
+		return ResponseEntity.ok(ApiResponse.<List<StationResponse>>builder()
+						.status(HttpStatus.OK.value())
+						.message("Success")
+						.data(result)
+						.build());
+	}
+
+	@PostMapping
+	@PreAuthorize("hasRole('STATION_OWNER')")
+	@Operation(summary = "Create station", description = "Create a new charging station")
+	public ResponseEntity<ApiResponse<StationResponse>> create(
+					@Valid @RequestBody CreateStationRequest request) {
+		StationResponse result = stationService.create(request);
+		return ResponseEntity.status(HttpStatus.CREATED)
+						.body(ApiResponse.<StationResponse>builder()
+										.status(HttpStatus.CREATED.value())
+										.message("Station created successfully")
+										.data(result)
+										.build());
+	}
+
+	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('STATION_OWNER')")
+	@Operation(summary = "Update station", description = "Update an existing station (owner only)")
+	public ResponseEntity<ApiResponse<StationResponse>> update(
+					@PathVariable Long id,
+					@Valid @RequestBody UpdateStationRequest request) {
+		StationResponse result = stationService.update(id, request);
+		return ResponseEntity.ok(ApiResponse.<StationResponse>builder()
+						.status(HttpStatus.OK.value())
+						.message("Station updated successfully")
+						.data(result)
+						.build());
+	}
+
+	@DeleteMapping("/{id}")
+	@PreAuthorize("hasRole('STATION_OWNER')")
+	@Operation(summary = "Delete station", description = "Soft delete a station (owner only)")
+	public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+		stationService.delete(id);
+		return ResponseEntity.ok(ApiResponse.<Void>builder()
+						.status(HttpStatus.OK.value())
+						.message("Station deleted successfully")
+						.build());
+	}
+
+	@PatchMapping("/{id}/status")
+	@PreAuthorize("hasRole('STATION_OWNER')")
+	@Operation(summary = "Update station status", description = "Update station status (owner only)")
+	public ResponseEntity<ApiResponse<StationResponse>> updateStatus(
+					@PathVariable Long id,
+					@RequestParam StationStatus status) {
+		StationResponse result = stationService.updateStatus(id, status);
+		return ResponseEntity.ok(ApiResponse.<StationResponse>builder()
+						.status(HttpStatus.OK.value())
+						.message("Station status updated successfully")
+						.data(result)
+						.build());
+	}
 }

@@ -1,7 +1,5 @@
 package com.project.evgo.notification;
 
-import com.project.evgo.user.internal.User;
-
 /**
  * Service interface for sending emails.
  * Public API - accessible by other modules.

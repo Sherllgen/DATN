@@ -19,10 +19,16 @@ public class StationDtoConverter {
     public StationResponse convert(Station from) {
         return StationResponse.builder()
                 .id(from.getId())
+                .ownerId(from.getOwnerId())
                 .name(from.getName())
+                .description(from.getDescription())
                 .address(from.getAddress())
                 .latitude(from.getLatitude())
                 .longitude(from.getLongitude())
+                .rate(from.getRate())
+                .status(from.getStatus())
+                .imageUrls(from.getImageUrls())
+                .isFlaggedLowQuality(from.getIsFlaggedLowQuality())
                 .createdAt(from.getCreatedAt())
                 .updatedAt(from.getUpdatedAt())
                 .build();

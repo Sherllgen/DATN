@@ -2,9 +2,9 @@ package com.project.evgo.sharedkernel.infra;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.project.evgo.sharedkernel.dto.FileUploadResult;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
-import com.project.evgo.user.response.FileUploadResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -49,13 +49,14 @@ public class CloudinaryServiceImpl implements FileStorageService {
             try {
                 cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
             } catch (IOException e) {
-                throw new AppException(ErrorCode.AVATAR_UPLOAD_FAILED, "Failed to delete image from Cloudinary: " + publicId);
+                throw new AppException(ErrorCode.AVATAR_UPLOAD_FAILED,
+                        "Failed to delete image from Cloudinary: " + publicId);
             }
         }
     }
 
     @Override
-    public FileUploadResponse savePdfFile(MultipartFile file) {
+    public FileUploadResult savePdfFile(MultipartFile file) {
         try {
             Map<String, Object> uploadParams = new HashMap<>();
             uploadParams.put("resource_type", "image");
@@ -65,15 +66,14 @@ public class CloudinaryServiceImpl implements FileStorageService {
 
             Map<?, ?> uploadResult = cloudinary.uploader().upload(
                     file.getBytes(),
-                    uploadParams
-            );
+                    uploadParams);
 
             String cloudinaryUrl = (String) uploadResult.get("secure_url");
             log.info("PDF file uploaded to Cloudinary successfully: {}", cloudinaryUrl);
 
             String publicId = (String) uploadResult.get("public_id");
 
-            return FileUploadResponse.builder()
+            return FileUploadResult.builder()
                     .fileUrl(cloudinaryUrl)
                     .publicId(publicId)
                     .build();
