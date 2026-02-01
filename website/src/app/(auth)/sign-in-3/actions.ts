@@ -54,9 +54,16 @@ export async function loginAction(formData: FormData) {
         }
 
         // Lưu user role để middleware có thể check RBAC
-        if (data.data.user?.roles) {
-            (await cookies()).set("userRole", data.data.user.roles, {
-                httpOnly: true,
+        // Backend trả về roles là array, lấy role đầu tiên (user thường chỉ có 1 role)
+        if (data.data.user?.roles && data.data.user.roles.length > 0) {
+            const primaryRole = Array.isArray(data.data.user.roles) 
+                ? data.data.user.roles[0] 
+                : data.data.user.roles;
+            
+            console.log("Setting userRole cookie:", primaryRole);
+            
+            (await cookies()).set("userRole", primaryRole, {
+                httpOnly: false, // Cần false để middleware có thể đọc
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "lax",
                 maxAge: 60 * 60 * 24 * 1,

@@ -9,7 +9,7 @@ export async function createServerAxios() {
     const token = await getAccessToken();
 
     const instance = axios.create({
-        baseURL: process.env.EXPO_PUBLIC_BACKEND_URL,
+        baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
         headers: {
             "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),

@@ -1,9 +1,13 @@
-import axiosInstance from "@/utils/axiosInstance";
+import axios from "axios";
 
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-
+/**
+ * Get current user profile via Next.js API route
+ * This proxies the request through Next.js server to include httpOnly cookies
+ */
 export async function getProfileApi() {
-    const res = await axiosInstance.get(`${API_BACKEND_URL}/api/v1/users/me`);
+    const res = await axios.get("/api/user/profile", {
+        withCredentials: true,
+    });
 
     return res.data;
 }

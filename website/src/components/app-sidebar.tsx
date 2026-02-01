@@ -16,6 +16,8 @@ import {
     LayoutTemplate,
     Users,
     MessagesSquare,
+    Zap,
+    Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { SidebarNotification } from "@/components/sidebar-notification";
@@ -44,6 +46,11 @@ const navGroupsRaw = [
                 title: "Dashboard",
                 url: "/dashboard",
                 icon: LayoutDashboard,
+            },
+            {
+                title: "Stations",
+                url: "/stations",
+                icon: Zap,
             },
             {
                 title: "Manage Accounts",
@@ -92,6 +99,10 @@ const navGroupsRaw = [
                     {
                         title: "Account Settings",
                         url: "/settings/account",
+                    },
+                    {
+                        title: "Business Profile",
+                        url: "/settings/business",
                     },
                     {
                         title: "Plans & Billing",
