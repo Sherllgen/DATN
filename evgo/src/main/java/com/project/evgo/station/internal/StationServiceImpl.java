@@ -145,4 +145,27 @@ public class StationServiceImpl implements StationService {
         Station updated = stationRepository.save(station);
         return stationDtoConverter.convert(updated);
     }
+
+    // ==================== CROSS-MODULE API ====================
+
+    @Override
+    public void verifyOwnership(Long stationId) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+
+        Station station = stationRepository.findByIdAndDeletedAtIsNull(stationId)
+                .orElseThrow(() -> new AppException(ErrorCode.STATION_NOT_FOUND));
+
+        if (!station.getOwnerId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.STATION_NOT_OWNED);
+        }
+    }
+
+    @Override
+    public boolean isOwner(Long stationId) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+
+        return stationRepository.findByIdAndDeletedAtIsNull(stationId)
+                .map(station -> station.getOwnerId().equals(currentUserId))
+                .orElse(false);
+    }
 }
