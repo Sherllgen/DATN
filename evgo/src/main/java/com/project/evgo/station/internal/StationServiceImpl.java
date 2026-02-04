@@ -5,8 +5,11 @@ import com.project.evgo.sharedkernel.enums.StationStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.StationService;
 import com.project.evgo.station.request.CreateStationRequest;
+import com.project.evgo.station.request.SearchNearbyRequest;
+import com.project.evgo.station.request.SearchTextRequest;
 import com.project.evgo.station.request.UpdateStationRequest;
 import com.project.evgo.station.response.StationResponse;
+import com.project.evgo.station.response.StationSearchResult;
 import com.project.evgo.user.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -144,5 +147,44 @@ public class StationServiceImpl implements StationService {
         station.setStatus(status);
         Station updated = stationRepository.save(station);
         return stationDtoConverter.convert(updated);
+    }
+
+    @Override
+    public List<StationSearchResult> searchNearby(SearchNearbyRequest request) {
+        // Validate inputs
+        if (request.latitude() == null || request.longitude() == null) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Latitude and longitude are required");
+        }
+
+        // Convert radius from km to meters
+        double radiusMeters = request.radiusKm() * 1000;
+
+        // Query database using optimized PostGIS query
+        List<StationProjection> projections = stationRepository.findNearByStations(
+                request.latitude(),
+                request.longitude(),
+                radiusMeters,
+                request.maxResults());
+
+        // Convert to DTOs with charger counts
+        return stationDtoConverter.convertToSearchResults(projections);
+    }
+
+    @Override
+    public List<StationSearchResult> searchByText(SearchTextRequest request) {
+        // Validate query
+        if (request.query() == null || request.query().isBlank()) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Search query is required");
+        }
+
+        // Query database
+        List<StationProjection> projections = stationRepository.searchByText(
+                request.query().trim(),
+                request.latitude(),
+                request.longitude(),
+                request.maxResults());
+
+        // Convert to DTOs with charger counts
+        return stationDtoConverter.convertToSearchResults(projections);
     }
 }

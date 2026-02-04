@@ -2,8 +2,11 @@ package com.project.evgo.station;
 
 import com.project.evgo.sharedkernel.enums.StationStatus;
 import com.project.evgo.station.request.CreateStationRequest;
+import com.project.evgo.station.request.SearchNearbyRequest;
+import com.project.evgo.station.request.SearchTextRequest;
 import com.project.evgo.station.request.UpdateStationRequest;
 import com.project.evgo.station.response.StationResponse;
+import com.project.evgo.station.response.StationSearchResult;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,4 +31,8 @@ public interface StationService {
     List<StationResponse> getMyStations();
 
     StationResponse updateStatus(Long id, StationStatus status);
+
+    List<StationSearchResult> searchNearby(SearchNearbyRequest request);
+
+    List<StationSearchResult> searchByText(SearchTextRequest request);
 }

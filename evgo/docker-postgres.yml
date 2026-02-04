@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:17-alpine
+    image: postgis/postgis:15-3.3
     container_name: evgo-postgres
     restart: unless-stopped
     environment:

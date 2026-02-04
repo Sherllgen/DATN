@@ -50,7 +50,11 @@ public enum ErrorCode {
     // Station errors (5xxx)
     STATION_NOT_FOUND(5001, HttpStatus.NOT_FOUND, "Station not found"),
     STATION_NOT_OWNED(5002, HttpStatus.FORBIDDEN, "You are not the owner of this station"),
-    STATION_NAME_ALREADY_EXISTS(5003, HttpStatus.CONFLICT, "Station name already exists for this owner");
+    STATION_NAME_ALREADY_EXISTS(5003, HttpStatus.CONFLICT, "Station name already exists for this owner"),
+
+    // Search errors (5xxx)
+    INVALID_SEARCH_QUERY(5010, HttpStatus.BAD_REQUEST, "Search query cannot be empty"),
+    INVALID_COORDINATES(5011, HttpStatus.BAD_REQUEST, "Invalid GPS coordinates");
 
     private final int code;
     private final HttpStatus status;
