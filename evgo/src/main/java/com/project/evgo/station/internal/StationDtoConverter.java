@@ -1,7 +1,5 @@
 package com.project.evgo.station.internal;
 
-import com.project.evgo.charger.internal.ChargerRepository;
-import com.project.evgo.sharedkernel.enums.ChargerStatus;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
 import com.project.evgo.sharedkernel.utils.GeoUtils;
@@ -19,8 +17,6 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class StationDtoConverter {
-
-    private final ChargerRepository chargerRepository;
 
     public StationResponse convert(Station from) {
         return StationResponse.builder()

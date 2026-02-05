@@ -106,7 +106,7 @@ public interface StationRepository extends JpaRepository<Station, Long> {
             ORDER BY
                 CASE
                     WHEN :latitude IS NOT NULL AND :longitude IS NOT NULL
-                    THEN distance
+                    THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
                     ELSE NULL
                 END NULLS LAST,
                 s.created_at DESC
