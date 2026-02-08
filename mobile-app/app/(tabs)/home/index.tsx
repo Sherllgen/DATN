@@ -1,5 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import MapView, { UrlTile, Marker } from 'react-native-maps';
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import GradientBackground from "@/components/ui/GradientBackground";
 
 export default function HomePage() {
@@ -16,27 +18,50 @@ export default function HomePage() {
                 <View className="flex-1 bg-white/10 -mx-6 mt-8 px-6 rounded-s-[3em]">
                     {/* Map */}
                     <View>
-                        <Text style={[styles.h3, { marginTop: 30 }]}>Map</Text>
-
-                        <View style={{ height: 208, marginTop: 16 }}>
-                            <View className="bg-gray-600 rounded-2xl w-full h-60"></View>
-                            {/* <MapView
-                            style={StyleSheet.absoluteFillObject}
-                            initialRegion={{
-                                latitude: 10.7769,
-                                longitude: 106.7009,
-                                latitudeDelta: 0.05,
-                                longitudeDelta: 0.05,
-                            }}
-                        >
-                            <Marker
-                                coordinate={{
-                                    latitude: 10.7769,
-                                    longitude: 106.7009,
-                                }}
-                            />
-                        </MapView> */}
+                        <View className="flex-row items-center justify-between">
+                            <Text style={[styles.h3, { marginTop: 30 }]}>Map</Text>
+                            <TouchableOpacity
+                                // @ts-ignore - Dynamic route
+                                onPress={() => router.push("/map")}
+                                activeOpacity={0.7}
+                                className="mt-7"
+                            >
+                            </TouchableOpacity>
                         </View>
+                        <TouchableOpacity
+                            style={{ height: 208, marginTop: 16 }}
+                            className="rounded-2xl overflow-hidden"
+                            // @ts-ignore - Dynamic route
+                            onPress={() => router.push("/map")}
+                            activeOpacity={0.9}
+                        >
+                            <MapView
+                                style={{ flex: 1 }}
+                                mapType="none"
+                                scrollEnabled={false}
+                                zoomEnabled={false}
+                                initialRegion={{
+                                    latitude: 10.8231,
+                                    longitude: 106.6297,
+                                    latitudeDelta: 0.05,
+                                    longitudeDelta: 0.05,
+                                }}
+                            >
+                                <UrlTile
+                                    urlTemplate="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
+                                    maximumZ={19}
+                                    flipY={false}
+                                    zIndex={1}
+                                    tileSize={256}
+                                />
+
+                                {/* Marker nên có zIndex cao hơn Tile */}
+                                <Marker
+                                    coordinate={{ latitude: 10.8231, longitude: 106.6297 }}
+                                    zIndex={2}
+                                />
+                            </MapView>
+                        </TouchableOpacity>
                     </View>
 
                     {/* Activities */}

@@ -19,9 +19,6 @@
                 "monochromeImage": "./assets/images/android-icon-monochrome.png"
             },
             "config": {
-                "googleMaps": {
-                    "apiKey": "AIzaSyCtSGN-VkYC3If7SjSQ8bgmsTvKYL8TzxE"
-                }
             },
             "edgeToEdgeEnabled": true,
             "predictiveBackGestureEnabled": false,
@@ -43,7 +40,9 @@
                     "backgroundColor": "#ffffff",
                     "dark": {
                         "backgroundColor": "#000000"
-                    }
+                    },
+                    "duration": 1000,
+                    "fade": true
                 }
             ],
             "expo-secure-store"

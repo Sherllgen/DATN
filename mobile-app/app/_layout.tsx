@@ -2,20 +2,9 @@ import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import "react-native-reanimated";
 
-import * as SplashScreen from "expo-splash-screen";
-
 import { LinearGradient } from "expo-linear-gradient";
 import ToastManager from "toastify-react-native";
 import "../global.css";
-
-export const unstable_settings = {
-    anchor: "(tabs)",
-};
-
-SplashScreen.setOptions({
-    duration: 1000,
-    fade: true,
-});
 
 const BlackTheme = {
     ...DarkTheme, // hoặc DefaultTheme đều được, miễn override colors
@@ -39,6 +28,7 @@ export default function RootLayout() {
             <ThemeProvider value={BlackTheme}>
                 <Stack
                     screenOptions={{
+                        headerShown: false, // Remove all native headers
                         animation: "fade",
                         animationDuration: 1550,
                     }}
@@ -53,6 +43,14 @@ export default function RootLayout() {
                     />
                     <Stack.Screen
                         name="payment"
+                        options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="map"
+                        options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="station"
                         options={{ headerShown: false }}
                     />
                 </Stack>
