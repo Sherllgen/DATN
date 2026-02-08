@@ -1,5 +1,8 @@
 package com.project.evgo.station.internal;
 
+import com.project.evgo.charger.internal.Charger;
+import com.project.evgo.charger.internal.ChargerRepository;
+import com.project.evgo.sharedkernel.enums.ChargerStatus;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
 import com.project.evgo.sharedkernel.utils.GeoUtils;
@@ -7,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -18,7 +22,35 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StationDtoConverter {
 
+    private final ChargerRepository chargerRepository;
+
     public StationResponse convert(Station from) {
+        // Get chargers for this station
+        List<Charger> chargers = chargerRepository.findByStationId(from.getId());
+
+        // Calculate counts
+        int totalChargers = chargers.size();
+        int availableChargers = (int) chargers.stream()
+                .filter(c -> c.getStatus() == ChargerStatus.AVAILABLE)
+                .count();
+
+        // Group by connector type
+        Map<String, List<Charger>> chargersByType = chargers.stream()
+                .collect(Collectors.groupingBy(c -> c.getConnectorType().name()));
+
+        // Create charger summaries
+        List<StationResponse.ChargerSummary> chargerSummaries = chargersByType.entrySet().stream()
+                .map(entry -> {
+                    String type = entry.getKey();
+                    List<Charger> typeChargers = entry.getValue();
+                    int total = typeChargers.size();
+                    int available = (int) typeChargers.stream()
+                            .filter(c -> c.getStatus() == ChargerStatus.AVAILABLE)
+                            .count();
+                    return new StationResponse.ChargerSummary(type, available, total);
+                })
+                .toList();
+
         return StationResponse.builder()
                 .id(from.getId())
                 .ownerId(from.getOwnerId())
@@ -31,6 +63,9 @@ public class StationDtoConverter {
                 .status(from.getStatus())
                 .imageUrls(from.getImageUrls())
                 .isFlaggedLowQuality(from.getIsFlaggedLowQuality())
+                .availableChargersCount(availableChargers)
+                .totalChargersCount(totalChargers)
+                .chargers(chargerSummaries)
                 .createdAt(from.getCreatedAt())
                 .updatedAt(from.getUpdatedAt())
                 .build();

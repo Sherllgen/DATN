@@ -15,18 +15,20 @@ import { router } from "expo-router";
 
 import GradientBackground from "@/components/ui/GradientBackground";
 import AppHeader from "@/components/ui/AppHeader";
-import LocationPermissionModal from "@/components/map/LocationPermissionModal";
+import LocationPermissionModal, { LocationModalStatus } from "@/components/map/LocationPermissionModal";
+import ManualLocationInput from "@/components/map/ManualLocationInput";
 import StationQuickInfo from "@/components/map/StationQuickInfo";
 import StationCard from "@/components/station/StationCard";
-// import { searchNearbyStations } from "@/apis/stationApi/stationApi"; // Will use later
+import { searchNearbyStations } from "@/apis/stationApi/stationApi";
 import { StationSearchResult, StationStatus } from "@/types/station.types";
-import { mockStationsNearby } from "@/data/mockStations";
 
 export default function MapScreen() {
     const [location, setLocation] = useState<Location.LocationObject | null>(
         null
     );
     const [showPermissionModal, setShowPermissionModal] = useState(false);
+    const [permissionStatus, setPermissionStatus] = useState<LocationModalStatus>("idle");
+    const [showManualInput, setShowManualInput] = useState(false);
     const [stations, setStations] = useState<StationSearchResult[]>([]);
     const [selectedStation, setSelectedStation] =
         useState<StationSearchResult | null>(null);
@@ -41,8 +43,8 @@ export default function MapScreen() {
     const [region, setRegion] = useState<Region>({
         latitude: 10.8231,
         longitude: 106.6297,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
+        latitudeDelta: 0.15,  // Increased from 0.05 to show wider area
+        longitudeDelta: 0.15, // Increased from 0.05 to show wider area
     });
 
     useEffect(() => {
@@ -55,6 +57,7 @@ export default function MapScreen() {
         const { status } = await Location.getForegroundPermissionsAsync();
 
         if (status !== "granted") {
+            setPermissionStatus("permission_required");
             setShowPermissionModal(true);
         } else {
             getCurrentLocation();
@@ -66,15 +69,19 @@ export default function MapScreen() {
 
         if (status === "granted") {
             setShowPermissionModal(false);
+            setPermissionStatus("idle");
             getCurrentLocation();
         } else {
             setShowPermissionModal(false);
-            // Show error or fallback
+            // Show error or fallback - handled by initial check or manual input
         }
     };
 
     const getCurrentLocation = async () => {
         try {
+            // Reset status before trying
+            setShowPermissionModal(false);
+
             const userLocation = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.Balanced,
             });
@@ -98,40 +105,79 @@ export default function MapScreen() {
             );
         } catch (error) {
             console.warn("Error getting location:", error);
-            // Fallback to default location (Ho Chi Minh City)
-            const defaultLat = 10.8231;
-            const defaultLng = 106.6297;
-
-            console.log("Using default location (Ho Chi Minh City)");
-            // Fetch stations at default location
-            fetchNearbyStations(defaultLat, defaultLng);
+            // Show modal with error status
+            setPermissionStatus("gps_error");
+            setShowPermissionModal(true);
         }
+    };
+
+    const handleManualLocationSet = (latitude: number, longitude: number) => {
+        console.log("Manual location set:", latitude, longitude);
+
+        // Create location object
+        const manualLocation = {
+            coords: {
+                latitude,
+                longitude,
+                altitude: null,
+                accuracy: null,
+                altitudeAccuracy: null,
+                heading: null,
+                speed: null,
+            },
+            timestamp: Date.now(),
+        };
+
+        setLocation(manualLocation as any);
+
+        // Update map region
+        const newRegion = {
+            latitude,
+            longitude,
+            latitudeDelta: 0.15,
+            longitudeDelta: 0.15,
+        };
+        setRegion(newRegion);
+        mapRef.current?.animateToRegion(newRegion, 1000);
+
+        // Fetch nearby stations
+        fetchNearbyStations(latitude, longitude);
+    };
+
+    const handleEnterManually = () => {
+        setShowPermissionModal(false);
+        setShowManualInput(true);
     };
 
     const fetchNearbyStations = async (lat: number, lng: number) => {
         try {
             setLoading(true);
 
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 500));
+            const results = await searchNearbyStations({
+                latitude: lat,
+                longitude: lng,
+                radiusKm: 10,
+                maxResults: 50,
+            });
 
-            // Use mock data for UI testing
-            // TODO: Replace with real API call when UI is approved
-            // const results = await searchNearbyStations({
-            //     latitude: lat,
-            //     longitude: lng,
-            //     radiusKm: 10,
-            //     maxResults: 50,
-            // });
-
-            setStations(mockStationsNearby);
-            console.log(`Loaded ${mockStationsNearby.length} stations`);
+            setStations(results);
+            console.log(`Loaded ${results.length} stations from API`);
         } catch (error) {
             console.error("Error fetching stations:", error);
+            // No stations on error
+            setStations([]);
         } finally {
             setLoading(false);
         }
     };
+
+    // useEffect(() => {
+    //     console.log("STATIONS STATE:", stations);
+    //     console.log("STATIONS COUNT:", stations.length);
+    //     if (stations.length > 0) {
+    //         console.log("FIRST STATION:", JSON.stringify(stations[0], null, 2));
+    //     }
+    // }, [stations]);
 
     const handleMarkerPress = (station: StationSearchResult) => {
         setSelectedStation(station);
@@ -166,13 +212,10 @@ export default function MapScreen() {
     };
 
     const getMarkerColor = (station: StationSearchResult) => {
-        if (station.status === StationStatus.MAINTENANCE) {
-            return "#F59E0B"; // Yellow for maintenance
-        }
-        if (station.availableChargersCount > 0) {
-            return "#4CAF50"; // Green for available
-        }
-        return "#EF4444"; // Red for occupied
+        // ACTIVE = green, INACTIVE = red
+        return station.status === StationStatus.ACTIVE
+            ? "#4CAF50" // Green - ACTIVE
+            : "#EF4444"; // Red - INACTIVE
     };
 
     const renderMarker = (station: StationSearchResult) => {
@@ -374,7 +417,16 @@ export default function MapScreen() {
             {/* Modals */}
             <LocationPermissionModal
                 visible={showPermissionModal}
-                onEnableLocation={requestLocationPermission}
+                status={permissionStatus}
+                onPrimaryAction={() => {
+                    if (permissionStatus === "permission_required") {
+                        requestLocationPermission();
+                    } else {
+                        // Retry getting location
+                        getCurrentLocation();
+                    }
+                }}
+                onEnterManually={handleEnterManually}
                 onCancel={() => setShowPermissionModal(false)}
             />
 
@@ -384,6 +436,13 @@ export default function MapScreen() {
                 onClose={() => setShowQuickInfo(false)}
                 onViewDetails={handleViewDetails}
                 onBook={handleBook}
+            />
+
+            {/* Manual Location Input Modal */}
+            <ManualLocationInput
+                visible={showManualInput}
+                onClose={() => setShowManualInput(false)}
+                onLocationSet={handleManualLocationSet}
             />
         </GradientBackground>
     );

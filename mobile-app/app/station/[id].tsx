@@ -19,15 +19,24 @@ import StatusBadge, {
     StatusBadgeVariant,
 } from "@/components/station/StatusBadge";
 import ChargerTypeTag from "@/components/station/ChargerTypeTag";
-import AmenityChip from "@/components/station/AmenityChip";
-// import { getStationById } from "@/apis/stationApi/stationApi"; // Will use later
-import { Station } from "@/types/station.types";
-import { mockStationDetails, mockStationsNearby } from "@/data/mockStations";
+import { getStationById } from "@/apis/stationApi/stationApi";
+import { Station, StationStatus } from "@/types/station.types";
+
+const mockOperatingHours = [
+    { day: "Monday", hours: "00:00 - 00:00" },
+    { day: "Tuesday", hours: "00:00 - 00:00" },
+    { day: "Wednesday", hours: "00:00 - 00:00" },
+    { day: "Thursday", hours: "00:00 - 00:00" },
+    { day: "Friday", hours: "00:00 - 00:00" },
+    { day: "Saturday", hours: "00:00 - 00:00" },
+    { day: "Sunday", hours: "00:00 - 00:00" },
+];
 
 export default function StationDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const [station, setStation] = useState<Station | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -38,25 +47,28 @@ export default function StationDetailScreen() {
     const fetchStationDetails = async () => {
         try {
             setLoading(true);
+            setError(null);
 
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            // Try to find in nearby stations first (has availability info)
-            const nearbyStation = mockStationsNearby.find(s => s.id === Number(id));
-            if (nearbyStation) {
-                setStation(nearbyStation);
-            } else {
-                // Fallback to static details
-                const data = mockStationDetails[Number(id)];
-                setStation(data || null);
-            }
-        } catch (error) {
-            console.error("Error fetching station details:", error);
+            const data = await getStationById(Number(id));
+            setStation(data);
+            console.log("Loaded station:", data);
+        } catch (err) {
+            console.error("Error fetching station details:", err);
+            setError("Failed to load station details");
         } finally {
             setLoading(false);
         }
     };
+
+    if (loading) {
+        return (
+            <GradientBackground preset="main" className="flex-1">
+                <SafeAreaView className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color="#00A452" />
+                </SafeAreaView>
+            </GradientBackground>
+        );
+    }
 
     if (loading) {
         return (
@@ -85,42 +97,9 @@ export default function StationDetailScreen() {
         );
     }
 
-    // Calculate status variant
-    let statusVariant: StatusBadgeVariant = "occupied";
-    // Check if station has availableChargersCount property (it exists in StationSearchResult)
-    const availableCount = (station as any).availableChargersCount;
-
-    if (station.status === "MAINTENANCE") {
-        statusVariant = "maintenance";
-    } else if (availableCount !== undefined && availableCount > 0) {
-        statusVariant = "available";
-    } else if (availableCount === 0) {
-        statusVariant = "occupied";
-    } else {
-        // Fallback if no availability info
-        statusVariant = "available";
-    }
-
-    // Mock chargers data - Ideally this should come from station data too
-    const mockChargers = [
-        { type: "CCS2", available: availableCount || 0, total: 4 },
-        { type: "Type 2", available: 0, total: 2 },
-    ];
-    const mockAmenities = [
-        { name: "Restroom", icon: "business", library: "material" as const },
-        { name: "Lounge area", icon: "cafe", library: "ionicons" as const },
-        { name: "Wi-Fi", icon: "wifi", library: "ionicons" as const },
-        { name: "Air for Tyre", icon: "car", library: "ionicons" as const },
-    ];
-    const mockOperatingHours = [
-        { day: "Monday", hours: "00:00 - 00:00" },
-        { day: "Tuesday", hours: "00:00 - 00:00" },
-        { day: "Wednesday", hours: "00:00 - 00:00" },
-        { day: "Thursday", hours: "00:00 - 00:00" },
-        { day: "Friday", hours: "00:00 - 00:00" },
-        { day: "Saturday", hours: "00:00 - 00:00" },
-        { day: "Sunday", hours: "00:00 - 00:00" },
-    ];
+    // Calculate status variant based on backend status  
+    const statusVariant: StatusBadgeVariant =
+        station.status === StationStatus.ACTIVE ? "available" : "occupied";
 
     const imageUrl = station.imageUrls && station.imageUrls.length > 0
         ? station.imageUrls[0]
@@ -281,37 +260,26 @@ export default function StationDetailScreen() {
                             </View>
                         </View>
 
-                        {/* Amenities */}
-                        <View className="mb-8">
-                            <Text className="text-lg font-semibold text-white mb-3">
-                                Amenities
-                            </Text>
-                            <View className="flex-row flex-wrap gap-3">
-                                {mockAmenities.map((amenity, index) => (
-                                    <AmenityChip
-                                        key={index}
-                                        name={amenity.name}
-                                        icon={amenity.icon}
-                                        iconLibrary={amenity.library}
-                                    />
-                                ))}
-                            </View>
-                        </View>
-
-                        {/* Charger Types (if available) */}
+                        {/* Charger Types */}
                         <View className="mb-8">
                             <Text className="text-lg font-semibold text-white mb-3">
                                 Charger Types
                             </Text>
                             <View className="flex-row flex-wrap gap-3">
-                                {mockChargers.map((charger, index) => (
-                                    <ChargerTypeTag
-                                        key={index}
-                                        type={charger.type}
-                                        available={charger.available}
-                                        total={charger.total}
-                                    />
-                                ))}
+                                {station.chargers && station.chargers.length > 0 ? (
+                                    station.chargers.map((charger, index) => (
+                                        <ChargerTypeTag
+                                            key={index}
+                                            type={charger.connectorType}
+                                            available={charger.available}
+                                            total={charger.total}
+                                        />
+                                    ))
+                                ) : (
+                                    <Text className="text-sm text-[#9BA1A6]">
+                                        No charger information available
+                                    </Text>
+                                )}
                             </View>
                         </View>
 

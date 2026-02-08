@@ -12,17 +12,29 @@ import java.util.List;
  */
 @Builder
 public record StationResponse(
-    Long id,
-    Long ownerId,
-    String name,
-    String description,
-    String address,
-    Double latitude,
-    Double longitude,
-    Double rate,
-    StationStatus status,
-    List<String> imageUrls,
-    Boolean isFlaggedLowQuality,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt) {
+        Long id,
+        Long ownerId,
+        String name,
+        String description,
+        String address,
+        Double latitude,
+        Double longitude,
+        Double rate,
+        StationStatus status,
+        List<String> imageUrls,
+        Boolean isFlaggedLowQuality,
+        Integer availableChargersCount,
+        Integer totalChargersCount,
+        List<ChargerSummary> chargers,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt) {
+
+    /**
+     * Charger summary for station detail
+     */
+    public record ChargerSummary(
+            String connectorType,
+            Integer available,
+            Integer total) {
+    }
 }

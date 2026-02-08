@@ -28,13 +28,9 @@ export default function StationQuickInfo({
 }: StationQuickInfoProps) {
     if (!station) return null;
 
-    // Determine status variant: Maintenance > Available > Occupied
-    let statusVariant: StatusBadgeVariant = "occupied";
-    if (station.status === StationStatus.MAINTENANCE) {
-        statusVariant = "maintenance";
-    } else if (station.availableChargersCount > 0) {
-        statusVariant = "available";
-    }
+    // Determine status variant based on backend status
+    const statusVariant: StatusBadgeVariant =
+        station.status === StationStatus.ACTIVE ? "available" : "occupied";
 
     return (
         <Modal visible={visible} onClose={onClose}>
@@ -104,31 +100,14 @@ export default function StationQuickInfo({
                     </View>
                 </View>
 
-                {/* Amenities Icons (simplified) */}
+                {/* Charger Count */}
                 <View className="flex-row items-center mb-6">
-                    {[
-                        "restaurant-outline",
-                        "cafe-outline",
-                        "wifi",
-                        "car-outline",
-                        "accessibility-outline",
-                        "time-outline",
-                    ].map((iconName, index) => (
-                        <View
-                            key={index}
-                            className="w-8 h-8 rounded-full bg-[#4A5568]/20 items-center justify-center mr-2"
-                        >
-                            <Ionicons
-                                name={iconName as any}
-                                size={16}
-                                color="#9BA1A6"
-                            />
-                        </View>
-                    ))}
-                    <Text className="text-sm font-medium text-secondary ml-2">
+                    <Text className="text-sm font-medium text-secondary">
                         {station.totalChargersCount} chargers
                     </Text>
-                    <Ionicons name="chevron-forward" size={16} color="#00A452" />
+                    <Text className="text-sm text-[#9BA1A6] ml-2">
+                        ({station.availableChargersCount} available)
+                    </Text>
                 </View>
 
                 {/* Action Buttons */}

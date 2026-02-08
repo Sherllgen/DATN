@@ -20,19 +20,11 @@ export default function StationCard({
     onPress,
     className = "",
 }: StationCardProps) {
-    let statusVariant: StatusBadgeVariant;
-    let iconBgColor: string;
-
-    if (station.status === StationStatus.MAINTENANCE) {
-        statusVariant = "maintenance";
-        iconBgColor = "bg-warning";
-    } else if (station.availableChargersCount > 0) {
-        statusVariant = "available";
-        iconBgColor = "bg-success";
-    } else {
-        statusVariant = "occupied";
-        iconBgColor = "bg-error";
-    }
+    // Determine status based on backend status value
+    const statusVariant: StatusBadgeVariant =
+        station.status === StationStatus.ACTIVE ? "available" : "occupied";
+    const iconBgColor =
+        station.status === StationStatus.ACTIVE ? "bg-success" : "bg-error";
 
     const imageUrl = station.imageUrls && station.imageUrls.length > 0
         ? station.imageUrls[0]

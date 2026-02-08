@@ -51,7 +51,7 @@ public interface StationRepository extends JpaRepository<Station, Long> {
                 s.location::geography <-> ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography AS distance
             FROM stations s
             WHERE s.deleted_at IS NULL
-              AND s.status = 'ACTIVE'
+              AND s.status IN ('ACTIVE', 'INACTIVE')
               AND ST_DWithin(
                   s.location::geography,
                   ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
@@ -97,7 +97,7 @@ public interface StationRepository extends JpaRepository<Station, Long> {
                 END AS distance
             FROM stations s
             WHERE s.deleted_at IS NULL
-              AND s.status = 'ACTIVE'
+              AND s.status IN ('ACTIVE', 'INACTIVE')
               AND (
                   LOWER(s.name) LIKE LOWER(CONCAT('%', :query, '%'))
                   OR LOWER(s.address) LIKE LOWER(CONCAT('%', :query, '%'))

@@ -6,7 +6,12 @@
 export enum StationStatus {
     ACTIVE = "ACTIVE",
     INACTIVE = "INACTIVE",
-    MAINTENANCE = "MAINTENANCE",
+}
+
+export interface ChargerSummary {
+    connectorType: string;
+    available: number;
+    total: number;
 }
 
 export interface Station {
@@ -21,14 +26,15 @@ export interface Station {
     status: StationStatus;
     imageUrls: string[];
     isFlaggedLowQuality: boolean;
+    availableChargersCount: number;
+    totalChargersCount: number;
+    chargers: ChargerSummary[];
     createdAt: string;
     updatedAt: string;
 }
 
 export interface StationSearchResult extends Station {
     distanceKm: number; // Distance from user location
-    availableChargersCount: number; // Number of available chargers
-    totalChargersCount: number; // Total number of chargers
 }
 
 export interface SearchNearbyParams {
@@ -52,12 +58,5 @@ export interface ApiResponse<T> {
     data: T;
 }
 
-// Props for marker availability status
-export type MarkerStatus = "available" | "occupied" | "maintenance";
-
-// Amenity types (can be extended based on backend)
-export interface Amenity {
-    id: string;
-    name: string;
-    icon: string; // Icon name from vector-icons
-}
+// Props for marker status
+export type MarkerStatus = "available" | "occupied";
