@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const API_BACKEND_URL = process.env.API_BACKEND_URL || "http://localhost:8080";
 
 interface RouteContext {
     params: Promise<{ id: string }>;

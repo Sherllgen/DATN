@@ -14,6 +14,7 @@ import {
     PowerOff,
     Loader2,
     MoreVertical,
+    Settings2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -52,34 +53,34 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
+type StationStatus = "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
+
 interface Station {
     id: number;
     name: string;
     address: string;
     latitude: number;
     longitude: number;
-    status: "ACTIVE" | "INACTIVE" | "MAINTENANCE" | "CLOSED" | "PENDING";
-    totalPorts: number;
-    availablePorts: number;
+    status: StationStatus;
+    totalPorts?: number;
+    availablePorts?: number;
 }
 
 const statusVariantMap: Record<
-    Station["status"],
+    StationStatus,
     "default" | "secondary" | "destructive" | "outline"
 > = {
     ACTIVE: "default",
     INACTIVE: "secondary",
-    MAINTENANCE: "outline",
-    CLOSED: "destructive",
     PENDING: "outline",
+    SUSPENDED: "destructive",
 };
 
-const statusLabelMap: Record<Station["status"], string> = {
-    ACTIVE: "Hoạt động",
-    INACTIVE: "Tạm ngưng",
-    MAINTENANCE: "Bảo trì",
-    CLOSED: "Đã đóng",
-    PENDING: "Chờ duyệt",
+const statusLabelMap: Record<StationStatus, string> = {
+    ACTIVE: "Active",
+    INACTIVE: "Inactive",
+    PENDING: "Pending Approval",
+    SUSPENDED: "Suspended",
 };
 
 export default function StationsPage() {
@@ -106,13 +107,18 @@ export default function StationsPage() {
             }
         } catch (error) {
             console.error("Failed to fetch stations:", error);
-            toast.error("Không thể tải danh sách trạm sạc");
+            toast.error("Failed to load stations");
         } finally {
             setLoading(false);
         }
     }
 
     async function handleToggleStatus(station: Station) {
+        // Don't allow toggle for PENDING or SUSPENDED stations
+        if (station.status === "PENDING" || station.status === "SUSPENDED") {
+            return;
+        }
+
         const newStatus = station.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
         try {
             await axios.patch(
@@ -121,12 +127,12 @@ export default function StationsPage() {
                 { withCredentials: true }
             );
             toast.success(
-                `Trạm ${station.name} đã ${newStatus === "ACTIVE" ? "kích hoạt" : "tạm ngưng"}`
+                `Station "${station.name}" is now ${newStatus === "ACTIVE" ? "active" : "inactive"}`
             );
             fetchStations();
         } catch (error) {
             console.error("Failed to update status:", error);
-            toast.error("Không thể cập nhật trạng thái");
+            toast.error("Failed to update status");
         }
     }
 
@@ -138,13 +144,13 @@ export default function StationsPage() {
             await axios.delete(`/api/stations/${stationToDelete.id}`, {
                 withCredentials: true,
             });
-            toast.success(`Đã xóa trạm ${stationToDelete.name}`);
+            toast.success(`Station "${stationToDelete.name}" deleted`);
             setDeleteDialogOpen(false);
             setStationToDelete(null);
             fetchStations();
         } catch (error) {
             console.error("Failed to delete station:", error);
-            toast.error("Không thể xóa trạm sạc");
+            toast.error("Failed to delete station");
         } finally {
             setDeleting(false);
         }
@@ -153,6 +159,10 @@ export default function StationsPage() {
     function confirmDelete(station: Station) {
         setStationToDelete(station);
         setDeleteDialogOpen(true);
+    }
+
+    function canToggleStatus(station: Station): boolean {
+        return station.status === "ACTIVE" || station.status === "INACTIVE";
     }
 
     if (loading) {
@@ -182,9 +192,9 @@ export default function StationsPage() {
         <div className="px-4 lg:px-6 space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Trạm sạc của tôi</h1>
+                    <h1 className="text-3xl font-bold">My Stations</h1>
                     <p className="text-muted-foreground">
-                        Quản lý các trạm sạc EV của bạn
+                        Manage your EV charging stations
                     </p>
                 </div>
                 <Button
@@ -192,7 +202,7 @@ export default function StationsPage() {
                     className="cursor-pointer"
                 >
                     <Plus className="mr-2 h-4 w-4" />
-                    Thêm trạm sạc
+                    Add Station
                 </Button>
             </div>
 
@@ -201,40 +211,40 @@ export default function StationsPage() {
                     <CardContent className="flex flex-col items-center justify-center py-16">
                         <Zap className="h-16 w-16 text-muted-foreground mb-4" />
                         <h3 className="text-lg font-semibold mb-2">
-                            Chưa có trạm sạc nào
+                            No stations yet
                         </h3>
                         <p className="text-muted-foreground text-center mb-4">
-                            Bắt đầu bằng cách thêm trạm sạc đầu tiên của bạn
+                            Get started by adding your first charging station
                         </p>
                         <Button
                             onClick={() => router.push("/stations/create")}
                             className="cursor-pointer"
                         >
                             <Plus className="mr-2 h-4 w-4" />
-                            Thêm trạm sạc
+                            Add Station
                         </Button>
                     </CardContent>
                 </Card>
             ) : (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Danh sách trạm sạc</CardTitle>
+                        <CardTitle>Station List</CardTitle>
                         <CardDescription>
-                            Bạn có {stations.length} trạm sạc
+                            You have {stations.length} station{stations.length !== 1 ? "s" : ""}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Tên trạm</TableHead>
-                                    <TableHead>Địa chỉ</TableHead>
-                                    <TableHead>Trạng thái</TableHead>
+                                    <TableHead>Station Name</TableHead>
+                                    <TableHead>Address</TableHead>
+                                    <TableHead>Status</TableHead>
                                     <TableHead className="text-center">
-                                        Cổng sạc
+                                        Ports
                                     </TableHead>
                                     <TableHead className="text-right">
-                                        Thao tác
+                                        Actions
                                     </TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -262,15 +272,15 @@ export default function StationsPage() {
                                                     {statusLabelMap[station.status] || station.status}
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="secondary">Chưa xác định</Badge>
+                                                <Badge variant="secondary">Unknown</Badge>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <span className="text-green-600 font-medium">
-                                                {station.availablePorts}
+                                                {station.availablePorts ?? 0}
                                             </span>
                                             <span className="text-muted-foreground">
-                                                /{station.totalPorts}
+                                                /{station.totalPorts ?? 0}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
@@ -288,32 +298,54 @@ export default function StationsPage() {
                                                     <DropdownMenuItem
                                                         onClick={() =>
                                                             router.push(
+                                                                `/stations/${station.id}`
+                                                            )
+                                                        }
+                                                        className="cursor-pointer"
+                                                    >
+                                                        <Settings2 className="mr-2 h-4 w-4" />
+                                                        Manage Chargers
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            router.push(
                                                                 `/stations/${station.id}/edit`
                                                             )
                                                         }
                                                         className="cursor-pointer"
                                                     >
                                                         <Edit2 className="mr-2 h-4 w-4" />
-                                                        Chỉnh sửa
+                                                        Edit
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            handleToggleStatus(station)
-                                                        }
-                                                        className="cursor-pointer"
-                                                    >
-                                                        {station.status === "ACTIVE" ? (
-                                                            <>
-                                                                <PowerOff className="mr-2 h-4 w-4" />
-                                                                Tạm ngưng
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Power className="mr-2 h-4 w-4" />
-                                                                Kích hoạt
-                                                            </>
-                                                        )}
-                                                    </DropdownMenuItem>
+                                                    {canToggleStatus(station) && (
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                handleToggleStatus(station)
+                                                            }
+                                                            className="cursor-pointer"
+                                                        >
+                                                            {station.status === "ACTIVE" ? (
+                                                                <>
+                                                                    <PowerOff className="mr-2 h-4 w-4" />
+                                                                    Deactivate
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Power className="mr-2 h-4 w-4" />
+                                                                    Activate
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {station.status === "PENDING" && (
+                                                        <DropdownMenuItem
+                                                            disabled
+                                                            className="text-muted-foreground"
+                                                        >
+                                                            <Power className="mr-2 h-4 w-4" />
+                                                            Awaiting Approval
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem
                                                         onClick={() =>
@@ -322,7 +354,7 @@ export default function StationsPage() {
                                                         className="text-destructive cursor-pointer"
                                                     >
                                                         <Trash2 className="mr-2 h-4 w-4" />
-                                                        Xóa trạm
+                                                        Delete
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -339,16 +371,16 @@ export default function StationsPage() {
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Xác nhận xóa trạm sạc?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete Station?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Bạn có chắc chắn muốn xóa trạm{" "}
-                            <strong>{stationToDelete?.name}</strong>? Hành động này
-                            không thể hoàn tác.
+                            Are you sure you want to delete{" "}
+                            <strong>{stationToDelete?.name}</strong>? This action
+                            cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel className="cursor-pointer">
-                            Hủy
+                            Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDelete}
@@ -358,7 +390,7 @@ export default function StationsPage() {
                             {deleting && (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             )}
-                            Xóa
+                            Delete
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

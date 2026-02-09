@@ -28,12 +28,17 @@ import {
     FormDescription,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    OpeningHoursEditor,
+    OpeningHoursEntry,
+    getDefaultOpeningHours,
+} from "@/components/station/opening-hours-editor";
 
 const stationSchema = z.object({
-    name: z.string().min(1, "Tên trạm là bắt buộc").max(200),
-    address: z.string().min(1, "Địa chỉ là bắt buộc").max(500),
-    latitude: z.string().min(1, "Vĩ độ là bắt buộc"),
-    longitude: z.string().min(1, "Kinh độ là bắt buộc"),
+    name: z.string().min(1, "Station name is required").max(200),
+    address: z.string().min(1, "Address is required").max(500),
+    latitude: z.string().min(1, "Latitude is required"),
+    longitude: z.string().min(1, "Longitude is required"),
     description: z.string().max(1000).optional(),
 });
 
@@ -42,6 +47,10 @@ type StationFormValues = z.infer<typeof stationSchema>;
 export default function CreateStationPage() {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
+    const [is24_7, setIs24_7] = useState(true);
+    const [openingHours, setOpeningHours] = useState<OpeningHoursEntry[]>(
+        getDefaultOpeningHours()
+    );
 
     const form = useForm<StationFormValues>({
         resolver: zodResolver(stationSchema),
@@ -57,20 +66,33 @@ export default function CreateStationPage() {
     async function onSubmit(data: StationFormValues) {
         try {
             setSubmitting(true);
-            await axios.post("/api/stations", {
+
+            const payload: Record<string, unknown> = {
                 ...data,
                 latitude: parseFloat(data.latitude),
                 longitude: parseFloat(data.longitude),
-            }, {
+            };
+
+            // Only include openingHours if not 24/7
+            if (!is24_7) {
+                payload.openingHours = openingHours.map((entry) => ({
+                    dayOfWeek: entry.dayOfWeek,
+                    openTime: entry.isOpen ? entry.openTime : null,
+                    closeTime: entry.isOpen ? entry.closeTime : null,
+                    isOpen: entry.isOpen,
+                }));
+            }
+
+            await axios.post("/api/stations", payload, {
                 withCredentials: true,
             });
 
-            toast.success("Tạo trạm sạc thành công!");
+            toast.success("Station created successfully!");
             router.push("/stations");
         } catch (error: any) {
             console.error("Failed to create station:", error);
             toast.error(
-                error.response?.data?.message || "Không thể tạo trạm sạc. Vui lòng thử lại."
+                error.response?.data?.message || "Failed to create station. Please try again."
             );
         } finally {
             setSubmitting(false);
@@ -89,9 +111,9 @@ export default function CreateStationPage() {
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold">Thêm trạm sạc mới</h1>
+                    <h1 className="text-3xl font-bold">Add New Station</h1>
                     <p className="text-muted-foreground">
-                        Điền thông tin để tạo trạm sạc mới
+                        Fill in the details to create a new charging station
                     </p>
                 </div>
             </div>
@@ -100,9 +122,9 @@ export default function CreateStationPage() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Thông tin cơ bản</CardTitle>
+                            <CardTitle>Basic Information</CardTitle>
                             <CardDescription>
-                                Nhập thông tin cơ bản của trạm sạc
+                                Enter the basic details of your charging station
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -111,10 +133,10 @@ export default function CreateStationPage() {
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Tên trạm sạc *</FormLabel>
+                                        <FormLabel>Station Name *</FormLabel>
                                         <FormControl>
                                             <Input
-                                                placeholder="VD: Trạm sạc EV-Go Quận 1"
+                                                placeholder="e.g. EV-Go Station District 1"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -128,10 +150,10 @@ export default function CreateStationPage() {
                                 name="address"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Địa chỉ *</FormLabel>
+                                        <FormLabel>Address *</FormLabel>
                                         <FormControl>
                                             <Input
-                                                placeholder="VD: 123 Nguyễn Huệ, Quận 1, TP.HCM"
+                                                placeholder="e.g. 123 Nguyen Hue, District 1, HCMC"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -145,10 +167,10 @@ export default function CreateStationPage() {
                                 name="description"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Mô tả</FormLabel>
+                                        <FormLabel>Description</FormLabel>
                                         <FormControl>
                                             <Textarea
-                                                placeholder="Mô tả về trạm sạc, hướng dẫn tìm đường..."
+                                                placeholder="Description of the station, directions..."
                                                 className="min-h-[100px]"
                                                 {...field}
                                             />
@@ -164,10 +186,10 @@ export default function CreateStationPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <MapPin className="h-5 w-5" />
-                                Vị trí trên bản đồ
+                                Location on Map
                             </CardTitle>
                             <CardDescription>
-                                Nhập tọa độ GPS của trạm sạc
+                                Enter the GPS coordinates of your station
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -177,17 +199,17 @@ export default function CreateStationPage() {
                                     name="latitude"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Vĩ độ (Latitude) *</FormLabel>
+                                            <FormLabel>Latitude *</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
                                                     step="any"
-                                                    placeholder="VD: 10.7769"
+                                                    placeholder="e.g. 10.7769"
                                                     {...field}
                                                 />
                                             </FormControl>
                                             <FormDescription>
-                                                Giá trị từ -90 đến 90
+                                                Value from -90 to 90
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -199,17 +221,17 @@ export default function CreateStationPage() {
                                     name="longitude"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Kinh độ (Longitude) *</FormLabel>
+                                            <FormLabel>Longitude *</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
                                                     step="any"
-                                                    placeholder="VD: 106.7009"
+                                                    placeholder="e.g. 106.7009"
                                                     {...field}
                                                 />
                                             </FormControl>
                                             <FormDescription>
-                                                Giá trị từ -180 đến 180
+                                                Value from -180 to 180
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -218,6 +240,13 @@ export default function CreateStationPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    <OpeningHoursEditor
+                        value={openingHours}
+                        onChange={setOpeningHours}
+                        is24_7={is24_7}
+                        onToggle24_7={setIs24_7}
+                    />
 
                     <div className="flex justify-start gap-3">
                         <Button
@@ -228,7 +257,7 @@ export default function CreateStationPage() {
                             {submitting && (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             )}
-                            Tạo trạm sạc
+                            Create Station
                         </Button>
                         <Button
                             type="button"
@@ -236,7 +265,7 @@ export default function CreateStationPage() {
                             onClick={() => router.back()}
                             className="cursor-pointer"
                         >
-                            Hủy
+                            Cancel
                         </Button>
                     </div>
                 </form>

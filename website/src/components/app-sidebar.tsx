@@ -52,15 +52,25 @@ const navGroupsRaw = [
                 url: "/stations",
                 icon: Zap,
             },
+        ],
+    },
+    {
+        label: "Admin",
+        items: [
             {
-                title: "Manage Accounts",
-                url: "/manage_accounts",
+                title: "Account Management",
+                url: "/admin/accounts",
                 icon: Users,
             },
             {
-                title: "Registration",
-                url: "/registration",
+                title: "Registration Review",
+                url: "/admin/registration",
                 icon: LayoutTemplate,
+            },
+            {
+                title: "Station Review",
+                url: "/admin/stations",
+                icon: Shield,
             },
         ],
     },

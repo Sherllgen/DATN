@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const API_BACKEND_URL = process.env.API_BACKEND_URL || "http://localhost:8080";
 
 export async function GET() {
     try {
@@ -35,6 +35,48 @@ export async function GET() {
         return NextResponse.json(data);
     } catch (error) {
         console.error("Get profile error:", error);
+        return NextResponse.json(
+            { message: "Internal server error" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function PUT(request: NextRequest) {
+    try {
+        const cookieStore = await cookies();
+        const accessToken = cookieStore.get("accessToken")?.value;
+
+        if (!accessToken) {
+            return NextResponse.json(
+                { message: "Unauthorized - No token" },
+                { status: 401 }
+            );
+        }
+
+        const body = await request.json();
+
+        const response = await fetch(`${API_BACKEND_URL}/api/v1/users/me`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            return NextResponse.json(
+                { message: error.message || "Failed to update profile" },
+                { status: response.status }
+            );
+        }
+
+        const data = await response.json();
+        return NextResponse.json(data);
+    } catch (error) {
+        console.error("Update profile error:", error);
         return NextResponse.json(
             { message: "Internal server error" },
             { status: 500 }
