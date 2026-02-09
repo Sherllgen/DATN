@@ -149,12 +149,32 @@ public class StationController {
 			@RequestParam @NotBlank String query,
 			@RequestParam(required = false) @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,
 			@RequestParam(required = false) @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude,
-			@RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer maxResults) {
+			@RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer maxResults) {
 
 		SearchTextRequest request = new SearchTextRequest(query, latitude, longitude, maxResults);
 		List<StationSearchResult> results = stationService.searchByText(request);
 
 		String message = String.format("Found %d station(s)", results.size());
+		return ResponseEntity.ok(ApiResponse.<List<StationSearchResult>>builder()
+				.status(HttpStatus.OK.value())
+				.message(message)
+				.data(results)
+				.build());
+	}
+
+	@GetMapping("/in-bound")
+	@Operation(summary = "Find stations in bounding box", description = "Find charging stations within a map bounding box (viewport)")
+	public ResponseEntity<ApiResponse<List<StationSearchResult>>> findStationsInBound(
+			@RequestParam @DecimalMin("-90.0") @DecimalMax("90.0") Double minLat,
+			@RequestParam @DecimalMin("-90.0") @DecimalMax("90.0") Double maxLat,
+			@RequestParam @DecimalMin("-180.0") @DecimalMax("180.0") Double minLng,
+			@RequestParam @DecimalMin("-180.0") @DecimalMax("180.0") Double maxLng,
+			@RequestParam(defaultValue = "20") @Min(1) @Max(500) Integer maxResults) {
+
+		List<StationSearchResult> results = stationService.findStationsInBound(minLat, maxLat, minLng, maxLng,
+				maxResults);
+
+		String message = String.format("Found %d station(s) in bounding box", results.size());
 		return ResponseEntity.ok(ApiResponse.<List<StationSearchResult>>builder()
 				.status(HttpStatus.OK.value())
 				.message(message)

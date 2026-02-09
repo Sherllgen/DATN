@@ -120,4 +120,50 @@ public interface StationRepository extends JpaRepository<Station, Long> {
             @Param("latitude") Double latitude,
             @Param("longitude") Double longitude,
             @Param("maxResults") Integer maxResults);
+
+    /**
+     * Find stations within a bounding box (map viewport).
+     * OPTIMIZED: Uses PostGIS ST_MakeEnvelope and ST_Within for efficient spatial
+     * queries.
+     * Includes charger count subqueries to avoid N+1 problem.
+     * 
+     * @param minLat     minimum latitude of bounding box
+     * @param maxLat     maximum latitude of bounding box
+     * @param minLng     minimum longitude of bounding box
+     * @param maxLng     maximum longitude of bounding box
+     * @param maxResults maximum number of results
+     * @return List of StationProjection within the bounding box
+     */
+    @Query(value = """
+            SELECT
+                s.id AS id,
+                s.owner_id AS ownerId,
+                s.name AS name,
+                s.description AS description,
+                s.address AS address,
+                s.latitude AS latitude,
+                s.longitude AS longitude,
+                s.rate AS rate,
+                s.status AS status,
+                s.is_flagged_low_quality AS isFlaggedLowQuality,
+                s.created_at AS createdAt,
+                s.updated_at AS updatedAt,
+                NULL AS distance,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id) AS totalChargersCount,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id AND c.status = 'AVAILABLE') AS availableChargersCount
+            FROM stations s
+            WHERE s.deleted_at IS NULL
+              AND s.status IN ('ACTIVE', 'INACTIVE')
+              AND ST_Within(
+                  s.location,
+                  ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)
+              )
+            ORDER BY s.created_at DESC
+            LIMIT :maxResults
+            """, nativeQuery = true)
+    List<StationProjection> findStationsInBound(@Param("minLat") Double minLat,
+            @Param("maxLat") Double maxLat,
+            @Param("minLng") Double minLng,
+            @Param("maxLng") Double maxLng,
+            @Param("maxResults") Integer maxResults);
 }

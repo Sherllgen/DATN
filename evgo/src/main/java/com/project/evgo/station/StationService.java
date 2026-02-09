@@ -35,4 +35,7 @@ public interface StationService {
     List<StationSearchResult> searchNearby(SearchNearbyRequest request);
 
     List<StationSearchResult> searchByText(SearchTextRequest request);
+
+    List<StationSearchResult> findStationsInBound(Double minLat, Double maxLat, Double minLng, Double maxLng,
+            Integer maxResults);
 }

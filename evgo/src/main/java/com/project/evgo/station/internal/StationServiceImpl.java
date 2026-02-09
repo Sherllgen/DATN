@@ -187,4 +187,28 @@ public class StationServiceImpl implements StationService {
         // Convert to DTOs with charger counts
         return stationDtoConverter.convertToSearchResults(projections);
     }
+
+    @Override
+    public List<StationSearchResult> findStationsInBound(Double minLat, Double maxLat, Double minLng, Double maxLng,
+            Integer maxResults) {
+        // Validate bounding box coordinates
+        if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "All bounding box coordinates are required");
+        }
+
+        if (minLat >= maxLat) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "minLat must be less than maxLat");
+        }
+
+        if (minLng >= maxLng) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "minLng must be less than maxLng");
+        }
+
+        // Query database using PostGIS spatial query
+        List<StationProjection> projections = stationRepository.findStationsInBound(
+                minLat, maxLat, minLng, maxLng, maxResults);
+
+        // Convert to DTOs with charger counts
+        return stationDtoConverter.convertToSearchResults(projections);
+    }
 }
