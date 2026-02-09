@@ -36,6 +36,23 @@ flowchart TD
 
 ---
 
+## Mô hình dữ liệu
+
+```mermaid
+erDiagram
+    USER ||--o{ NOTIFICATION : receives
+
+    NOTIFICATION {
+        Long id
+        String title
+        String message
+        NotificationType type
+        Boolean isRead
+    }
+```
+
+---
+
 ## API Endpoints
 
 | Method | Endpoint | Mô tả | Auth |
@@ -214,7 +231,10 @@ public class Notification {
 }
 ```
 
----
+> [!NOTE]
+> **Ý nghĩa các trường đặc biệt:**
+> - `isRead`: Cờ đánh dấu thông báo đã đọc. Dùng để hiển thị badge số thông báo chưa đọc
+> - `type`: Loại thông báo, dùng để phân loại và hiển thị icon khác nhau trên mobile
 
 ## Enums
 
@@ -230,7 +250,13 @@ public enum NotificationType {
 }
 ```
 
----
+| Type | Mô tả | Icon gợi ý |
+|------|-------|------------|
+| `BOOKING` | Thông báo liên quan đặt lịch sạc | 📅 |
+| `CHARGING` | Thông báo khi sạc xong, sạc bị ngắt | ⚡ |
+| `PAYMENT` | Thông báo thanh toán thành công/thất bại | 💳 |
+| `SYSTEM` | Thông báo bảo trì, cập nhật hệ thống | ⚙️ |
+| `PROMOTION` | Thông báo khuyến mãi, giảm giá | 🎁 |
 
 ## Configuration
 

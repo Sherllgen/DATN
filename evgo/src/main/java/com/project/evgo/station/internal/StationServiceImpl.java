@@ -63,6 +63,20 @@ public class StationServiceImpl implements StationService {
             station.setImageUrls(request.imageUrls());
         }
 
+        if (request.openingHours() != null) {
+            List<StationOpeningHours> hours = request.openingHours().stream()
+                    .map(h -> {
+                        StationOpeningHours soh = new StationOpeningHours();
+                        soh.setStation(station);
+                        soh.setDayOfWeek(h.dayOfWeek());
+                        soh.setOpenTime(h.openTime());
+                        soh.setCloseTime(h.closeTime());
+                        soh.setIsOpen(h.isOpen());
+                        return soh;
+                    }).toList();
+            station.setOpeningHours(hours);
+        }
+
         Station saved = stationRepository.save(station);
         return stationDtoConverter.convert(saved);
     }
@@ -97,6 +111,21 @@ public class StationServiceImpl implements StationService {
         station.setLongitude(request.longitude());
         if (request.imageUrls() != null) {
             station.setImageUrls(request.imageUrls());
+        }
+
+        if (request.openingHours() != null) {
+            station.getOpeningHours().clear();
+            List<StationOpeningHours> hours = request.openingHours().stream()
+                    .map(h -> {
+                        StationOpeningHours soh = new StationOpeningHours();
+                        soh.setStation(station);
+                        soh.setDayOfWeek(h.dayOfWeek());
+                        soh.setOpenTime(h.openTime());
+                        soh.setCloseTime(h.closeTime());
+                        soh.setIsOpen(h.isOpen());
+                        return soh;
+                    }).toList();
+            station.getOpeningHours().addAll(hours);
         }
 
         Station updated = stationRepository.save(station);

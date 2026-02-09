@@ -33,7 +33,7 @@ public interface ChargerService {
     void deleteCharger(Long id);
 
     // Port management (Owner only)
-    PortResponse createPort(CreatePortRequest request);
+    PortResponse createPort(Long chargerId, CreatePortRequest request);
 
     PortResponse updatePortStatus(Long id, PortStatus status);
 

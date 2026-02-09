@@ -9,9 +9,13 @@ import jakarta.validation.constraints.Positive;
  * Request DTO for updating an existing charger.
  */
 public record UpdateChargerRequest(
-        @NotBlank(message = "Charger name is required") String name,
+        @NotBlank(message = "Charger name is required") 
+        String name,
 
-        @NotNull(message = "Max power is required") @Positive(message = "Max power must be positive") Double maxPower,
+        @NotNull(message = "Max power is required") 
+        @Positive(message = "Max power must be positive") 
+        Double maxPower,
 
-        @NotNull(message = "Connector type is required") ConnectorType connectorType) {
+        @NotNull(message = "Connector type is required") 
+        ConnectorType connectorType) {
 }

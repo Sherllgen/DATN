@@ -2,6 +2,7 @@ package com.project.evgo.charger.internal;
 
 import com.project.evgo.charger.response.ChargerResponse;
 import com.project.evgo.charger.response.PortResponse;
+import com.project.evgo.sharedkernel.enums.PortStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -14,6 +15,15 @@ import java.util.Optional;
 public class ChargerDtoConverter {
 
     public ChargerResponse toChargerResponse(Charger charger) {
+        List<PortResponse> portResponses = charger.getPorts().stream()
+                .map(this::toPortResponse)
+                .toList();
+
+        int totalPorts = portResponses.size();
+        int availablePorts = (int) charger.getPorts().stream()
+                .filter(p -> p.getStatus() == PortStatus.AVAILABLE)
+                .count();
+
         return ChargerResponse.builder()
                 .id(charger.getId())
                 .name(charger.getName())
@@ -21,9 +31,9 @@ public class ChargerDtoConverter {
                 .connectorType(charger.getConnectorType())
                 .status(charger.getStatus())
                 .stationId(charger.getStationId())
-                .ports(charger.getPorts().stream()
-                        .map(this::toPortResponse)
-                        .toList())
+                .ports(portResponses)
+                .totalPorts(totalPorts)
+                .availablePorts(availablePorts)
                 .createdAt(charger.getCreatedAt())
                 .build();
     }

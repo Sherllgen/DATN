@@ -10,8 +10,44 @@ Module quản lý người dùng là module lớn nhất trong hệ thống EV-G
 |------------|---------|
 | **Package** | `com.project.evgo.user` |
 | **Display Name** | User Management |
-| **Số Services** | 7 (AuthService, UserService, AccountManagementService, VehicleService, AdminReviewService, StationOwnerService, FileRegistrationService) |
+| **Số Services** | 8 (AuthService, UserService, AccountManagementService, VehicleService, AdminReviewService, StationOwnerService, FileRegistrationService, PdfParsingService) |
 | **Số Controllers** | 6 (AuthController, UserController, AdminController, VehicleController, VehicleCatalogController, GuestController) |
+
+---
+
+## Mô hình dữ liệu
+
+```mermaid
+erDiagram
+    USER ||--o{ VEHICLE : owns
+    USER ||--o| STATION_OWNER_PROFILE : has
+    USER }o--o{ ROLE : has
+
+    USER {
+        Long id
+        String email
+        String phoneNumber
+        UserStatus status
+        AuthProvider authProvider
+        Boolean emailVerified
+        Boolean phoneVerified
+    }
+
+    VEHICLE {
+        Long id
+        String brand
+        String modelName
+        Set connectorTypes
+        Boolean inUse
+    }
+
+    STATION_OWNER_PROFILE {
+        Long id
+        String registrationCode
+        StationOwnerType ownerType
+        StationOwnerStatus status
+    }
+```
 
 ---
 
@@ -34,7 +70,7 @@ Cung cấp các chức năng xác thực người dùng bao gồm đăng ký, đ
 | `POST` | `/api/v1/auth/forgot-password` | Yêu cầu đặt lại mật khẩu | ❌ |
 | `POST` | `/api/v1/auth/reset-password` | Đặt lại mật khẩu với token | ❌ |
 | `POST` | `/api/v1/auth/google` | Đăng nhập bằng Google | ❌ |
-| `POST` | `/api/v1/auth/station-owner/register` | Đăng ký Station Owner (upload file) | ❌ |
+| `POST` | `/api/v1/auth/station-owner/register` | Đăng ký Station Owner (upload PDF) | ❌ |
 
 ### Luồng xử lý chính
 
@@ -50,7 +86,7 @@ sequenceDiagram
     User->>AuthController: POST /register
     AuthController->>AuthService: register(request)
     AuthService->>DB: Check email exists
-    AuthService->>DB: Save user (PENDING status)
+    AuthService->>DB: Save user (INACTIVE status)
     AuthService->>EmailService: Send verification email
     AuthService->>Redis: Store verification token
     AuthController-->>User: 200 OK (Check email)
@@ -58,7 +94,7 @@ sequenceDiagram
     User->>AuthController: POST /verify-email
     AuthController->>AuthService: verifyEmail(token)
     AuthService->>Redis: Validate token
-    AuthService->>DB: Update status to ACTIVE
+    AuthService->>DB: Update status to ACTIVE + emailVerified=true
     AuthController-->>User: 200 OK (Verified)
 
     User->>AuthController: POST /login
@@ -182,8 +218,8 @@ Quy trình duyệt đơn đăng ký Station Owner bởi Admin.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING: Submit registration
-    PENDING --> UNDER_REVIEW: Admin views
+    [*] --> SUBMITTED: Submit registration
+    SUBMITTED --> UNDER_REVIEW: Admin views
     UNDER_REVIEW --> APPROVED: Admin approves
     UNDER_REVIEW --> REJECTED: Admin rejects
     APPROVED --> [*]: Email notification sent
@@ -221,7 +257,7 @@ Quản lý phương tiện của người dùng, hỗ trợ tìm kiếm trạm s
 
 - ✅ CRUD phương tiện
 - ✅ Đánh dấu xe đang sử dụng (để tìm trạm sạc phù hợp)
-- ✅ Thông tin xe: tên, loại connector, dung lượng pin, công suất sạc max
+- ✅ Thông tin xe: brand, modelName, loại connector (hỗ trợ nhiều loại)
 
 ---
 
@@ -259,13 +295,25 @@ public class User {
     LocalDate birthday;
     String avatarUrl;
     String avatarPublicId;
-    UserStatus status;           // PENDING, ACTIVE, BLOCKED, DELETED
-    AuthProvider authProvider;   // LOCAL, GOOGLE
+    boolean emailVerified = false;
+    boolean phoneVerified = false;
+    UserStatus status = UserStatus.INACTIVE;  // Default: INACTIVE
+    AuthProvider authProvider = AuthProvider.LOCAL;
+    String providerId;  // Google ID khi dùng OAuth
     Set<Role> roles;
+    Instant passwordChangedAt;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }
 ```
+
+> [!NOTE]
+> **Ý nghĩa các trường đặc biệt:**
+> - `status`: Trạng thái tài khoản. Default = `INACTIVE` (chưa xác minh email)
+> - `emailVerified`/`phoneVerified`: Cờ xác minh riêng cho email và phone
+> - `authProvider`: Phương thức đăng nhập. `LOCAL` = email/password, `GOOGLE` = OAuth
+> - `providerId`: ID từ nhà cung cấp OAuth (Google user ID)
+> - `passwordChangedAt`: Thời điểm đổi password, dùng để invalidate old tokens
 
 ### Vehicle Entity
 
@@ -274,16 +322,19 @@ public class User {
 @Table(name = "vehicles")
 public class Vehicle {
     Long id;
-    User owner;
-    String name;
-    ConnectorType connectorType;
-    Double batteryCapacity;
-    Double maxChargingPower;
-    Boolean isInUse;
-    LocalDateTime createdAt;
-    LocalDateTime updatedAt;
+    Long userId;
+    String brand;           // Hãng xe (VD: Tesla, VinFast)
+    String modelName;        // Tên model (VD: Model 3, VF8)
+    Set<ConnectorType> connectorTypes;  // Hỗ trợ nhiều loại connector
+    Boolean inUse = false;
 }
 ```
+
+> [!NOTE]
+> **Ý nghĩa các trường đặc biệt:**
+> - `connectorTypes`: **Set (không phải single value)** - một xe có thể hỗ trợ nhiều loại đầu sạc
+> - `inUse`: Cờ đánh dấu xe đang sử dụng chính. Dùng để tự động lọc trạm sạc phù hợp
+> - ⚠️ Các field `licensePlate`, `batteryCapacity`, `createdAt`, `updatedAt` đã bị comment out trong code
 
 ### StationOwnerProfile Entity
 
@@ -292,21 +343,73 @@ public class Vehicle {
 @Table(name = "station_owner_profiles")
 public class StationOwnerProfile {
     Long id;
+    String registrationCode;  // Mã đăng ký unique
     User user;
+    StationOwnerType ownerType;  // INDIVIDUAL hoặc COMPANY
+    
+    // INDIVIDUAL fields
+    String fullName;
+    String idNumber;  // CMND/CCCD
+    
+    // COMPANY fields
     String businessName;
-    String businessLicenseNumber;
-    String taxId;
-    String businessAddress;
-    String representativeName;
-    String phoneNumber;
-    StationOwnerType type;       // INDIVIDUAL, COMPANY
-    StationOwnerStatus status;   // PENDING, UNDER_REVIEW, APPROVED, REJECTED
-    String registrationFileUrl;
+    String taxCode;
+    
+    // Common fields
+    String contactEmail;
+    String contactPhone;
+    StationOwnerStatus status = StationOwnerStatus.SUBMITTED;
+    String bankAccount;
+    String bankName;
     String rejectionReason;
+    String pdfFilePath;
+    String pdfPublicId;
     LocalDateTime submittedAt;
     LocalDateTime reviewedAt;
 }
 ```
+
+> [!NOTE]
+> **Ý nghĩa các trường đặc biệt:**
+> - `registrationCode`: Mã đăng ký unique, dùng để tra cứu trạng thái
+> - `ownerType`: `INDIVIDUAL` = cá nhân, `COMPANY` = doanh nghiệp
+> - `status`: Default = `SUBMITTED` (không phải PENDING như docs cũ ghi)
+> - `pdfFilePath`/`pdfPublicId`: Đường dẫn và ID của file PDF trên Cloudinary
+
+---
+
+## Enums
+
+### UserStatus
+
+| Status | Mô tả | Cho phép Login |
+|--------|-------|----------------|
+| `ACTIVE` | Đã xác minh, đang hoạt động | ✅ Có |
+| `INACTIVE` | Chưa xác minh email (default) | ❌ Không |
+| `BLOCKED` | Bị Admin khóa | ❌ Không |
+| `DELETED` | Đã xóa (soft delete) | ❌ Không |
+
+> [!IMPORTANT]
+> Không có status `PENDING`. User mới đăng ký có status = `INACTIVE`.
+
+### StationOwnerStatus
+
+| Status | Mô tả | Bước tiếp theo |
+|--------|-------|----------------|
+| `SUBMITTED` | Mới nộp đơn (default) | Admin mở xem |
+| `UNDER_REVIEW` | Admin đang xem xét | Admin quyết định |
+| `APPROVED` | Được duyệt | Gán role STATION_OWNER |
+| `REJECTED` | Bị từ chối | User nộp lại hoặc liên hệ support |
+
+> [!IMPORTANT]
+> Status mặc định là `SUBMITTED` (không phải `PENDING` như docs cũ ghi).
+
+### AuthProvider
+
+| Value | Mô tả |
+|-------|-------|
+| `LOCAL` | Đăng ký bằng email/password |
+| `GOOGLE` | Đăng nhập bằng Google OAuth |
 
 ---
 
@@ -318,3 +421,13 @@ Module `user` phụ thuộc vào:
 
 Module `user` expose public subpackage:
 - `user::security` - JwtTokenProvider, JwtAuthenticationFilter (cho module config sử dụng)
+
+---
+
+## Lưu ý quan trọng
+
+1. **User Status Default**: User mới = `INACTIVE`, sau khi verify email mới thành `ACTIVE`.
+
+2. **Vehicle ConnectorTypes**: Là `Set<ConnectorType>`, không phải single value. Một xe có thể hỗ trợ nhiều loại đầu sạc.
+
+3. **StationOwnerProfile**: Phân biệt INDIVIDUAL và COMPANY với các field khác nhau.

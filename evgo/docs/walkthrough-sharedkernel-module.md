@@ -71,6 +71,12 @@ public class ApiResponse<T> {
 }
 ```
 
+> [!NOTE]
+> **Ý nghĩa các trường:**
+> - `status`: HTTP status code (200, 400, 401, 404, 500...)
+> - `message`: Thông điệp mô tả kết quả (thành công hoặc lỗi)
+> - `data`: Dữ liệu trả về, có thể là object, list, hoặc null
+
 **Ví dụ sử dụng:**
 
 ```java
@@ -117,6 +123,13 @@ public class PageResponse<T> {
     private boolean last;
 }
 ```
+
+> [!NOTE]
+> **Ý nghĩa các trường:**
+> - `page`: Trang hiện tại (0-indexed)
+> - `size`: Số item trên mỗi trang
+> - `totalElements`: Tổng số item trong DB
+> - `first`/`last`: Cờ xác định đang ở trang đầu/cuối
 
 **Ví dụ sử dụng:**
 

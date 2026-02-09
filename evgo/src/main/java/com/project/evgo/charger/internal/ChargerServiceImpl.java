@@ -65,7 +65,7 @@ public class ChargerServiceImpl implements ChargerService {
 
         Charger charger = new Charger();
         charger.setName(request.getName());
-        charger.setMaxPower(request.getPowerOutput());
+        charger.setMaxPower(request.getMaxPower());
         charger.setConnectorType(ConnectorType.VINFAST_STD); // Default, TODO: add to request
         charger.setStatus(ChargerStatus.AVAILABLE);
         charger.setStationId(request.getStationId());
@@ -98,11 +98,11 @@ public class ChargerServiceImpl implements ChargerService {
 
     @Override
     @Transactional
-    public PortResponse createPort(CreatePortRequest request) {
-        Charger charger = findChargerAndVerifyOwner(request.getChargerId());
+    public PortResponse createPort(Long chargerId, CreatePortRequest request) {
+        Charger charger = findChargerAndVerifyOwner(chargerId);
 
         Port port = new Port();
-        port.setPortNumber(request.getPortNumber());
+        port.setPortNumber(request.portNumber());
         port.setStatus(PortStatus.AVAILABLE);
         port.setCharger(charger);
 

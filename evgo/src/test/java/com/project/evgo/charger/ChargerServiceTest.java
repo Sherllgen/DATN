@@ -109,7 +109,7 @@ class ChargerServiceTest {
             // Given
             CreateChargerRequest request = new CreateChargerRequest();
             request.setName("New Charger");
-            request.setPowerOutput(50.0);
+            request.setMaxPower(50.0);
             request.setStationId(STATION_ID);
 
             doNothing().when(stationService).verifyOwnership(STATION_ID);
@@ -131,7 +131,7 @@ class ChargerServiceTest {
             // Given
             CreateChargerRequest request = new CreateChargerRequest();
             request.setName("New Charger");
-            request.setPowerOutput(50.0);
+            request.setMaxPower(50.0);
             request.setStationId(STATION_ID);
 
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
@@ -154,7 +154,7 @@ class ChargerServiceTest {
             // Given
             CreateChargerRequest request = new CreateChargerRequest();
             request.setName("New Charger");
-            request.setPowerOutput(50.0);
+            request.setMaxPower(50.0);
             request.setStationId(STATION_ID);
 
             doThrow(new AppException(ErrorCode.STATION_NOT_FOUND))
@@ -286,9 +286,7 @@ class ChargerServiceTest {
         @DisplayName("Should create port successfully with valid request")
         void createPort_ValidRequest_ReturnsPortResponse() {
             // Given
-            CreatePortRequest request = new CreatePortRequest();
-            request.setPortNumber(1);
-            request.setChargerId(CHARGER_ID);
+            CreatePortRequest request = new CreatePortRequest(1);
 
             when(chargerRepository.findById(CHARGER_ID))
                     .thenReturn(Optional.of(testCharger));
@@ -297,7 +295,7 @@ class ChargerServiceTest {
             when(converter.toPortResponse(any(Port.class))).thenReturn(testPortResponse);
 
             // When
-            PortResponse result = chargerService.createPort(request);
+            PortResponse result = chargerService.createPort(CHARGER_ID, request);
 
             // Then
             assertThat(result).isNotNull();
@@ -309,9 +307,7 @@ class ChargerServiceTest {
         @DisplayName("Should throw FORBIDDEN when user is not charger's station owner")
         void createPort_ChargerNotOwned_ThrowsForbidden() {
             // Given
-            CreatePortRequest request = new CreatePortRequest();
-            request.setPortNumber(1);
-            request.setChargerId(CHARGER_ID);
+            CreatePortRequest request = new CreatePortRequest(1);
 
             when(chargerRepository.findById(CHARGER_ID))
                     .thenReturn(Optional.of(testCharger));
@@ -319,7 +315,7 @@ class ChargerServiceTest {
                     .when(stationService).verifyOwnership(STATION_ID);
 
             // When & Then
-            assertThatThrownBy(() -> chargerService.createPort(request))
+            assertThatThrownBy(() -> chargerService.createPort(CHARGER_ID, request))
                     .isInstanceOf(AppException.class)
                     .satisfies(ex -> {
                         AppException appEx = (AppException) ex;

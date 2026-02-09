@@ -194,11 +194,15 @@ public record ChargerResponse(
 ) {}
 ```
 
+> [!NOTE]
+> **Ý nghĩa các trường đặc biệt:**
+> - `totalPorts`: Tổng số cổng sạc của charger
+> - `availablePorts`: Số cổng sạc đang Available (chưa có ai dùng)
+
 ### CreatePortRequest
 
 ```java
 public record CreatePortRequest(
-    @NotNull Long chargerId,
     @NotBlank String portNumber
 ) {}
 ```
@@ -314,6 +318,16 @@ public enum ConnectorType {
 }
 ```
 
+| Value | Mô tả | Thị trường |
+|-------|-------|------------|
+| `TYPE_1` | J1772 | Mỹ, Nhật |
+| `TYPE_2` | Mennekes | Châu Âu |
+| `CCS1` | Combined Charging System 1 | Mỹ |
+| `CCS2` | Combined Charging System 2 | Châu Âu |
+| `CHADEMO` | DC fast charging | Nhật |
+| `TESLA` | Tesla proprietary | Toàn cầu (Tesla) |
+| `GB_T` | Chinese standard | Trung Quốc |
+
 ### ChargerStatus
 
 ```java
@@ -323,6 +337,12 @@ public enum ChargerStatus {
     MAINTENANCE     // Đang bảo trì
 }
 ```
+
+| Status | Mô tả | Hiển thị cho User |
+|--------|-------|-------------------|
+| `ACTIVE` | Đang hoạt động | ✅ Có |
+| `INACTIVE` | Tạm ngưng | ❌ Không |
+| `MAINTENANCE` | Đang bảo trì | ⚠️ Có (với badge) |
 
 ### PortStatus
 
@@ -334,6 +354,13 @@ public enum PortStatus {
     OUT_OF_ORDER    // Hỏng
 }
 ```
+
+| Status | Mô tả | Cho phép Booking |
+|--------|-------|------------------|
+| `AVAILABLE` | Sẵn sàng sử dụng | ✅ Có |
+| `IN_USE` | Đang có người sạc | ❌ Không |
+| `MAINTENANCE` | Đang bảo trì | ❌ Không |
+| `OUT_OF_ORDER` | Hỏng | ❌ Không |
 
 ---
 
