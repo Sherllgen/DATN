@@ -6,6 +6,8 @@ import type { RoutePermission } from "@/types/user";
  */
 export const protectedRoutes: RoutePermission[] = [
     { path: "/dashboard", roles: [UserRole.ADMIN, UserRole.STATION_OWNER] },
+    { path: "/admin", roles: [UserRole.ADMIN] },
+    { path: "/stations", roles: [UserRole.STATION_OWNER] },
     { path: "/chat", roles: [UserRole.ADMIN, UserRole.STATION_OWNER] },
     { path: "/mail", roles: [UserRole.ADMIN] },
     { path: "/calendar", roles: [UserRole.ADMIN] },
@@ -16,3 +18,4 @@ export const protectedRoutes: RoutePermission[] = [
     { path: "/faqs" }, // Tất cả user authenticated
     { path: "/pricing" }, // Tất cả user authenticated
 ];
+

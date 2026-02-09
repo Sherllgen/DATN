@@ -71,6 +71,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         fetchProfile();
     }, [fetchProfile]);
 
+    const handleLogout = useCallback(async () => {
+        try {
+            await fetch("/api/auth/logout", { method: "POST" });
+        } catch (logoutErr) {
+            console.error("Logout API failed:", logoutErr);
+        } finally {
+            window.location.href = "/sign-in-3";
+        }
+    }, []);
+
     /* ----------------------- UI STATES ----------------------- */
 
     if (isLoading) {
@@ -93,7 +103,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <div className="text-destructive text-5xl">⚠️</div>
                     <h2 className="font-semibold text-2xl">Có lỗi xảy ra</h2>
                     <p className="text-muted-foreground">{error}</p>
-                    <Button onClick={() => router.replace("/sign-in-3")}>
+                    <Button onClick={handleLogout}>
                         Đăng nhập lại
                     </Button>
                 </div>

@@ -12,17 +12,20 @@ import java.util.List;
  */
 @Builder
 public record StationResponse(
-    Long id,
-    Long ownerId,
-    String name,
-    String description,
-    String address,
-    Double latitude,
-    Double longitude,
-    Double rate,
-    StationStatus status,
-    List<String> imageUrls,
-    Boolean isFlaggedLowQuality,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt) {
+		Long id,
+		Long ownerId,
+		String name,
+		String description,
+		String address,
+		Double latitude,
+		Double longitude,
+		Double rate,
+		StationStatus status,
+		List<String> imageUrls,
+		Boolean isFlaggedLowQuality,
+		List<StationOpeningHoursResponse> openingHours,
+		Integer totalPorts,
+		Integer availablePorts,
+		LocalDateTime createdAt,
+		LocalDateTime updatedAt) {
 }

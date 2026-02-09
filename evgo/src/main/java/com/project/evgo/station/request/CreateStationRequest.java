@@ -10,19 +10,21 @@ import java.util.List;
  * Public API - accessible by other modules.
  */
 public record CreateStationRequest(
-    @NotBlank(message = "Station name is required") 
-    String name,
+	@NotBlank(message = "Station name is required") 
+	String name,
 
-    String description,
+	String description,
 
-    @NotBlank(message = "Address is required") 
-    String address,
+	@NotBlank(message = "Address is required") 
+	String address,
 
-    @NotNull(message = "Latitude is required") 
-    Double latitude,
+	@NotNull(message = "Latitude is required") 
+	Double latitude,
 
-    @NotNull(message = "Longitude is required") 
-    Double longitude,
+	@NotNull(message = "Longitude is required") 
+	Double longitude,
 
-    List<String> imageUrls) {
+	List<String> imageUrls,
+
+	List<StationOpeningHoursRequest> openingHours) {
 }

@@ -32,6 +32,7 @@ export function Step3Result({
                         <p className="text-muted-foreground text-sm">
                             Registration Code:{" "}
                             <span className="font-mono font-semibold">
+                                {/* TODO: Get registration code from API */}
                                 REG-{Date.now()}
                             </span>
                         </p>

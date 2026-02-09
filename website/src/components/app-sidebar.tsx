@@ -16,6 +16,8 @@ import {
     LayoutTemplate,
     Users,
     MessagesSquare,
+    Zap,
+    Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { SidebarNotification } from "@/components/sidebar-notification";
@@ -46,14 +48,29 @@ const navGroupsRaw = [
                 icon: LayoutDashboard,
             },
             {
-                title: "Manage Accounts",
-                url: "/manage_accounts",
+                title: "Stations",
+                url: "/stations",
+                icon: Zap,
+            },
+        ],
+    },
+    {
+        label: "Admin",
+        items: [
+            {
+                title: "Account Management",
+                url: "/admin/accounts",
                 icon: Users,
             },
             {
-                title: "Registration",
-                url: "/registration",
+                title: "Registration Review",
+                url: "/admin/registration",
                 icon: LayoutTemplate,
+            },
+            {
+                title: "Station Review",
+                url: "/admin/stations",
+                icon: Shield,
             },
         ],
     },
@@ -92,6 +109,10 @@ const navGroupsRaw = [
                     {
                         title: "Account Settings",
                         url: "/settings/account",
+                    },
+                    {
+                        title: "Business Profile",
+                        url: "/settings/business",
                     },
                     {
                         title: "Plans & Billing",

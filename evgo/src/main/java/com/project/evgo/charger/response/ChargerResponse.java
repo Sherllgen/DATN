@@ -26,5 +26,7 @@ public class ChargerResponse {
     private ChargerStatus status;
     private Long stationId;
     private List<PortResponse> ports;
+    private Integer totalPorts;
+    private Integer availablePorts;
     private LocalDateTime createdAt;
 }

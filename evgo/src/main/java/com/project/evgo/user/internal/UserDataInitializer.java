@@ -50,6 +50,7 @@ public class UserDataInitializer implements CommandLineRunner {
 
     private void initAdminUser() {
         String adminEmail = "admin@evgo.com";
+        String stationOwnerEmail = "stationowner@evgo.com";
 
         if (!userRepository.existsByEmail(adminEmail)) {
             Role adminRole = roleRepository.findByName("SUPER_ADMIN")
@@ -67,6 +68,24 @@ public class UserDataInitializer implements CommandLineRunner {
 
             userRepository.save(admin);
             log.info("Created default admin user: {}", adminEmail);
+        }
+
+        if (!userRepository.existsByEmail(stationOwnerEmail)) {
+            Role stationOwnerRole = roleRepository.findByName("STATION_OWNER")
+                    .orElseThrow(() -> new RuntimeException("STATION_OWNER role not found"));
+
+            User stationOwner = new User();
+            stationOwner.setEmail(stationOwnerEmail);
+            stationOwner.setPassword(passwordEncoder.encode("StationOwner@123"));
+            stationOwner.setFullName("Station Owner");
+            stationOwner.setStatus(UserStatus.ACTIVE);
+            stationOwner.setEmailVerified(true);
+            stationOwner.setPhoneVerified(false);
+            stationOwner.setAuthProvider(AuthProvider.LOCAL);
+            stationOwner.setRoles(Set.of(stationOwnerRole));
+
+            userRepository.save(stationOwner);
+            log.info("Created default station owner user: {}", stationOwnerEmail);
         }
     }
 }

@@ -18,9 +18,9 @@ public class CreateChargerRequest {
     @NotBlank(message = "Charger name is required")
     private String name;
 
-    @NotNull(message = "Power output is required")
-    @Positive(message = "Power output must be positive")
-    private Double powerOutput;
+    @NotNull(message = "Max power is required")
+    @Positive(message = "Max power must be positive")
+    private Double maxPower;
 
     @NotNull(message = "Station ID is required")
     private Long stationId;

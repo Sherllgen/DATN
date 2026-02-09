@@ -2,22 +2,13 @@ package com.project.evgo.charger.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * Request DTO for creating a new port.
+ * Note: chargerId is provided via PathVariable in the API endpoint.
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreatePortRequest {
-
-    @NotNull(message = "Port number is required")
-    @Positive(message = "Port number must be positive")
-    private Integer portNumber;
-
-    @NotNull(message = "Charger ID is required")
-    private Long chargerId;
+public record CreatePortRequest(
+	@NotNull(message = "Port number is required") 
+	@Positive(message = "Port number must be positive") 
+	Integer portNumber) {
 }
