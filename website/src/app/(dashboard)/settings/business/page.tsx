@@ -108,10 +108,10 @@ export default function BusinessProfilePage() {
                 console.error("Failed to fetch business profile:", err);
                 if (err.response?.status === 404) {
                     setError(
-                        "Không tìm thấy hồ sơ kinh doanh. Chỉ Station Owner đã được phê duyệt mới có hồ sơ này."
+                        "Business profile not found. Only approved Station Owners have this profile."
                     );
                 } else {
-                    setError("Không thể tải thông tin kinh doanh.");
+                    setError("Failed to load business information.");
                 }
             } finally {
                 setLoading(false);
@@ -130,12 +130,12 @@ export default function BusinessProfilePage() {
 
             if (response.data?.data) {
                 setProfile(response.data.data);
-                toast.success("Cập nhật thông tin kinh doanh thành công!");
+                toast.success("Business information updated successfully!");
             }
         } catch (err: any) {
             console.error("Failed to update business profile:", err);
             toast.error(
-                err.response?.data?.message || "Cập nhật thất bại. Vui lòng thử lại."
+                err.response?.data?.message || "Update failed. Please try again."
             );
         } finally {
             setSubmitting(false);
@@ -148,9 +148,9 @@ export default function BusinessProfilePage() {
             <div className="px-4 lg:px-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Truy cập bị từ chối</CardTitle>
+                        <CardTitle>Access Denied</CardTitle>
                         <CardDescription>
-                            Trang này chỉ dành cho Station Owner
+                            This page is only for Station Owners
                         </CardDescription>
                     </CardHeader>
                 </Card>
@@ -190,7 +190,7 @@ export default function BusinessProfilePage() {
             <div className="px-4 lg:px-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-destructive">Lỗi</CardTitle>
+                        <CardTitle className="text-destructive">Error</CardTitle>
                         <CardDescription>{error}</CardDescription>
                     </CardHeader>
                 </Card>
@@ -201,9 +201,9 @@ export default function BusinessProfilePage() {
     return (
         <div className="px-4 lg:px-6 space-y-6">
             <div>
-                <h1 className="text-3xl font-bold">Thông tin kinh doanh</h1>
+                <h1 className="text-3xl font-bold">Business Profile</h1>
                 <p className="text-muted-foreground">
-                    Quản lý thông tin kinh doanh và tài khoản thanh toán của bạn
+                    Manage your business information and payment account
                 </p>
             </div>
 
@@ -216,11 +216,10 @@ export default function BusinessProfilePage() {
                                 <div>
                                     <CardTitle className="flex items-center gap-2">
                                         <Building2 className="h-5 w-5" />
-                                        Thông tin đăng ký
+                                        Registration Information
                                     </CardTitle>
                                     <CardDescription>
-                                        Thông tin này được lấy từ hồ sơ đăng ký (không thể
-                                        chỉnh sửa)
+                                        This information is retrieved from your registration profile (cannot be edited)
                                     </CardDescription>
                                 </div>
                                 <Badge
@@ -231,8 +230,8 @@ export default function BusinessProfilePage() {
                                     }
                                 >
                                     {profile?.ownerType === "ENTERPRISE"
-                                        ? "Doanh nghiệp"
-                                        : "Cá nhân"}
+                                        ? "Enterprise"
+                                        : "Individual"}
                                 </Badge>
                             </div>
                         </CardHeader>
@@ -240,20 +239,20 @@ export default function BusinessProfilePage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground">
-                                        Họ và tên
+                                        Full Name
                                     </label>
                                     <p className="text-base">{profile?.fullName || "-"}</p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-muted-foreground">
-                                        Email liên hệ
+                                        Contact Email
                                     </label>
                                     <p className="text-base">{profile?.contactEmail || "-"}</p>
                                 </div>
                                 {profile?.idNumber && (
                                     <div>
                                         <label className="text-sm font-medium text-muted-foreground">
-                                            CCCD/CMND
+                                            ID Number / Citizen ID
                                         </label>
                                         <p className="text-base">{profile.idNumber}</p>
                                     </div>
@@ -267,10 +266,10 @@ export default function BusinessProfilePage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Building2 className="h-5 w-5" />
-                                Thông tin doanh nghiệp
+                                Business Details
                             </CardTitle>
                             <CardDescription>
-                                Cập nhật thông tin doanh nghiệp của bạn
+                                Update your business information
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -280,10 +279,10 @@ export default function BusinessProfilePage() {
                                     name="businessName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Tên doanh nghiệp</FormLabel>
+                                            <FormLabel>Business Name</FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    placeholder="Nhập tên doanh nghiệp"
+                                                    placeholder="Enter business name"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -297,9 +296,9 @@ export default function BusinessProfilePage() {
                                     name="taxCode"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Mã số thuế</FormLabel>
+                                            <FormLabel>Tax Code</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Nhập mã số thuế" {...field} />
+                                                <Input placeholder="Enter tax code" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -311,7 +310,7 @@ export default function BusinessProfilePage() {
                                     name="contactPhone"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Số điện thoại liên hệ</FormLabel>
+                                            <FormLabel>Contact Phone</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     placeholder="0912345678"
@@ -319,7 +318,7 @@ export default function BusinessProfilePage() {
                                                 />
                                             </FormControl>
                                             <FormDescription>
-                                                Định dạng: +84 hoặc 0 + 9 số
+                                                Format: +84 or 0 + 9 digits
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -334,10 +333,10 @@ export default function BusinessProfilePage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <CreditCard className="h-5 w-5" />
-                                Thông tin ngân hàng
+                                Banking Information
                             </CardTitle>
                             <CardDescription>
-                                Thông tin tài khoản nhận thanh toán từ các giao dịch sạc
+                                Account information for receiving payments from charging transactions
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -347,10 +346,10 @@ export default function BusinessProfilePage() {
                                     name="bankName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Tên ngân hàng</FormLabel>
+                                            <FormLabel>Bank Name</FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    placeholder="VD: Vietcombank, MB Bank..."
+                                                    placeholder="e.g. Vietcombank, MB Bank..."
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -364,10 +363,10 @@ export default function BusinessProfilePage() {
                                     name="bankAccount"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Số tài khoản</FormLabel>
+                                            <FormLabel>Account Number</FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    placeholder="Nhập số tài khoản"
+                                                    placeholder="Enter account number"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -387,7 +386,7 @@ export default function BusinessProfilePage() {
                             className="cursor-pointer"
                         >
                             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Lưu thay đổi
+                            Save Changes
                         </Button>
                         <Button
                             variant="outline"
@@ -395,7 +394,7 @@ export default function BusinessProfilePage() {
                             onClick={() => form.reset()}
                             className="cursor-pointer"
                         >
-                            Hủy
+                            Cancel
                         </Button>
                     </div>
                 </form>
