@@ -48,7 +48,9 @@ public interface StationRepository extends JpaRepository<Station, Long> {
                 s.is_flagged_low_quality AS isFlaggedLowQuality,
                 s.created_at AS createdAt,
                 s.updated_at AS updatedAt,
-                s.location::geography <-> ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography AS distance
+                s.location::geography <-> ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography AS distance,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id) AS totalChargersCount,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id AND c.status = 'AVAILABLE') AS availableChargersCount
             FROM stations s
             WHERE s.deleted_at IS NULL
               AND s.status IN ('ACTIVE', 'INACTIVE')
@@ -94,7 +96,9 @@ public interface StationRepository extends JpaRepository<Station, Long> {
                     WHEN :latitude IS NOT NULL AND :longitude IS NOT NULL
                     THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
                     ELSE NULL
-                END AS distance
+                END AS distance,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id) AS totalChargersCount,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id AND c.status = 'AVAILABLE') AS availableChargersCount
             FROM stations s
             WHERE s.deleted_at IS NULL
               AND s.status IN ('ACTIVE', 'INACTIVE')

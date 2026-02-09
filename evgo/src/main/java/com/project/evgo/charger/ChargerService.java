@@ -1,5 +1,6 @@
 package com.project.evgo.charger;
 
+import com.project.evgo.charger.internal.ChargerStatisticProjection;
 import com.project.evgo.charger.response.ChargerResponse;
 import com.project.evgo.charger.response.PortResponse;
 
@@ -19,4 +20,6 @@ public interface ChargerService {
     List<PortResponse> findPortsByChargerId(Long chargerId);
 
     Optional<PortResponse> findPortById(Long id);
+
+    List<ChargerStatisticProjection> findStatisticsByStationId(Long stationId);
 }

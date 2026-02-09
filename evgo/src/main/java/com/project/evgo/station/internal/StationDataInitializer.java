@@ -58,8 +58,8 @@ public class StationDataInitializer implements CommandLineRunner {
                                         10.771918,
                                         106.704439,
                                         4.8,
-                                        List.of("https://example.com/bitexco1.jpg",
-                                                        "https://example.com/bitexco2.jpg"));
+                                        List.of("https://futureev.net/wp-content/uploads/2023/08/future-ev-chariging-station-1024x576.webp",
+                                                        "https://media.licdn.com/dms/image/D4E22AQEU6KExAdJE0g/feedshare-shrink_800/0/1702310055283?e=2147483647&v=beta&t=mxhcbqfIQSZxMhzTI4mo3HxI3v2GV9PwgXwjXBfmkuU"));
 
                         Station palace = createStation(
                                         ownerId,
@@ -69,7 +69,8 @@ public class StationDataInitializer implements CommandLineRunner {
                                         10.776111,
                                         106.695833,
                                         4.5,
-                                        List.of("https://example.com/palace1.jpg"));
+                                        List.of("https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg",
+                                                        "https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg"));
 
                         Station crescent = createStation(
                                         ownerId,
@@ -79,8 +80,8 @@ public class StationDataInitializer implements CommandLineRunner {
                                         10.729150,
                                         106.721400,
                                         4.7,
-                                        List.of("https://example.com/crescent1.jpg",
-                                                        "https://example.com/crescent2.jpg"));
+                                        List.of("https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg",
+                                                        "https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg"));
 
                         Station landmark = createStation(
                                         ownerId,
@@ -90,7 +91,8 @@ public class StationDataInitializer implements CommandLineRunner {
                                         10.795000,
                                         106.721900,
                                         4.9,
-                                        List.of("https://example.com/landmark1.jpg"));
+                                        List.of("https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg",
+                                                        "https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg"));
 
                         // Save stations
                         List<Station> stations = stationRepository

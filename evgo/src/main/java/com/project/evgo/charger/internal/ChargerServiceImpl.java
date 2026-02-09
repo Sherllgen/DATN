@@ -41,4 +41,9 @@ public class ChargerServiceImpl implements ChargerService {
     public Optional<PortResponse> findPortById(Long id) {
         return converter.toPortResponse(portRepository.findById(id));
     }
+
+    @Override
+    public List<ChargerStatisticProjection> findStatisticsByStationId(Long stationId) {
+        return chargerRepository.findStatisticsByStationId(stationId);
+    }
 }

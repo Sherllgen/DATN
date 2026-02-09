@@ -1,7 +1,6 @@
 package com.project.evgo.station.internal;
 
-import com.project.evgo.charger.internal.Charger;
-import com.project.evgo.charger.internal.ChargerRepository;
+import com.project.evgo.charger.internal.ChargerStatisticProjection;
 import com.project.evgo.sharedkernel.enums.ChargerStatus;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
@@ -22,31 +21,33 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StationDtoConverter {
 
-    private final ChargerRepository chargerRepository;
+    private final com.project.evgo.charger.ChargerService chargerService;
 
     public StationResponse convert(Station from) {
-        // Get chargers for this station
-        List<Charger> chargers = chargerRepository.findByStationId(from.getId());
+        // Get charger statistics directly from DB
+        List<ChargerStatisticProjection> stats = chargerService.findStatisticsByStationId(from.getId());
 
         // Calculate counts
-        int totalChargers = chargers.size();
-        int availableChargers = (int) chargers.stream()
-                .filter(c -> c.getStatus() == ChargerStatus.AVAILABLE)
-                .count();
+        int totalChargers = (int) stats.stream().mapToLong(ChargerStatisticProjection::getCount).sum();
+        int availableChargers = (int) stats.stream()
+                .filter(s -> s.getStatus() == ChargerStatus.AVAILABLE)
+                .mapToLong(ChargerStatisticProjection::getCount)
+                .sum();
 
         // Group by connector type
-        Map<String, List<Charger>> chargersByType = chargers.stream()
-                .collect(Collectors.groupingBy(c -> c.getConnectorType().name()));
+        Map<String, List<ChargerStatisticProjection>> statsByType = stats.stream()
+                .collect(Collectors.groupingBy(s -> s.getType().name()));
 
         // Create charger summaries
-        List<StationResponse.ChargerSummary> chargerSummaries = chargersByType.entrySet().stream()
+        List<StationResponse.ChargerSummary> chargerSummaries = statsByType.entrySet().stream()
                 .map(entry -> {
                     String type = entry.getKey();
-                    List<Charger> typeChargers = entry.getValue();
-                    int total = typeChargers.size();
-                    int available = (int) typeChargers.stream()
-                            .filter(c -> c.getStatus() == ChargerStatus.AVAILABLE)
-                            .count();
+                    List<ChargerStatisticProjection> typeStats = entry.getValue();
+                    int total = (int) typeStats.stream().mapToLong(ChargerStatisticProjection::getCount).sum();
+                    int available = (int) typeStats.stream()
+                            .filter(s -> s.getStatus() == ChargerStatus.AVAILABLE)
+                            .mapToLong(ChargerStatisticProjection::getCount)
+                            .sum();
                     return new StationResponse.ChargerSummary(type, available, total);
                 })
                 .toList();
