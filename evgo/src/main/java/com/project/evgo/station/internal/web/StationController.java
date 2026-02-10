@@ -163,16 +163,18 @@ public class StationController {
 	}
 
 	@GetMapping("/in-bound")
-	@Operation(summary = "Find stations in bounding box", description = "Find charging stations within a map bounding box (viewport)")
+	@Operation(summary = "Find stations in bounding box", description = "Find charging stations within a map bounding box (viewport) with optional distance calculation")
 	public ResponseEntity<ApiResponse<List<StationSearchResult>>> findStationsInBound(
 			@RequestParam @DecimalMin("-90.0") @DecimalMax("90.0") Double minLat,
 			@RequestParam @DecimalMin("-90.0") @DecimalMax("90.0") Double maxLat,
 			@RequestParam @DecimalMin("-180.0") @DecimalMax("180.0") Double minLng,
 			@RequestParam @DecimalMin("-180.0") @DecimalMax("180.0") Double maxLng,
+			@RequestParam(required = false) @DecimalMin("-90.0") @DecimalMax("90.0") Double userLat,
+			@RequestParam(required = false) @DecimalMin("-180.0") @DecimalMax("180.0") Double userLng,
 			@RequestParam(defaultValue = "20") @Min(1) @Max(500) Integer maxResults) {
 
 		List<StationSearchResult> results = stationService.findStationsInBound(minLat, maxLat, minLng, maxLng,
-				maxResults);
+				userLat, userLng, maxResults);
 
 		String message = String.format("Found %d station(s) in bounding box", results.size());
 		return ResponseEntity.ok(ApiResponse.<List<StationSearchResult>>builder()

@@ -34,7 +34,7 @@ export interface Station {
 }
 
 export interface StationSearchResult extends Station {
-    distanceKm: number; // Distance from user location
+    distanceKm: number | null; // Distance from user location
 }
 
 export interface SearchNearbyParams {
@@ -50,6 +50,17 @@ export interface SearchTextParams {
     longitude?: number;
     maxResults?: number; // Default: 20
 }
+
+export interface SearchInBoundParams {
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+    userLat?: number; // Optional: user's latitude for distance calculation
+    userLng?: number; // Optional: user's longitude for distance calculation
+    maxResults?: number; // Default: 20
+}
+
 
 // API Response wrapper
 export interface ApiResponse<T> {

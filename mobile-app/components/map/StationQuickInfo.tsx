@@ -64,13 +64,13 @@ export default function StationQuickInfo({
                 {/* Rating and Reviews */}
                 <View className="flex-row items-center mb-4">
                     <Text className="text-base font-semibold text-white mr-2">
-                        {station.rate.toFixed(1)}
+                        {station.rate?.toFixed(1) ?? "N/A"}
                     </Text>
                     <View className="flex-row mr-2">
                         {[1, 2, 3, 4, 5].map((star) => (
                             <Ionicons
                                 key={star}
-                                name={star <= station.rate ? "star" : "star-outline"}
+                                name={station.rate && star <= station.rate ? "star" : "star-outline"}
                                 size={14}
                                 color="#F59E0B"
                             />
@@ -88,7 +88,7 @@ export default function StationQuickInfo({
                     <View className="flex-row items-center ml-4">
                         <MaterialIcons name="location-on" size={16} color="#9BA1A6" />
                         <Text className="text-sm text-[#9BA1A6] ml-1">
-                            {station.distanceKm.toFixed(1)} km
+                            {station.distanceKm?.toFixed(1) ?? "--"} km
                         </Text>
                     </View>
 

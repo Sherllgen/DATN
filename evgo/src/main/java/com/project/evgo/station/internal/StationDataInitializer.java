@@ -94,9 +94,83 @@ public class StationDataInitializer implements CommandLineRunner {
                                         List.of("https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg",
                                                         "https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg"));
 
+                        // District 1 - Ben Thanh Market
+                        Station benThanh = createStation(
+                                        ownerId,
+                                        "Ben Thanh EV Station",
+                                        "Charging hub near the iconic Ben Thanh Market",
+                                        "Le Loi, Ben Thanh Ward, District 1, Ho Chi Minh City",
+                                        10.7724,
+                                        106.6980,
+                                        4.6,
+                                        List.of("https://futureev.net/wp-content/uploads/2023/08/future-ev-chariging-station-1024x576.webp",
+                                                        "https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg"));
+
+                        // District 1 - Notre Dame Cathedral
+                        Station notreDame = createStation(
+                                        ownerId,
+                                        "Notre Dame EV Hub",
+                                        "Premium charging station near historical cathedral",
+                                        "01 Cong Xa Paris, Ben Nghe Ward, District 1, Ho Chi Minh City",
+                                        10.7797,
+                                        106.6990,
+                                        4.8,
+                                        List.of("https://media.licdn.com/dms/image/D4E22AQEU6KExAdJE0g/feedshare-shrink_800/0/1702310055283?e=2147483647&v=beta&t=mxhcbqfIQSZxMhzTI4mo3HxI3v2GV9PwgXwjXBfmkuU",
+                                                        "https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg"));
+
+                        // District 1 - City Hall (People's Committee)
+                        Station cityHall = createStation(
+                                        ownerId,
+                                        "City Hall EV Point",
+                                        "Convenient charging at the heart of the city",
+                                        "86 Le Thanh Ton, Ben Nghe Ward, District 1, Ho Chi Minh City",
+                                        10.7767,
+                                        106.7004,
+                                        4.5,
+                                        List.of("https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg",
+                                                        "https://futureev.net/wp-content/uploads/2023/08/future-ev-chariging-station-1024x576.webp"));
+
+                        // District 1 - Opera House (Municipal Theatre)
+                        Station operaHouse = createStation(
+                                        ownerId,
+                                        "Opera House Charging Plaza",
+                                        "Fast charging near the historic Saigon Opera House",
+                                        "07 Lam Son Square, Ben Nghe Ward, District 1, Ho Chi Minh City",
+                                        10.7770,
+                                        106.7033,
+                                        4.7,
+                                        List.of("https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg",
+                                                        "https://media.licdn.com/dms/image/D4E22AQEU6KExAdJE0g/feedshare-shrink_800/0/1702310055283?e=2147483647&v=beta&t=mxhcbqfIQSZxMhzTI4mo3HxI3v2GV9PwgXwjXBfmkuU"));
+
+                        // District 1 - Nguyen Hue Walking Street
+                        Station nguyenHue = createStation(
+                                        ownerId,
+                                        "Nguyen Hue EV Center",
+                                        "Urban charging station on the famous walking street",
+                                        "Nguyen Hue, Ben Nghe Ward, District 1, Ho Chi Minh City",
+                                        10.7743,
+                                        106.7020,
+                                        4.4,
+                                        List.of("https://futureev.net/wp-content/uploads/2023/08/future-ev-chariging-station-1024x576.webp",
+                                                        "https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg"));
+
+                        // District 1 - Book Street
+                        Station bookStreet = createStation(
+                                        ownerId,
+                                        "Book Street Smart Charger",
+                                        "Eco-friendly charging near cultural hub",
+                                        "Nguyen Van Binh, Ben Nghe Ward, District 1, Ho Chi Minh City",
+                                        10.7796,
+                                        106.7018,
+                                        4.3,
+                                        List.of("https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg",
+                                                        "https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg"));
+
                         // Save stations
                         List<Station> stations = stationRepository
-                                        .saveAll(List.of(bitexco, palace, crescent, landmark));
+                                        .saveAll(List.of(bitexco, palace, crescent, landmark,
+                                                        benThanh, notreDame, cityHall, operaHouse, nguyenHue,
+                                                        bookStreet));
                         log.info("Created {} stations", stations.size());
 
                         // Create chargers for each station
@@ -123,6 +197,58 @@ public class StationDataInitializer implements CommandLineRunner {
                                                         ChargerStatus.AVAILABLE),
                                         createCharger("Landmark SC-02", 250.0, ConnectorType.VINFAST_STD,
                                                         ChargerStatus.AVAILABLE)));
+
+                        // Ben Thanh Market - 4 chargers (mix of AC and DC)
+                        createChargers(stations.get(4).getId(), List.of(
+                                        createCharger("BenThanh AC-01", 11.0, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("BenThanh DC-01", 50.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.IN_USE),
+                                        createCharger("BenThanh AC-02", 7.4, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("BenThanh DC-Fast", 150.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.AVAILABLE)));
+
+                        // Notre Dame Cathedral - 3 premium chargers
+                        createChargers(stations.get(5).getId(), List.of(
+                                        createCharger("NotreDame AC-Premium", 22.0, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("NotreDame DC-01", 150.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("NotreDame DC-02", 150.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.IN_USE)));
+
+                        // City Hall - 2 chargers (one under maintenance)
+                        createChargers(stations.get(6).getId(), List.of(
+                                        createCharger("CityHall AC-01", 11.0, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("CityHall DC-Repair", 50.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.MAINTENANCE)));
+
+                        // Opera House - 3 chargers
+                        createChargers(stations.get(7).getId(), List.of(
+                                        createCharger("Opera AC-01", 22.0, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("Opera DC-01", 50.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("Opera DC-Fast", 150.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.IN_USE)));
+
+                        // Nguyen Hue - 2 urban chargers
+                        createChargers(stations.get(8).getId(), List.of(
+                                        createCharger("NguyenHue AC-01", 7.4, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("NguyenHue AC-02", 11.0, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE)));
+
+                        // Book Street - 3 eco-friendly chargers
+                        createChargers(stations.get(9).getId(), List.of(
+                                        createCharger("BookSt AC-01", 11.0, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("BookSt AC-02", 7.4, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("BookSt DC-01", 50.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.MAINTENANCE)));
 
                         log.info("Station and charger seed data initialized successfully!");
 

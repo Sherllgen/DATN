@@ -126,11 +126,14 @@ public interface StationRepository extends JpaRepository<Station, Long> {
      * OPTIMIZED: Uses PostGIS ST_MakeEnvelope and ST_Within for efficient spatial
      * queries.
      * Includes charger count subqueries to avoid N+1 problem.
+     * Optionally calculates distance from a reference point (user location).
      * 
      * @param minLat     minimum latitude of bounding box
      * @param maxLat     maximum latitude of bounding box
      * @param minLng     minimum longitude of bounding box
      * @param maxLng     maximum longitude of bounding box
+     * @param userLat    optional user latitude for distance calculation
+     * @param userLng    optional user longitude for distance calculation
      * @param maxResults maximum number of results
      * @return List of StationProjection within the bounding box
      */
@@ -148,7 +151,11 @@ public interface StationRepository extends JpaRepository<Station, Long> {
                 s.is_flagged_low_quality AS isFlaggedLowQuality,
                 s.created_at AS createdAt,
                 s.updated_at AS updatedAt,
-                NULL AS distance,
+                CASE
+                    WHEN :userLat IS NOT NULL AND :userLng IS NOT NULL
+                    THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(:userLng, :userLat), 4326)::geography
+                    ELSE NULL
+                END AS distance,
                 (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id) AS totalChargersCount,
                 (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id AND c.status = 'AVAILABLE') AS availableChargersCount
             FROM stations s
@@ -158,12 +165,20 @@ public interface StationRepository extends JpaRepository<Station, Long> {
                   s.location,
                   ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)
               )
-            ORDER BY s.created_at DESC
+            ORDER BY
+                CASE
+                    WHEN :userLat IS NOT NULL AND :userLng IS NOT NULL
+                    THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(:userLng, :userLat), 4326)::geography
+                    ELSE NULL
+                END NULLS LAST,
+                s.created_at DESC
             LIMIT :maxResults
             """, nativeQuery = true)
     List<StationProjection> findStationsInBound(@Param("minLat") Double minLat,
             @Param("maxLat") Double maxLat,
             @Param("minLng") Double minLng,
             @Param("maxLng") Double maxLng,
+            @Param("userLat") Double userLat,
+            @Param("userLng") Double userLng,
             @Param("maxResults") Integer maxResults);
 }

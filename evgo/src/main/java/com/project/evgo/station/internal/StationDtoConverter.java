@@ -110,21 +110,21 @@ public class StationDtoConverter {
                     // Build search result
                     return StationSearchResult.builder()
                             .id(projection.getId())
-                            .ownerId(projection.getOwnerId())
+                            // .ownerId(projection.getOwnerId())
                             .name(projection.getName())
-                            .description(projection.getDescription())
+                            // .description(projection.getDescription())
                             .address(projection.getAddress())
                             .latitude(projection.getLatitude())
                             .longitude(projection.getLongitude())
                             .rate(projection.getRate())
                             .status(projection.getStatus())
-                            .imageUrls(List.of()) // TODO: Add image URLs via JSON aggregation or separate query
+                            // .imageUrls(List.of())
                             .isFlaggedLowQuality(projection.getIsFlaggedLowQuality())
                             .distanceKm(distanceKm)
                             .availableChargersCount(availableChargers)
                             .totalChargersCount(totalChargers)
-                            .createdAt(projection.getCreatedAt())
-                            .updatedAt(projection.getUpdatedAt())
+                            // .createdAt(projection.getCreatedAt())
+                            // .updatedAt(projection.getUpdatedAt())
                             .build();
                 })
                 .collect(Collectors.toList());

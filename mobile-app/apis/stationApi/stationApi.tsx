@@ -3,6 +3,7 @@ import {
     ApiResponse,
     SearchNearbyParams,
     SearchTextParams,
+    SearchInBoundParams,
     Station,
     StationSearchResult,
 } from "@/types/station.types";
@@ -72,6 +73,33 @@ export const getStationById = async (id: number): Promise<Station> => {
 export const getAllStations = async (): Promise<Station[]> => {
     const res = await axiosInstance.get<ApiResponse<Station[]>>(
         `${API_BACKEND_URL}/api/v1/stations`
+    );
+
+    return res.data.data;
+};
+
+/**
+ * Search stations within a bounding box (viewport)
+ * Optionally calculates distance from user's location
+ */
+export const searchStationsInBound = async (
+    params: SearchInBoundParams
+): Promise<StationSearchResult[]> => {
+    const { minLat, maxLat, minLng, maxLng, userLat, userLng, maxResults = 50 } = params;
+
+    const res = await axiosInstance.get<ApiResponse<StationSearchResult[]>>(
+        `${API_BACKEND_URL}/api/v1/stations/in-bound`,
+        {
+            params: {
+                minLat,
+                maxLat,
+                minLng,
+                maxLng,
+                userLat,
+                userLng,
+                maxResults,
+            },
+        }
     );
 
     return res.data.data;

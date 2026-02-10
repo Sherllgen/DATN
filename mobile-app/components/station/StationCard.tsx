@@ -79,9 +79,7 @@ export default function StationCard({
                         size={14}
                         color="#9BA1A6"
                     />
-                    <Text className="text-xs text-[#9BA1A6] ml-1">
-                        {station.distanceKm.toFixed(1)} km
-                    </Text>
+                    {station.distanceKm?.toFixed(1) ?? "--"} km
                 </View>
             </View>
 

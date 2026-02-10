@@ -19,7 +19,7 @@ import LocationPermissionModal, { LocationModalStatus } from "@/components/map/L
 import ManualLocationInput from "@/components/map/ManualLocationInput";
 import StationQuickInfo from "@/components/map/StationQuickInfo";
 import StationCard from "@/components/station/StationCard";
-import { searchNearbyStations } from "@/apis/stationApi/stationApi";
+import { searchNearbyStations, searchStationsInBound } from "@/apis/stationApi/stationApi";
 import { StationSearchResult, StationStatus } from "@/types/station.types";
 
 export default function MapScreen() {
@@ -38,6 +38,7 @@ export default function MapScreen() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const mapRef = useRef<MapView>(null);
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Initial region (Ho Chi Minh City)
     const [region, setRegion] = useState<Region>({
@@ -49,8 +50,8 @@ export default function MapScreen() {
 
     useEffect(() => {
         checkLocationPermission();
-        // Load stations immediately with default location
-        fetchNearbyStations(10.8231, 106.6297);
+        // Load stations immediately with default region
+        fetchStationsInBound(region);
     }, []);
 
     const checkLocationPermission = async () => {
@@ -98,11 +99,8 @@ export default function MapScreen() {
             setRegion(newRegion);
             mapRef.current?.animateToRegion(newRegion, 1000);
 
-            // Fetch nearby stations
-            fetchNearbyStations(
-                userLocation.coords.latitude,
-                userLocation.coords.longitude
-            );
+            // Fetch stations in new region's bounds
+            fetchStationsInBound(newRegion);
         } catch (error) {
             console.warn("Error getting location:", error);
             // Show modal with error status
@@ -140,8 +138,8 @@ export default function MapScreen() {
         setRegion(newRegion);
         mapRef.current?.animateToRegion(newRegion, 1000);
 
-        // Fetch nearby stations
-        fetchNearbyStations(latitude, longitude);
+        // Fetch stations in new region's bounds
+        fetchStationsInBound(newRegion);
     };
 
     const handleEnterManually = () => {
@@ -149,26 +147,49 @@ export default function MapScreen() {
         setShowManualInput(true);
     };
 
-    const fetchNearbyStations = async (lat: number, lng: number) => {
+    const fetchStationsInBound = async (mapRegion: Region) => {
         try {
             setLoading(true);
 
-            const results = await searchNearbyStations({
-                latitude: lat,
-                longitude: lng,
-                radiusKm: 10,
+            // Calculate bounding box from region
+            const minLat = mapRegion.latitude - mapRegion.latitudeDelta / 2;
+            const maxLat = mapRegion.latitude + mapRegion.latitudeDelta / 2;
+            const minLng = mapRegion.longitude - mapRegion.longitudeDelta / 2;
+            const maxLng = mapRegion.longitude + mapRegion.longitudeDelta / 2;
+
+            const results = await searchStationsInBound({
+                minLat,
+                maxLat,
+                minLng,
+                maxLng,
+                // Pass user location if available for distance calculation
+                userLat: location?.coords.latitude,
+                userLng: location?.coords.longitude,
                 maxResults: 50,
             });
 
             setStations(results);
-            console.log(`Loaded ${results.length} stations from API`);
+            console.log(`Loaded ${results.length} stations from in-bound API`);
         } catch (error) {
             console.error("Error fetching stations:", error);
-            // No stations on error
             setStations([]);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleRegionChangeComplete = (newRegion: Region) => {
+        setRegion(newRegion);
+
+        // Clear existing debounce timer
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        // Set new debounce timer (800ms)
+        debounceTimerRef.current = setTimeout(() => {
+            fetchStationsInBound(newRegion);
+        }, 800);
     };
 
     // useEffect(() => {
@@ -311,7 +332,7 @@ export default function MapScreen() {
                             style={{ flex: 1 }}
                             mapType="none"
                             region={region}
-                            onRegionChangeComplete={setRegion}
+                            onRegionChangeComplete={handleRegionChangeComplete}
                         >
                             <UrlTile
                                 urlTemplate="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
@@ -405,7 +426,7 @@ export default function MapScreen() {
                                     onPress={() => setViewMode("map")}
                                 >
                                     <Text className="text-secondary text-sm font-medium">
-                                        ← Back to Map
+                                        <Ionicons name="chevron-back-outline" size={12} color="secondary" /> Back to Map
                                     </Text>
                                 </TouchableOpacity>
                             }

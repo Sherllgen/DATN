@@ -190,7 +190,7 @@ public class StationServiceImpl implements StationService {
 
     @Override
     public List<StationSearchResult> findStationsInBound(Double minLat, Double maxLat, Double minLng, Double maxLng,
-            Integer maxResults) {
+            Double userLat, Double userLng, Integer maxResults) {
         // Validate bounding box coordinates
         if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "All bounding box coordinates are required");
@@ -204,9 +204,9 @@ public class StationServiceImpl implements StationService {
             throw new AppException(ErrorCode.INVALID_REQUEST, "minLng must be less than maxLng");
         }
 
-        // Query database using PostGIS spatial query
+        // Query database using PostGIS spatial query with optional distance calculation
         List<StationProjection> projections = stationRepository.findStationsInBound(
-                minLat, maxLat, minLng, maxLng, maxResults);
+                minLat, maxLat, minLng, maxLng, userLat, userLng, maxResults);
 
         // Convert to DTOs with charger counts
         return stationDtoConverter.convertToSearchResults(projections);
