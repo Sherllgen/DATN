@@ -14,7 +14,6 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 
 import GradientBackground from "@/components/ui/GradientBackground";
-import AppHeader from "@/components/ui/AppHeader";
 import LocationPermissionModal, { LocationModalStatus } from "@/components/map/LocationPermissionModal";
 import ManualLocationInput from "@/components/map/ManualLocationInput";
 import StationQuickInfo from "@/components/map/StationQuickInfo";
@@ -83,9 +82,23 @@ export default function MapScreen() {
             // Reset status before trying
             setShowPermissionModal(false);
 
-            const userLocation = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced,
-            });
+            let userLocation;
+
+            try {
+                // First try with Balanced accuracy and timeout
+                userLocation = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                    timeInterval: 10000, // 10 second timeout
+                });
+            } catch (balancedError) {
+                console.warn("Balanced accuracy failed, trying Low accuracy:", balancedError);
+
+                // Fallback to Low accuracy (uses network location, similar to Google Maps)
+                userLocation = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Low,
+                    timeInterval: 5000, // 5 second timeout for fallback
+                });
+            }
 
             setLocation(userLocation);
 
@@ -102,7 +115,7 @@ export default function MapScreen() {
             // Fetch stations in new region's bounds
             fetchStationsInBound(newRegion);
         } catch (error) {
-            console.warn("Error getting location:", error);
+            console.error("Error getting location (all attempts failed):", error);
             // Show modal with error status
             setPermissionStatus("gps_error");
             setShowPermissionModal(true);
@@ -351,14 +364,20 @@ export default function MapScreen() {
                                     }}
                                     zIndex={10}
                                 >
-                                    <View className="w-12 h-12 rounded-full bg-secondary/30 items-center justify-center">
-                                        <View className="w-6 h-6 rounded-full bg-secondary border-2 border-white" />
+                                    <View className="w-12 h-12 rounded-full bg-info/30 items-center justify-center">
+                                        <View className="w-6 h-6 rounded-full bg-info border-2 border-white" />
                                     </View>
                                 </Marker>
                             )}
 
                             {/* Station Markers */}
-                            {stations.map(renderMarker)}
+                            {stations.map((station) => (
+                                <StationMarker
+                                    key={station.id}
+                                    station={station}
+                                    onPress={() => handleMarkerPress(station)}
+                                />
+                            ))}
                         </MapView>
 
                         {/* Loading Indicator */}
@@ -468,3 +487,49 @@ export default function MapScreen() {
         </GradientBackground>
     );
 }
+
+// Optimized Marker Component to prevent OOM
+const StationMarker = React.memo(({ station, onPress }: { station: StationSearchResult; onPress: () => void }) => {
+    const [tracksViewChanges, setTracksViewChanges] = useState(true);
+    const markerRef = useRef<any>(null);
+
+    // Stop tracking view changes after initial render to save memory
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setTracksViewChanges(false);
+        }, 100); // Small delay to allow render
+        return () => clearTimeout(timer);
+    }, []);
+
+    const pinColor = station.status === StationStatus.ACTIVE ? "#4CAF50" : "#EF4444";
+
+    return (
+        <Marker
+            coordinate={{
+                latitude: station.latitude,
+                longitude: station.longitude,
+            }}
+            onPress={onPress}
+            tracksViewChanges={tracksViewChanges}
+            ref={markerRef}
+        >
+            <View className="items-center justify-center">
+                <View
+                    style={{ backgroundColor: pinColor }}
+                    className="w-10 h-10 rounded-full items-center justify-center border-2 border-white shadow-sm"
+                >
+                    <MaterialCommunityIcons
+                        name="ev-station"
+                        size={20}
+                        color="white"
+                    />
+                </View>
+                {/* Triangle pointer */}
+                <View
+                    style={{ borderTopColor: pinColor }}
+                    className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent -mt-[1px]"
+                />
+            </View>
+        </Marker>
+    );
+});

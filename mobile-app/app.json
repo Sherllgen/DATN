@@ -45,7 +45,15 @@
                     "fade": true
                 }
             ],
-            "expo-secure-store"
+            "expo-secure-store",
+            [
+                "expo-location",
+                {
+                    "locationAlwaysAndWhenInUsePermission": "Allow EV-Go to use your location to find nearby charging stations.",
+                    "isAndroidBackgroundLocationEnabled": false,
+                    "isAndroidForegroundServiceEnabled": false
+                }
+            ]
         ],
         "experiments": {
             "typedRoutes": true,
