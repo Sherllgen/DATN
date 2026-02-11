@@ -1,10 +1,16 @@
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import "react-native-reanimated";
+import { useEffect } from "react";
+import { View, Text } from "react-native";
+import * as SplashScreen from "expo-splash-screen";
 
 import { LinearGradient } from "expo-linear-gradient";
 import ToastManager from "toastify-react-native";
 import "../global.css";
+
+// Prevent the splash screen from auto-hiding before asset loading is complete
+SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 const BlackTheme = {
     ...DarkTheme, // hoặc DefaultTheme đều được, miễn override colors
@@ -18,6 +24,15 @@ const BlackTheme = {
 };
 
 export default function RootLayout() {
+    console.log('RootLayout rendering...');
+
+    useEffect(() => {
+        console.log('RootLayout mounted, hiding splash...');
+        // Hide the splash screen after the app is ready
+        SplashScreen.hideAsync().catch(console.warn);
+    }, []);
+
+    console.log('About to return JSX...');
     return (
         <LinearGradient
             colors={["#33404F", "#000000"]}

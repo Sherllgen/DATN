@@ -137,8 +137,8 @@ export default function HomePage() {
                                         }}
                                         zIndex={10}
                                     >
-                                        <View className="w-12 h-12 rounded-full bg-secondary/30 items-center justify-center">
-                                            <View className="w-6 h-6 rounded-full bg-secondary border-2 border-white" />
+                                        <View className="w-12 h-12 rounded-full bg-info/30 items-center justify-center">
+                                            <View className="w-6 h-6 rounded-full bg-info border-2 border-white" />
                                         </View>
                                     </Marker>
 

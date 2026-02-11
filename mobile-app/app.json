@@ -22,7 +22,8 @@
             },
             "edgeToEdgeEnabled": true,
             "predictiveBackGestureEnabled": false,
-            "package": "com.trunganh2004.mobileapp"
+            "package": "com.trunganh2004.mobileapp",
+            "usesCleartextTraffic": true
         },
         "web": {
             "output": "static",
