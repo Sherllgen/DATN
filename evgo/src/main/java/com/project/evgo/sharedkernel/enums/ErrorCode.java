@@ -54,7 +54,11 @@ public enum ErrorCode {
 
     // Search errors (5xxx)
     INVALID_SEARCH_QUERY(5010, HttpStatus.BAD_REQUEST, "Search query cannot be empty"),
-    INVALID_COORDINATES(5011, HttpStatus.BAD_REQUEST, "Invalid GPS coordinates");
+    INVALID_COORDINATES(5011, HttpStatus.BAD_REQUEST, "Invalid GPS coordinates"),
+
+    // Navigation errors (6xxx)
+    NAVIGATION_SERVICE_UNAVAILABLE(6001, HttpStatus.SERVICE_UNAVAILABLE, "Navigation service unavailable"),
+    ROUTE_CALCULATION_FAILED(6002, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to calculate route");
 
     private final int code;
     private final HttpStatus status;
