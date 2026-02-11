@@ -23,7 +23,10 @@ interface ButtonProps extends TouchableOpacityProps {
     /** Custom className for wrapper */
     className?: string;
     /** Custom className for text */
+    /** Custom className for text */
     textClassName?: string;
+    /** Whether to wrap children in a Text component (default: true) */
+    textWrapper?: boolean;
 }
 
 export default function Button({
@@ -35,6 +38,7 @@ export default function Button({
     disabled,
     className = "",
     textClassName = "",
+    textWrapper = true,
     ...props
 }: ButtonProps) {
     // Variant styles
@@ -107,8 +111,10 @@ export default function Button({
                 <ActivityIndicator
                     color={variant === "outline" ? "#4A5568" : "#fff"}
                 />
-            ) : (
+            ) : textWrapper ? (
                 <Text className={combinedTextClassName}>{children}</Text>
+            ) : (
+                children
             )}
         </TouchableOpacity>
     );

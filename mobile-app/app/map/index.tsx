@@ -7,7 +7,7 @@ import {
     FlatList,
     ActivityIndicator,
 } from "react-native";
-import MapView, { UrlTile, Marker, Region } from "react-native-maps";
+import MapView, { UrlTile, Marker, Region, Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
@@ -20,6 +20,8 @@ import StationQuickInfo from "@/components/map/StationQuickInfo";
 import StationCard from "@/components/station/StationCard";
 import { searchNearbyStations, searchStationsInBound } from "@/apis/stationApi/stationApi";
 import { StationSearchResult, StationStatus } from "@/types/station.types";
+import { getRoute, RouteResponse } from "@/apis/directionApi";
+import mapboxPolyline from "@mapbox/polyline";
 
 export default function MapScreen() {
     const [location, setLocation] = useState<Location.LocationObject | null>(
@@ -31,6 +33,8 @@ export default function MapScreen() {
     const [stations, setStations] = useState<StationSearchResult[]>([]);
     const [selectedStation, setSelectedStation] =
         useState<StationSearchResult | null>(null);
+    const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
+    const [isNavigating, setIsNavigating] = useState(false);
     const [showQuickInfo, setShowQuickInfo] = useState(false);
     const [loading, setLoading] = useState(false);
     const [viewMode, setViewMode] = useState<"map" | "list">("map");
@@ -233,6 +237,49 @@ export default function MapScreen() {
         }
     };
 
+    const handleNavigate = async () => {
+        if (!selectedStation || !location) return;
+
+        setShowQuickInfo(false);
+        setIsNavigating(true);
+
+        try {
+            setLoading(true);
+            const routeData = await getRoute(
+                location.coords.latitude,
+                location.coords.longitude,
+                selectedStation.latitude,
+                selectedStation.longitude
+            );
+
+            if (routeData && routeData.encodedPolyline) {
+                const points = mapboxPolyline.decode(routeData.encodedPolyline);
+                const coords = points.map((point: [number, number]) => ({
+                    latitude: point[0],
+                    longitude: point[1],
+                }));
+                setRouteCoordinates(coords);
+
+                // Fit map to route
+                mapRef.current?.fitToCoordinates(coords, {
+                    edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                    animated: true,
+                });
+            }
+        } catch (error) {
+            console.error("Navigation failed:", error);
+            // Show error toast
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const cancelNavigation = () => {
+        setIsNavigating(false);
+        setRouteCoordinates([]);
+        centerToUserLocation();
+    };
+
     const centerToUserLocation = () => {
         if (location) {
             const newRegion = {
@@ -343,17 +390,17 @@ export default function MapScreen() {
                         <MapView
                             ref={mapRef}
                             style={{ flex: 1 }}
-                            mapType="none"
+                            mapType="standard"
                             region={region}
                             onRegionChangeComplete={handleRegionChangeComplete}
                         >
-                            <UrlTile
+                            {/* <UrlTile
                                 urlTemplate="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
                                 maximumZ={19}
                                 flipY={false}
                                 zIndex={1}
                                 tileSize={256}
-                            />
+                            /> */}
 
                             {/* User Location Marker */}
                             {location && (
@@ -378,6 +425,33 @@ export default function MapScreen() {
                                     onPress={() => handleMarkerPress(station)}
                                 />
                             ))}
+
+                            {/* Navigation Polyline */}
+                            {isNavigating && routeCoordinates.length > 0 && (
+                                <Polyline
+                                    coordinates={routeCoordinates}
+                                    strokeColor="#3b82f6" // Tailwind info color
+                                    strokeWidth={4}
+                                />
+                            )}
+
+                            {/* Destination Marker during Navigation */}
+                            {isNavigating && selectedStation && (
+                                <Marker
+                                    coordinate={{
+                                        latitude: selectedStation.latitude,
+                                        longitude: selectedStation.longitude,
+                                    }}
+                                    title="Destination"
+                                >
+                                    <View className="items-center">
+                                        <View className="bg-white px-2 py-1 rounded shadow mb-1">
+                                            <Text className="text-xs font-bold">Destination</Text>
+                                        </View>
+                                        <MaterialCommunityIcons name="flag-checkered" size={30} color="#EF4444" />
+                                    </View>
+                                </Marker>
+                            )}
                         </MapView>
 
                         {/* Loading Indicator */}
@@ -425,6 +499,20 @@ export default function MapScreen() {
                                 />
                             </TouchableOpacity>
                         </View>
+
+                        {/* Cancel Navigation Button */}
+                        {isNavigating && (
+                            <View className="absolute bottom-24 left-4 right-4 items-center">
+                                <TouchableOpacity
+                                    className="bg-red-500 px-6 py-3 rounded-full flex-row items-center shadow-lg"
+                                    onPress={cancelNavigation}
+                                    activeOpacity={0.8}
+                                >
+                                    <Ionicons name="close-circle" size={24} color="white" />
+                                    <Text className="text-white font-bold ml-2">Exit Navigation</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
                     </View>
                 ) : (
                     /* List View */
@@ -476,6 +564,7 @@ export default function MapScreen() {
                 onClose={() => setShowQuickInfo(false)}
                 onViewDetails={handleViewDetails}
                 onBook={handleBook}
+                onNavigate={handleNavigate}
             />
 
             {/* Manual Location Input Modal */}

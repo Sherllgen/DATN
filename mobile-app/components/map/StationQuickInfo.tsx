@@ -17,6 +17,8 @@ export interface StationQuickInfoProps {
     onViewDetails: () => void;
     /** Callback when Book button is pressed */
     onBook: () => void;
+    /** Callback when Navigate button is pressed */
+    onNavigate: () => void;
 }
 
 export default function StationQuickInfo({
@@ -25,6 +27,7 @@ export default function StationQuickInfo({
     onClose,
     onViewDetails,
     onBook,
+    onNavigate,
 }: StationQuickInfoProps) {
     if (!station) return null;
 
@@ -48,10 +51,7 @@ export default function StationQuickInfo({
                     <TouchableOpacity
                         className="w-10 h-10 rounded-full bg-secondary items-center justify-center ml-2"
                         activeOpacity={0.7}
-                        onPress={() => {
-                            // Navigate to station location (can integrate with maps app)
-                            console.log("Navigate to station");
-                        }}
+                        onPress={onNavigate}
                     >
                         <Ionicons
                             name="navigate"

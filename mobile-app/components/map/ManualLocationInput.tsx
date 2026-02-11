@@ -165,6 +165,7 @@ export default function ManualLocationInput({
                         fullWidth
                         onPress={handleSubmit}
                         disabled={loading}
+                        textWrapper={false}
                     >
                         {loading ? (
                             <View className="flex-row items-center gap-2">
@@ -174,7 +175,9 @@ export default function ManualLocationInput({
                                 </Text>
                             </View>
                         ) : (
-                            "Use This Location"
+                            <Text className="text-white text-base font-semibold">
+                                Use This Location
+                            </Text>
                         )}
                     </Button>
                 </View>
