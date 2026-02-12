@@ -20,8 +20,13 @@ import StationQuickInfo from "@/components/map/StationQuickInfo";
 import StationCard from "@/components/station/StationCard";
 import { searchNearbyStations, searchStationsInBound } from "@/apis/stationApi/stationApi";
 import { StationSearchResult, StationStatus } from "@/types/station.types";
-import { getRoute, RouteResponse } from "@/apis/directionApi";
+import { getRoute, RouteResponse } from "@/apis/stationApi/directionApi";
 import mapboxPolyline from "@mapbox/polyline";
+import { haversineDistance } from "@/utils/location";
+
+const PIN_ACTIVE = require("@/assets/images/pin-active.png");
+const PIN_INACTIVE = require("@/assets/images/pin-inactive.png");
+const PIN_NAVIGATE = require("@/assets/images/pin-navigate.png");
 
 export default function MapScreen() {
     const [location, setLocation] = useState<Location.LocationObject | null>(
@@ -36,12 +41,13 @@ export default function MapScreen() {
     const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
     const [isNavigating, setIsNavigating] = useState(false);
     const [showQuickInfo, setShowQuickInfo] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [viewMode, setViewMode] = useState<"map" | "list">("map");
     const [searchQuery, setSearchQuery] = useState("");
 
     const mapRef = useRef<MapView>(null);
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastFetchedRegionRef = useRef<Region | null>(null);
 
     // Initial region (Ho Chi Minh City)
     const [region, setRegion] = useState<Region>({
@@ -164,9 +170,26 @@ export default function MapScreen() {
         setShowManualInput(true);
     };
 
-    const fetchStationsInBound = async (mapRegion: Region) => {
+    const fetchStationsInBound = async (mapRegion: Region, isBackground = false) => {
         try {
-            setLoading(true);
+            // Check distance threshold if this is a background fetch (panning)
+            if (isBackground && lastFetchedRegionRef.current) {
+                const distance = haversineDistance(
+                    lastFetchedRegionRef.current.latitude,
+                    lastFetchedRegionRef.current.longitude,
+                    mapRegion.latitude,
+                    mapRegion.longitude
+                );
+
+                // Only fetch if moved more than 2km
+                if (distance < 2) {
+                    return;
+                }
+            }
+
+            if (!isBackground) {
+                setIsInitialLoading(true);
+            }
 
             // Calculate bounding box from region
             const minLat = mapRegion.latitude - mapRegion.latitudeDelta / 2;
@@ -186,17 +209,20 @@ export default function MapScreen() {
             });
 
             setStations(results);
+            lastFetchedRegionRef.current = mapRegion;
             console.log(`Loaded ${results.length} stations from in-bound API`);
         } catch (error) {
             console.error("Error fetching stations:", error);
-            setStations([]);
+            if (!isBackground) setStations([]);
         } finally {
-            setLoading(false);
+            if (!isBackground) setIsInitialLoading(false);
         }
     };
 
     const handleRegionChangeComplete = (newRegion: Region) => {
-        setRegion(newRegion);
+        // Optimization: Do NOT update state `setRegion(newRegion)` here to avoid re-renders.
+        // MapView manages its own internal state for panning.
+        // We only update our local ref or use the value directly.
 
         // Clear existing debounce timer
         if (debounceTimerRef.current) {
@@ -205,7 +231,7 @@ export default function MapScreen() {
 
         // Set new debounce timer (800ms)
         debounceTimerRef.current = setTimeout(() => {
-            fetchStationsInBound(newRegion);
+            fetchStationsInBound(newRegion, true); // isBackground = true
         }, 800);
     };
 
@@ -244,7 +270,7 @@ export default function MapScreen() {
         setIsNavigating(true);
 
         try {
-            setLoading(true);
+            setIsInitialLoading(true);
             const routeData = await getRoute(
                 location.coords.latitude,
                 location.coords.longitude,
@@ -270,7 +296,7 @@ export default function MapScreen() {
             console.error("Navigation failed:", error);
             // Show error toast
         } finally {
-            setLoading(false);
+            setIsInitialLoading(false);
         }
     };
 
@@ -292,45 +318,18 @@ export default function MapScreen() {
         }
     };
 
-    const getMarkerColor = (station: StationSearchResult) => {
-        // ACTIVE = green, INACTIVE = red
-        return station.status === StationStatus.ACTIVE
-            ? "#4CAF50" // Green - ACTIVE
-            : "#EF4444"; // Red - INACTIVE
-    };
-
-    const renderMarker = (station: StationSearchResult) => {
-        const pinColor = getMarkerColor(station);
-
-        return (
-            <Marker
+    // Memoize markers to prevent re-renders
+    const memoizedMarkers = React.useMemo(() => {
+        return stations.map((station) => (
+            <StationMarker
                 key={station.id}
-                coordinate={{
-                    latitude: station.latitude,
-                    longitude: station.longitude,
-                }}
+                station={station}
                 onPress={() => handleMarkerPress(station)}
-            >
-                <View className="items-center justify-center">
-                    <View
-                        style={{ backgroundColor: pinColor }}
-                        className="w-10 h-10 rounded-full items-center justify-center border-2 border-white shadow-sm"
-                    >
-                        <MaterialCommunityIcons
-                            name="ev-station"
-                            size={20}
-                            color="white"
-                        />
-                    </View>
-                    {/* Triangle pointer */}
-                    <View
-                        style={{ borderTopColor: pinColor }}
-                        className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent -mt-[1px]"
-                    />
-                </View>
-            </Marker>
-        );
-    };
+            />
+        ));
+    }, [stations]);
+
+
 
     return (
         <GradientBackground preset="main" className="flex-1">
@@ -393,6 +392,7 @@ export default function MapScreen() {
                             mapType="standard"
                             region={region}
                             onRegionChangeComplete={handleRegionChangeComplete}
+                            showsUserLocation={true}
                         >
                             {/* <UrlTile
                                 urlTemplate="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
@@ -402,37 +402,22 @@ export default function MapScreen() {
                                 tileSize={256}
                             /> */}
 
-                            {/* User Location Marker */}
-                            {location && (
-                                <Marker
-                                    coordinate={{
-                                        latitude: location.coords.latitude,
-                                        longitude: location.coords.longitude,
-                                    }}
-                                    zIndex={10}
-                                >
-                                    <View className="w-12 h-12 rounded-full bg-info/30 items-center justify-center">
-                                        <View className="w-6 h-6 rounded-full bg-info border-2 border-white" />
-                                    </View>
-                                </Marker>
-                            )}
+                            {/* User Location Marker - Removed as showsUserLocation={true} is used */}
 
                             {/* Station Markers */}
-                            {stations.map((station) => (
-                                <StationMarker
-                                    key={station.id}
-                                    station={station}
-                                    onPress={() => handleMarkerPress(station)}
-                                />
-                            ))}
+                            {memoizedMarkers}
 
                             {/* Navigation Polyline */}
                             {isNavigating && routeCoordinates.length > 0 && (
-                                <Polyline
-                                    coordinates={routeCoordinates}
-                                    strokeColor="#3b82f6" // Tailwind info color
-                                    strokeWidth={4}
-                                />
+                                <>
+                                    {/* Main Polyline (Darker Blue) */}
+                                    <Polyline
+                                        coordinates={routeCoordinates}
+                                        strokeColor="#1D4ED8" // Darker than info (#3B82F6)
+                                        strokeWidth={10}
+                                        zIndex={2}
+                                    />
+                                </>
                             )}
 
                             {/* Destination Marker during Navigation */}
@@ -443,19 +428,14 @@ export default function MapScreen() {
                                         longitude: selectedStation.longitude,
                                     }}
                                     title="Destination"
-                                >
-                                    <View className="items-center">
-                                        <View className="bg-white px-2 py-1 rounded shadow mb-1">
-                                            <Text className="text-xs font-bold">Destination</Text>
-                                        </View>
-                                        <MaterialCommunityIcons name="flag-checkered" size={30} color="#EF4444" />
-                                    </View>
-                                </Marker>
+                                    zIndex={10}
+                                    image={PIN_NAVIGATE}
+                                />
                             )}
                         </MapView>
 
                         {/* Loading Indicator */}
-                        {loading && (
+                        {isInitialLoading && (
                             <View className="absolute top-4 left-0 right-0 items-center">
                                 <View className="bg-white/90 px-4 py-2 rounded-full">
                                     <ActivityIndicator color="#00A452" />
@@ -502,7 +482,7 @@ export default function MapScreen() {
 
                         {/* Cancel Navigation Button */}
                         {isNavigating && (
-                            <View className="absolute bottom-24 left-4 right-4 items-center">
+                            <View className="absolute bottom-8 left-4 right-4 items-center">
                                 <TouchableOpacity
                                     className="bg-red-500 px-6 py-3 rounded-full flex-row items-center shadow-lg"
                                     onPress={cancelNavigation}
@@ -523,7 +503,7 @@ export default function MapScreen() {
                             renderItem={({ item }) => (
                                 <StationCard
                                     station={item}
-                                    onPress={() => handleMarkerPress(item)}
+                                    onPress={() => router.push(`/station/${item.id}`)}
                                 />
                             )}
                             contentContainerStyle={{ paddingBottom: 100 }}
@@ -577,20 +557,10 @@ export default function MapScreen() {
     );
 }
 
-// Optimized Marker Component to prevent OOM
+// Optimized Marker Component using Image Asset
 const StationMarker = React.memo(({ station, onPress }: { station: StationSearchResult; onPress: () => void }) => {
-    const [tracksViewChanges, setTracksViewChanges] = useState(true);
-    const markerRef = useRef<any>(null);
-
-    // Stop tracking view changes after initial render to save memory
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setTracksViewChanges(false);
-        }, 100); // Small delay to allow render
-        return () => clearTimeout(timer);
-    }, []);
-
-    const pinColor = station.status === StationStatus.ACTIVE ? "#4CAF50" : "#EF4444";
+    const isAvailable = station.status === StationStatus.ACTIVE;
+    const pinImage = isAvailable ? PIN_ACTIVE : PIN_INACTIVE;
 
     return (
         <Marker
@@ -599,26 +569,7 @@ const StationMarker = React.memo(({ station, onPress }: { station: StationSearch
                 longitude: station.longitude,
             }}
             onPress={onPress}
-            tracksViewChanges={tracksViewChanges}
-            ref={markerRef}
-        >
-            <View className="items-center justify-center">
-                <View
-                    style={{ backgroundColor: pinColor }}
-                    className="w-10 h-10 rounded-full items-center justify-center border-2 border-white shadow-sm"
-                >
-                    <MaterialCommunityIcons
-                        name="ev-station"
-                        size={20}
-                        color="white"
-                    />
-                </View>
-                {/* Triangle pointer */}
-                <View
-                    style={{ borderTopColor: pinColor }}
-                    className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent -mt-[1px]"
-                />
-            </View>
-        </Marker>
+            image={pinImage}
+        />
     );
 });

@@ -166,11 +166,46 @@ public class StationDataInitializer implements CommandLineRunner {
                                         List.of("https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg",
                                                         "https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg"));
 
+                        // --- NEW STATIONS: Bình Đại, Bến Tre ---
+
+                        // 1. Bình Đại Central Station
+                        Station binhDaiCentral = createStation(
+                                        ownerId,
+                                        "Bình Đại Central Station",
+                                        "Charging station in the heart of Bình Đại town",
+                                        "Thị trấn Bình Đại, Huyện Bình Đại, Bến Tre",
+                                        10.26713,
+                                        106.52038,
+                                        4.5,
+                                        List.of("https://futureev.net/wp-content/uploads/2023/08/future-ev-chariging-station-1024x576.webp"));
+
+                        // 2. Bình Đại Coastal Hub
+                        Station binhDaiCoastal = createStation(
+                                        ownerId,
+                                        "Bình Đại Coastal Hub",
+                                        "Fast charging near the coastal area",
+                                        "Khu du lịch biển Bình Đại, Bến Tre",
+                                        10.22213,
+                                        106.46238,
+                                        4.8,
+                                        List.of("https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg"));
+
+                        // 3. Bình Đại West Point
+                        Station binhDaiWest = createStation(
+                                        ownerId,
+                                        "Bình Đại West Point",
+                                        "Convenient stop for travelers heading west",
+                                        "Ấp 3, Bình Đại, Bến Tre",
+                                        10.29213,
+                                        106.45938,
+                                        4.2,
+                                        List.of("https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg"));
+
                         // Save stations
                         List<Station> stations = stationRepository
                                         .saveAll(List.of(bitexco, palace, crescent, landmark,
                                                         benThanh, notreDame, cityHall, operaHouse, nguyenHue,
-                                                        bookStreet));
+                                                        bookStreet, binhDaiCentral, binhDaiCoastal, binhDaiWest));
                         log.info("Created {} stations", stations.size());
 
                         // Create chargers for each station
@@ -249,6 +284,30 @@ public class StationDataInitializer implements CommandLineRunner {
                                                         ChargerStatus.AVAILABLE),
                                         createCharger("BookSt DC-01", 50.0, ConnectorType.VINFAST_STD,
                                                         ChargerStatus.MAINTENANCE)));
+
+                        // Seed 3 stations near Binh Dai, Ben Tre (7F2W+RWP)
+                        // Coords approximately: 10.19354, 106.64455
+
+                        // 1. Binh Dai Central Station
+                        createChargers(stations.get(10).getId(), List.of(
+                                        createCharger("BD-Central DC-01", 50.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("BD-Central AC-01", 22.0, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE)));
+
+                        // 2. Binh Dai Coastal Hub
+                        createChargers(stations.get(11).getId(), List.of(
+                                        createCharger("BD-Coastal DC-Fast", 150.0, ConnectorType.VINFAST_STD,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("BD-Coastal AC-01", 11.0, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.IN_USE)));
+
+                        // 3. Binh Dai West Point
+                        createChargers(stations.get(12).getId(), List.of(
+                                        createCharger("BD-West AC-01", 7.4, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE),
+                                        createCharger("BD-West AC-02", 7.4, ConnectorType.IEC_TYPE_2,
+                                                        ChargerStatus.AVAILABLE)));
 
                         log.info("Station and charger seed data initialized successfully!");
 
