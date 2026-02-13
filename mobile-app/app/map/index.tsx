@@ -22,7 +22,7 @@ import { searchNearbyStations, searchStationsInBound } from "@/apis/stationApi/s
 import { StationSearchResult, StationStatus } from "@/types/station.types";
 import { getRoute, RouteResponse } from "@/apis/stationApi/directionApi";
 import mapboxPolyline from "@mapbox/polyline";
-import { haversineDistance } from "@/utils/location";
+import { haversineDistance, simplifyPolyline } from "@/utils/location";
 
 const PIN_ACTIVE = require("@/assets/images/pin-active.png");
 const PIN_INACTIVE = require("@/assets/images/pin-inactive.png");
@@ -48,19 +48,21 @@ export default function MapScreen() {
     const mapRef = useRef<MapView>(null);
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastFetchedRegionRef = useRef<Region | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // Initial region (Ho Chi Minh City)
-    const [region, setRegion] = useState<Region>({
+    // Use useRef for initialRegion to prevent re-renders
+    const initialRegionRef = useRef<Region>({
         latitude: 10.8231,
         longitude: 106.6297,
-        latitudeDelta: 0.15,  // Increased from 0.05 to show wider area
-        longitudeDelta: 0.15, // Increased from 0.05 to show wider area
+        latitudeDelta: 0.15,
+        longitudeDelta: 0.15,
     });
 
     useEffect(() => {
         checkLocationPermission();
         // Load stations immediately with default region
-        fetchStationsInBound(region);
+        fetchStationsInBound(initialRegionRef.current);
     }, []);
 
     const checkLocationPermission = async () => {
@@ -119,7 +121,7 @@ export default function MapScreen() {
                 longitudeDelta: 0.05,
             };
 
-            setRegion(newRegion);
+            // Remove setRegion(newRegion) - use animateToRegion only
             mapRef.current?.animateToRegion(newRegion, 1000);
 
             // Fetch stations in new region's bounds
@@ -158,7 +160,7 @@ export default function MapScreen() {
             latitudeDelta: 0.15,
             longitudeDelta: 0.15,
         };
-        setRegion(newRegion);
+        // Remove setRegion(newRegion) - use animateToRegion only
         mapRef.current?.animateToRegion(newRegion, 1000);
 
         // Fetch stations in new region's bounds
@@ -172,6 +174,12 @@ export default function MapScreen() {
 
     const fetchStationsInBound = async (mapRegion: Region, isBackground = false) => {
         try {
+            // STOP fetching if user is navigating. 
+            // This prevents re-renders that clear the polyline or cause OOM.
+            if (isNavigating) {
+                return;
+            }
+
             // Check distance threshold if this is a background fetch (panning)
             if (isBackground && lastFetchedRegionRef.current) {
                 const distance = haversineDistance(
@@ -191,6 +199,13 @@ export default function MapScreen() {
                 setIsInitialLoading(true);
             }
 
+            // Cancel previous request
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            const controller = new AbortController();
+            abortControllerRef.current = controller;
+
             // Calculate bounding box from region
             const minLat = mapRegion.latitude - mapRegion.latitudeDelta / 2;
             const maxLat = mapRegion.latitude + mapRegion.latitudeDelta / 2;
@@ -206,12 +221,16 @@ export default function MapScreen() {
                 userLat: location?.coords.latitude,
                 userLng: location?.coords.longitude,
                 maxResults: 50,
-            });
+            }, controller.signal);
 
             setStations(results);
             lastFetchedRegionRef.current = mapRegion;
             console.log(`Loaded ${results.length} stations from in-bound API`);
-        } catch (error) {
+        } catch (error: any) {
+            if (error.name === 'AbortError' || error.message === 'canceled') {
+                console.log('Fetch aborted');
+                return;
+            }
             console.error("Error fetching stations:", error);
             if (!isBackground) setStations([]);
         } finally {
@@ -231,7 +250,11 @@ export default function MapScreen() {
 
         // Set new debounce timer (800ms)
         debounceTimerRef.current = setTimeout(() => {
-            fetchStationsInBound(newRegion, true); // isBackground = true
+            // Check isNavigating inside the timeout as well to be safe
+            // though fetchStationsInBound also checks it.
+            if (!isNavigating) {
+                fetchStationsInBound(newRegion, true); // isBackground = true
+            }
         }, 800);
     };
 
@@ -284,10 +307,14 @@ export default function MapScreen() {
                     latitude: point[0],
                     longitude: point[1],
                 }));
-                setRouteCoordinates(coords);
+                // Simplify polyline to reduce rendering load
+                // 0.0001 degrees is roughly 11 meters, good balance for urban navigation
+                const simplifiedCoords = simplifyPolyline(coords, 0.0001);
+
+                setRouteCoordinates(simplifiedCoords);
 
                 // Fit map to route
-                mapRef.current?.fitToCoordinates(coords, {
+                mapRef.current?.fitToCoordinates(simplifiedCoords, {
                     edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
                     animated: true,
                 });
@@ -373,8 +400,8 @@ export default function MapScreen() {
                     </View>
                 </View>
 
-                {/* Map or List View */}
-                {viewMode === "map" ? (
+                {/* Map View Container - Persisted */}
+                <View style={{ flex: 1, display: viewMode === "map" ? "flex" : "none" }}>
                     <View className="flex-1 relative">
                         {/* Debug Info */}
                         {__DEV__ && (
@@ -390,7 +417,7 @@ export default function MapScreen() {
                             ref={mapRef}
                             style={{ flex: 1 }}
                             mapType="standard"
-                            region={region}
+                            initialRegion={initialRegionRef.current}
                             onRegionChangeComplete={handleRegionChangeComplete}
                             showsUserLocation={true}
                         >
@@ -414,7 +441,7 @@ export default function MapScreen() {
                                     <Polyline
                                         coordinates={routeCoordinates}
                                         strokeColor="#1D4ED8" // Darker than info (#3B82F6)
-                                        strokeWidth={10}
+                                        strokeWidth={5}
                                         zIndex={2}
                                     />
                                 </>
@@ -455,7 +482,7 @@ export default function MapScreen() {
                             </TouchableOpacity>
 
                             {/* Location Sharing / Settings */}
-                            <TouchableOpacity
+                            {/* <TouchableOpacity
                                 className="w-12 h-12 rounded-full bg-secondary items-center justify-center"
                                 activeOpacity={0.7}
                             >
@@ -464,7 +491,7 @@ export default function MapScreen() {
                                     size={24}
                                     color="#FFF"
                                 />
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
 
                             {/* Center to Location */}
                             <TouchableOpacity
@@ -494,8 +521,10 @@ export default function MapScreen() {
                             </View>
                         )}
                     </View>
-                ) : (
-                    /* List View */
+                </View>
+
+                {/* List View Container - Persisted */}
+                <View style={{ flex: 1, display: viewMode === "list" ? "flex" : "none" }}>
                     <View className="flex-1 px-4">
                         <FlatList
                             data={stations}
@@ -519,7 +548,7 @@ export default function MapScreen() {
                             }
                         />
                     </View>
-                )}
+                </View>
             </SafeAreaView>
 
             {/* Modals */}
@@ -570,6 +599,7 @@ const StationMarker = React.memo(({ station, onPress }: { station: StationSearch
             }}
             onPress={onPress}
             image={pinImage}
+            tracksViewChanges={false} // Optimization: Stop tracking changes for static markers
         />
     );
 });

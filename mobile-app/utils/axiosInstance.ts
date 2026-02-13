@@ -45,6 +45,12 @@ axiosInstance.interceptors.response.use(
     },
     (error) => {
         if (axios.isAxiosError(error)) {
+            // Skip logging for cancelled requests
+            if (error.code === 'ERR_CANCELED') {
+                console.log('Request canceled', error.message);
+                return Promise.reject(error);
+            }
+
             console.error("AXIOS ERROR DETAILS:", {
                 message: error.message,
                 code: error.code,

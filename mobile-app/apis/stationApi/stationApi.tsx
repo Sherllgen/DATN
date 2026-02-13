@@ -83,7 +83,8 @@ export const getAllStations = async (): Promise<Station[]> => {
  * Optionally calculates distance from user's location
  */
 export const searchStationsInBound = async (
-    params: SearchInBoundParams
+    params: SearchInBoundParams,
+    signal?: AbortSignal
 ): Promise<StationSearchResult[]> => {
     const { minLat, maxLat, minLng, maxLng, userLat, userLng, maxResults = 50 } = params;
 
@@ -99,6 +100,7 @@ export const searchStationsInBound = async (
                 userLng,
                 maxResults,
             },
+            signal,
         }
     );
 
