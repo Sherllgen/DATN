@@ -121,8 +121,21 @@ export default function MapScreen() {
                 longitudeDelta: 0.05,
             };
 
+
             // Remove setRegion(newRegion) - use animateToRegion only
-            mapRef.current?.animateToRegion(newRegion, 1000);
+            // mapRef.current?.animateToRegion(newRegion, 1000);
+            mapRef.current?.animateCamera(
+                {
+                    center: {
+                        latitude: userLocation.coords.latitude,
+                        longitude: userLocation.coords.longitude,
+                    },
+                    zoom: 15,
+                    pitch: 0,
+                    heading: 0,
+                },
+                { duration: 1000 }
+            );
 
             // Fetch stations in new region's bounds
             fetchStationsInBound(newRegion);
@@ -161,7 +174,19 @@ export default function MapScreen() {
             longitudeDelta: 0.15,
         };
         // Remove setRegion(newRegion) - use animateToRegion only
-        mapRef.current?.animateToRegion(newRegion, 1000);
+        // mapRef.current?.animateToRegion(newRegion, 1000);
+        mapRef.current?.animateCamera(
+            {
+                center: {
+                    latitude,
+                    longitude,
+                },
+                zoom: 14,
+                pitch: 0,
+                heading: 0,
+            },
+            { duration: 1000 }
+        );
 
         // Fetch stations in new region's bounds
         fetchStationsInBound(newRegion);
@@ -341,7 +366,19 @@ export default function MapScreen() {
                 latitudeDelta: 0.05,
                 longitudeDelta: 0.05,
             };
-            mapRef.current?.animateToRegion(newRegion, 1000);
+            // mapRef.current?.animateToRegion(newRegion, 1000);
+            mapRef.current?.animateCamera(
+                {
+                    center: {
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                    },
+                    zoom: 15,
+                    pitch: 0,
+                    heading: 0,
+                },
+                { duration: 1000 }
+            );
         }
     };
 

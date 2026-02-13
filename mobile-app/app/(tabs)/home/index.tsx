@@ -114,6 +114,7 @@ export default function HomePage() {
                                     mapType="standard"
                                     scrollEnabled={false}
                                     zoomEnabled={false}
+                                    showsUserLocation={true} // Use default user location marker
                                     initialRegion={{
                                         latitude: location.coords.latitude,
                                         longitude: location.coords.longitude,
@@ -129,22 +130,17 @@ export default function HomePage() {
                                         tileSize={256}
                                     /> */}
 
-                                    {/* User Location - Green Dot */}
-                                    <Marker
-                                        coordinate={{
-                                            latitude: location.coords.latitude,
-                                            longitude: location.coords.longitude,
-                                        }}
-                                        zIndex={10}
-                                    >
-                                        <View className="w-12 h-12 rounded-full bg-info/30 items-center justify-center">
-                                            <View className="w-6 h-6 rounded-full bg-info border-2 border-white" />
-                                        </View>
-                                    </Marker>
+                                    {/* User Location Marker - Removed to use default showsUserLocation */}
 
                                     {/* Station Markers */}
                                     {stations.map((station) => {
-                                        const pinColor = getMarkerColor(station);
+                                        const isAvailable = station.status === StationStatus.ACTIVE;
+                                        // Use require directly here since we can't easily import constants from map/index.tsx without refactoring
+                                        // Ideally these constants should be in a shared constants file
+                                        const pinImage = isAvailable
+                                            ? require("@/assets/images/pin-active.png")
+                                            : require("@/assets/images/pin-inactive.png");
+
                                         return (
                                             <Marker
                                                 key={station.id}
@@ -153,25 +149,8 @@ export default function HomePage() {
                                                     longitude: station.longitude,
                                                 }}
                                                 zIndex={2}
-                                            >
-                                                <View className="items-center justify-center">
-                                                    <View
-                                                        style={{ backgroundColor: pinColor }}
-                                                        className="w-8 h-8 rounded-full items-center justify-center border-2 border-white shadow-sm"
-                                                    >
-                                                        <MaterialCommunityIcons
-                                                            name="ev-station"
-                                                            size={16}
-                                                            color="white"
-                                                        />
-                                                    </View>
-                                                    {/* Triangle pointer */}
-                                                    <View
-                                                        style={{ borderTopColor: pinColor }}
-                                                        className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent -mt-[1px]"
-                                                    />
-                                                </View>
-                                            </Marker>
+                                                image={pinImage}
+                                            />
                                         );
                                     })}
                                 </MapView>
