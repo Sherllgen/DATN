@@ -11,6 +11,7 @@ import ManualLocationInput from "@/components/map/ManualLocationInput";
 import StationQuickInfo from "@/components/map/StationQuickInfo";
 import StationCard from "@/components/station/StationCard";
 import StationMarker from "@/components/map/StationMarker";
+import NavigationInfo from "@/components/map/NavigationInfo";
 import { useMapLogic } from "@/hooks/useMapLogic";
 
 /**
@@ -137,7 +138,7 @@ export default function MapScreen() {
                         )}
 
                         {/* Map Controls */}
-                        <View className="absolute bottom-6 right-4 gap-3">
+                        <View className={`absolute right-4 gap-3 ${mapLogic.isNavigating ? 'bottom-28' : 'bottom-6'}`}>
                             {/* Toggle List View */}
                             <TouchableOpacity
                                 className="w-12 h-12 rounded-full bg-secondary items-center justify-center"
@@ -157,18 +158,13 @@ export default function MapScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Cancel Navigation Button */}
+                        {/* Navigation Info - Shows distance, time, and cancel button */}
                         {mapLogic.isNavigating && (
-                            <View className="absolute bottom-8 left-4 right-4 items-center">
-                                <TouchableOpacity
-                                    className="bg-red-500 px-6 py-3 rounded-full flex-row items-center shadow-lg"
-                                    onPress={mapLogic.cancelNavigation}
-                                    activeOpacity={0.8}
-                                >
-                                    <Ionicons name="close-circle" size={24} color="white" />
-                                    <Text className="text-white font-bold ml-2">Exit Navigation</Text>
-                                </TouchableOpacity>
-                            </View>
+                            <NavigationInfo
+                                remainingDistance={mapLogic.remainingDistance * 1000}
+                                remainingDuration={mapLogic.routeDuration}
+                                onCancel={mapLogic.cancelNavigation}
+                            />
                         )}
                     </View>
                 </View>

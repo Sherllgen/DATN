@@ -15,6 +15,9 @@ export interface UseMapLogicReturn {
     stations: StationSearchResult[];
     selectedStation: StationSearchResult | null;
     routeCoordinates: { latitude: number; longitude: number }[];
+    routeDistance: number;  // Total route distance in meters
+    routeDuration: number;  // Total route duration in seconds
+    remainingDistance: number;  // Calculated remaining distance
     isNavigating: boolean;
     isInitialLoading: boolean;
     isNavigationLoading: boolean;
@@ -77,6 +80,8 @@ export const useMapLogic = (): UseMapLogicReturn => {
     const [stations, setStations] = useState<StationSearchResult[]>([]);
     const [selectedStation, setSelectedStation] = useState<StationSearchResult | null>(null);
     const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
+    const [routeDistance, setRouteDistance] = useState<number>(0);
+    const [routeDuration, setRouteDuration] = useState<number>(0);
     const [isNavigating, setIsNavigating] = useState(false);
     const [showQuickInfo, setShowQuickInfo] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -91,6 +96,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
     const lastFetchedRegionRef = useRef<Region | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const initialRegionRef = useRef<Region>(INITIAL_REGION);
+    const locationWatcherRef = useRef<Location.LocationSubscription | null>(null);
 
     // ==================== INITIALIZATION ====================
     useEffect(() => {
@@ -253,6 +259,69 @@ export const useMapLogic = (): UseMapLogicReturn => {
         fetchStationsInBound(newRegion);
     };
 
+    // ==================== LOCATION TRACKING ====================
+    /**
+     * Start real-time GPS tracking during navigation
+     * Optimized for battery efficiency:
+     * - Balanced accuracy (vs High)
+     * - Updates every 10m movement (not continuous)
+     * - Max 1 update per 5 seconds
+     */
+    const startLocationTracking = async () => {
+        try {
+            // Stop existing watcher if any
+            await stopLocationTracking();
+            
+            console.log('[Location Tracking] Starting GPS tracking...');
+            
+            locationWatcherRef.current = await Location.watchPositionAsync(
+                {
+                    accuracy: Location.Accuracy.Balanced,
+                    distanceInterval: 10,  // Update every 10 meters
+                    timeInterval: 5000,    // Max frequency: 5 seconds
+                },
+                (newLocation) => {
+                    console.log('[Location Tracking] Position updated:', {
+                        lat: newLocation.coords.latitude.toFixed(6),
+                        lng: newLocation.coords.longitude.toFixed(6)
+                    });
+                    setLocation(newLocation);
+                }
+            );
+            
+            console.log('[Location Tracking] GPS tracking active');
+        } catch (error) {
+            console.error('[Location Tracking] Failed to start:', error);
+        }
+    };
+    
+    /**
+     * Stop GPS tracking and cleanup
+     */
+    const stopLocationTracking = async () => {
+        if (locationWatcherRef.current) {
+            console.log('[Location Tracking] Stopping GPS tracking...');
+            locationWatcherRef.current.remove();
+            locationWatcherRef.current = null;
+            console.log('[Location Tracking] GPS tracking stopped');
+        }
+    };
+    
+    // ==================== LOCATION TRACKING LIFECYCLE ====================
+    // Start/stop tracking based on navigation state
+    useEffect(() => {
+        if (isNavigating) {
+            startLocationTracking();
+        } else {
+            stopLocationTracking();
+        }
+        
+        // Cleanup on unmount
+        return () => {
+            stopLocationTracking();
+        };
+    }, [isNavigating]);
+
     // ==================== STATION FETCHING ====================
     /**
      * Fetches stations within map bounds with performance optimizations:
@@ -405,6 +474,10 @@ export const useMapLogic = (): UseMapLogicReturn => {
                 console.log(`[handleNavigate] Polyline simplified: ${coords.length} → ${simplifiedCoords.length} points`);
 
                 // Only set navigation state AFTER route is calculated
+                // Store route metrics
+                setRouteDistance(routeData.distance);
+                setRouteDuration(routeData.duration);
+                
                 console.log('[handleNavigate] Setting routeCoordinates and isNavigating=true');
                 setRouteCoordinates(simplifiedCoords);
                 setIsNavigating(true);
@@ -524,6 +597,40 @@ export const useMapLogic = (): UseMapLogicReturn => {
         stations,
         selectedStation,
         routeCoordinates,
+        routeDistance,
+        routeDuration,
+        remainingDistance: (() => {
+            // Calculate remaining distance along the route (not straight-line)
+            if (!location || routeCoordinates.length === 0) return 0;
+            
+            const userLat = location.coords.latitude;
+            const userLng = location.coords.longitude;
+            
+            // Find nearest point on route to current location
+            let nearestIndex = 0;
+            let minDistance = Infinity;
+            
+            routeCoordinates.forEach((coord, index) => {
+                const dist = haversineDistance(userLat, userLng, coord.latitude, coord.longitude);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    nearestIndex = index;
+                }
+            });
+            
+            // Sum distances from nearest point to end of route
+            let remaining = 0;
+            for (let i = nearestIndex; i < routeCoordinates.length - 1; i++) {
+                remaining += haversineDistance(
+                    routeCoordinates[i].latitude,
+                    routeCoordinates[i].longitude,
+                    routeCoordinates[i + 1].latitude,
+                    routeCoordinates[i + 1].longitude
+                );
+            }
+            
+            return remaining;
+        })(),
         isNavigating,
         isInitialLoading,
         isNavigationLoading,
