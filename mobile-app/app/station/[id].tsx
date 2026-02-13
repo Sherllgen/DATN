@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import MapView, { UrlTile, Marker } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
 import { LinearGradient } from "expo-linear-gradient";
 
 import GradientBackground from "@/components/ui/GradientBackground";
@@ -22,6 +22,7 @@ import StatusBadge, {
 import ChargerTypeTag from "@/components/station/ChargerTypeTag";
 import { getStationById } from "@/apis/stationApi/stationApi";
 import { Station, StationStatus } from "@/types/station.types";
+import { useStationCache } from "@/stores/stationCacheStore";
 
 const mockOperatingHours = [
     { day: "Monday", hours: "00:00 - 00:00" },
@@ -35,24 +36,37 @@ const mockOperatingHours = [
 
 export default function StationDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
-    const [station, setStation] = useState<Station | null>(null);
-    const [loading, setLoading] = useState(true);
+    const getCachedStation = useStationCache(state => state.getStation);
+
+    // Try to get cached station first for instant render
+    const cachedStation = id ? getCachedStation(Number(id)) : null;
+
+    const [station, setStation] = useState<Station | null>(cachedStation);
+    const [loading, setLoading] = useState(!cachedStation); // Only show loading if no cache
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) {
+            // Always fetch fresh data in background (stale-while-revalidate pattern)
             fetchStationDetails();
         }
     }, [id]);
 
     const fetchStationDetails = async () => {
         try {
-            setLoading(true);
+            // Only show loading spinner if we don't already have data
+            setLoading(prev => prev && !station); // Fix: check current state, not closure
             setError(null);
 
             const data = await getStationById(Number(id));
             setStation(data);
-            console.log("Loaded station:", data);
+
+            // Update cache with fresh data
+            useStationCache.getState().setStation(data);
+
+            if (__DEV__) {
+                console.log("[StationDetail] Loaded station:", data.name);
+            }
         } catch (err) {
             console.error("Error fetching station details:", err);
             setError("Failed to load station details");
@@ -322,7 +336,7 @@ export default function StationDetailScreen() {
                             <View className="h-48 rounded-2xl overflow-hidden">
                                 <MapView
                                     style={{ flex: 1 }}
-                                    mapType="none"
+                                    mapType="standard"
                                     scrollEnabled={false}
                                     zoomEnabled={false}
                                     initialRegion={{
@@ -332,13 +346,6 @@ export default function StationDetailScreen() {
                                         longitudeDelta: 0.01,
                                     }}
                                 >
-                                    <UrlTile
-                                        urlTemplate="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
-                                        maximumZ={19}
-                                        flipY={false}
-                                        zIndex={1}
-                                        tileSize={256}
-                                    />
                                     <Marker
                                         coordinate={{
                                             latitude: station.latitude,

@@ -8,6 +8,7 @@ import { getRoute } from "@/apis/stationApi/directionApi";
 import mapboxPolyline from "@mapbox/polyline";
 import { haversineDistance, simplifyPolyline } from "@/utils/location";
 import { LocationModalStatus } from "@/components/map/LocationPermissionModal";
+import { useStationCache } from "@/stores/stationCacheStore";
 
 export interface UseMapLogicReturn {
     // State
@@ -470,6 +471,8 @@ export const useMapLogic = (): UseMapLogicReturn => {
     const handleViewDetails = () => {
         if (selectedStation) {
             setShowQuickInfo(false);
+            // Cache station data before navigation for instant render
+            useStationCache.getState().setStation(selectedStation);
             router.push(`/station/${selectedStation.id}`);
         }
     };

@@ -5,6 +5,10 @@ export default function StationLayout() {
         <Stack
             screenOptions={{
                 headerShown: false,
+                // Force instant navigation - no animations
+                presentation: "card",
+                animation: "none",
+                animationDuration: 0,
             }}
         >
             <Stack.Screen name="[id]" />

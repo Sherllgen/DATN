@@ -92,12 +92,12 @@ export default function StationQuickInfo({
                         </Text>
                     </View>
 
-                    <View className="flex-row items-center ml-4">
+                    {/* <View className="flex-row items-center ml-4">
                         <Ionicons name="time-outline" size={16} color="#9BA1A6" />
                         <Text className="text-sm text-[#9BA1A6] ml-1">
                             5 mins
                         </Text>
-                    </View>
+                    </View> */}
                 </View>
 
                 {/* Charger Count */}

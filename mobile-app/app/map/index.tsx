@@ -13,6 +13,7 @@ import StationCard from "@/components/station/StationCard";
 import StationMarker from "@/components/map/StationMarker";
 import NavigationInfo from "@/components/map/NavigationInfo";
 import { useMapLogic } from "@/hooks/useMapLogic";
+import { useStationCache } from "@/stores/stationCacheStore";
 
 /**
  * MapScreen - Pure UI Component
@@ -176,7 +177,14 @@ export default function MapScreen() {
                             data={mapLogic.stations}
                             keyExtractor={(item) => item.id.toString()}
                             renderItem={({ item }) => (
-                                <StationCard station={item} onPress={() => router.push(`/station/${item.id}`)} />
+                                <StationCard
+                                    station={item}
+                                    onPress={() => {
+                                        // Cache station data first for instant navigation
+                                        useStationCache.getState().setStation(item);
+                                        router.push(`/station/${item.id}`);
+                                    }}
+                                />
                             )}
                             contentContainerStyle={{ paddingBottom: 100 }}
                             ListHeaderComponent={

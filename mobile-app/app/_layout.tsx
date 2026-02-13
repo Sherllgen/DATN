@@ -44,8 +44,6 @@ export default function RootLayout() {
                 <Stack
                     screenOptions={{
                         headerShown: false, // Remove all native headers
-                        animation: "fade",
-                        animationDuration: 1550,
                     }}
                 >
                     <Stack.Screen
