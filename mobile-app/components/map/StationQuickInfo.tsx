@@ -88,7 +88,7 @@ export default function StationQuickInfo({
                     <View className="flex-row items-center ml-4">
                         <MaterialIcons name="location-on" size={16} color="#9BA1A6" />
                         <Text className="text-sm text-[#9BA1A6] ml-1">
-                            {station.distanceKm?.toFixed(1) ?? "--"} km
+                            {station.distanceKm?.toFixed(2) ?? "--"} km
                         </Text>
                     </View>
 

@@ -322,6 +322,25 @@ export const useMapLogic = (): UseMapLogicReturn => {
         };
     }, [isNavigating]);
 
+    // ==================== RE-FETCH WITH LOCATION ====================
+    /**
+     * Re-fetch stations when location becomes available
+     * This ensures distanceKm is calculated with actual user coordinates
+     */
+    useEffect(() => {
+        // Only re-fetch if we have both location and lastFetchedRegion
+        // and this is the first time location becomes available (stations already loaded without distance)
+        if (location && lastFetchedRegionRef.current && stations.length > 0) {
+            // Check if stations are missing distanceKm (indicates they were fetched without location)
+            const needsRefetch = stations.some(s => s.distanceKm === null);
+            
+            if (needsRefetch) {
+                console.log('[Location Effect] Re-fetching stations with user location for distance calculation');
+                fetchStationsInBound(lastFetchedRegionRef.current);
+            }
+        }
+    }, [location]); // Only trigger when location changes from null to value
+
     // ==================== STATION FETCHING ====================
     /**
      * Fetches stations within map bounds with performance optimizations:
