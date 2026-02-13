@@ -65,6 +65,19 @@ export default function MapScreen() {
         fetchStationsInBound(initialRegionRef.current);
     }, []);
 
+    // Effect to fit map to route when coordinates update
+    useEffect(() => {
+        if (routeCoordinates.length > 0 && isNavigating) {
+            // Small timeout to ensure map is ready layout-wise
+            setTimeout(() => {
+                mapRef.current?.fitToCoordinates(routeCoordinates, {
+                    edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                    animated: true,
+                });
+            }, 100);
+        }
+    }, [routeCoordinates, isNavigating]);
+
     const checkLocationPermission = async () => {
         const { status } = await Location.getForegroundPermissionsAsync();
 
@@ -315,10 +328,9 @@ export default function MapScreen() {
         if (!selectedStation || !location) return;
 
         setShowQuickInfo(false);
-        setIsNavigating(true);
+        setIsInitialLoading(true);
 
         try {
-            setIsInitialLoading(true);
             const routeData = await getRoute(
                 location.coords.latitude,
                 location.coords.longitude,
@@ -337,12 +349,9 @@ export default function MapScreen() {
                 const simplifiedCoords = simplifyPolyline(coords, 0.0001);
 
                 setRouteCoordinates(simplifiedCoords);
+                setIsNavigating(true);
 
-                // Fit map to route
-                mapRef.current?.fitToCoordinates(simplifiedCoords, {
-                    edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-                    animated: true,
-                });
+                // fitToCoordinates is now handled by useEffect
             }
         } catch (error) {
             console.error("Navigation failed:", error);
@@ -355,6 +364,7 @@ export default function MapScreen() {
     const cancelNavigation = () => {
         setIsNavigating(false);
         setRouteCoordinates([]);
+        // setSelectedStation(null);
         centerToUserLocation();
     };
 
@@ -384,14 +394,24 @@ export default function MapScreen() {
 
     // Memoize markers to prevent re-renders
     const memoizedMarkers = React.useMemo(() => {
-        return stations.map((station) => (
-            <StationMarker
-                key={station.id}
-                station={station}
-                onPress={() => handleMarkerPress(station)}
-            />
-        ));
-    }, [stations]);
+        return stations.map((station) => {
+            // Optimization: Hide the original marker if we are navigating to it
+            // This prevents z-fighting with the specific Destination Marker
+            const isHidden = isNavigating && selectedStation?.id === station.id;
+            // if (isNavigating && selectedStation?.id === station.id) {
+            //     return null;
+            // }
+
+            return (
+                <StationMarker
+                    key={station.id}
+                    station={station}
+                    onPress={() => handleMarkerPress(station)}
+                // hidden={isHidden}
+                />
+            );
+        });
+    }, [stations, isNavigating, selectedStation]);
 
 
 
@@ -476,10 +496,11 @@ export default function MapScreen() {
                                 <>
                                     {/* Main Polyline (Darker Blue) */}
                                     <Polyline
+                                        key={`polyline-${routeCoordinates.length}`}
                                         coordinates={routeCoordinates}
                                         strokeColor="#1D4ED8" // Darker than info (#3B82F6)
-                                        strokeWidth={5}
-                                        zIndex={2}
+                                        strokeWidth={10}
+                                        zIndex={1}
                                     />
                                 </>
                             )}
@@ -487,6 +508,7 @@ export default function MapScreen() {
                             {/* Destination Marker during Navigation */}
                             {isNavigating && selectedStation && (
                                 <Marker
+                                    key={`destination-${selectedStation.id}`}
                                     coordinate={{
                                         latitude: selectedStation.latitude,
                                         longitude: selectedStation.longitude,

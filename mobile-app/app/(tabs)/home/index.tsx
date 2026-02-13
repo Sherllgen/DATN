@@ -4,7 +4,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
 import * as Location from "expo-location";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import GradientBackground from "@/components/ui/GradientBackground";
 import { searchNearbyStations } from "@/apis/stationApi/stationApi";
