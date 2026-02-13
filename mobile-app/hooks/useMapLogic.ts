@@ -187,6 +187,12 @@ export const useMapLogic = (): UseMapLogicReturn => {
             }
 
             setLocation(userLocation);
+            
+            console.log('[getCurrentLocation] User location obtained:', {
+                lat: userLocation.coords.latitude,
+                lng: userLocation.coords.longitude,
+                accuracy: userLocation.coords.accuracy
+            });
 
             const newRegion = {
                 latitude: userLocation.coords.latitude,
@@ -322,24 +328,34 @@ export const useMapLogic = (): UseMapLogicReturn => {
         };
     }, [isNavigating]);
 
+    const hasRefetchedWithLocationRef = useRef<boolean>(false);
+
     // ==================== RE-FETCH WITH LOCATION ====================
     /**
      * Re-fetch stations when location becomes available
      * This ensures distanceKm is calculated with actual user coordinates
      */
     useEffect(() => {
-        // Only re-fetch if we have both location and lastFetchedRegion
-        // and this is the first time location becomes available (stations already loaded without distance)
-        if (location && lastFetchedRegionRef.current && stations.length > 0) {
+        // Only re-fetch ONCE when location first becomes available
+        if (location && lastFetchedRegionRef.current && stations.length > 0 && !hasRefetchedWithLocationRef.current) {
             // Check if stations are missing distanceKm (indicates they were fetched without location)
             const needsRefetch = stations.some(s => s.distanceKm === null);
             
+            console.log('[Location Effect] Checking re-fetch:', {
+                hasLocation: !!location,
+                stationsCount: stations.length,
+                // sampleDistances: stations.slice(0, 3).map(s => ({ name: s.name, distanceKm: s.distanceKm })),
+                needsRefetch,
+                alreadyRefetched: hasRefetchedWithLocationRef.current
+            });
+            
             if (needsRefetch) {
                 console.log('[Location Effect] Re-fetching stations with user location for distance calculation');
+                hasRefetchedWithLocationRef.current = true; // Mark as refetched to prevent loop
                 fetchStationsInBound(lastFetchedRegionRef.current);
             }
         }
-    }, [location]); // Only trigger when location changes from null to value
+    }, [location, stations]); // Include stations to detect when they're loaded with null distances
 
     // ==================== STATION FETCHING ====================
     /**
@@ -406,9 +422,15 @@ export const useMapLogic = (): UseMapLogicReturn => {
                 controller.signal
             );
 
+            console.log(`[fetchStationsInBound] Loaded ${results.length} stations`, {
+                hasLocation: !!location,
+                userLat: location?.coords.latitude,
+                userLng: location?.coords.longitude,
+                sampleDistances: results.slice(0, 3).map(s => ({ name: s.name, distanceKm: s.distanceKm }))
+            });
+
             setStations(results);
             lastFetchedRegionRef.current = mapRegion;
-            console.log(`Loaded ${results.length} stations from in-bound API`);
         } catch (error: any) {
             if (error.name === "AbortError" || error.message === "canceled") {
                 console.log("Fetch aborted");

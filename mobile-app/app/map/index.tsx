@@ -180,7 +180,13 @@ export default function MapScreen() {
                             )}
                             contentContainerStyle={{ paddingBottom: 100 }}
                             ListHeaderComponent={
-                                <TouchableOpacity className="mb-4 py-2" onPress={() => mapLogic.setViewMode("map")}>
+                                <TouchableOpacity className="mb-4 py-2" onPress={() => {
+                                    mapLogic.setViewMode("map");
+                                    // Delay to ensure MapView is rendered before animating camera
+                                    setTimeout(() => {
+                                        mapLogic.centerToUserLocation();
+                                    }, 100);
+                                }}>
                                     <Text className="text-secondary text-sm font-medium">
                                         <Ionicons name="chevron-back-outline" size={12} color="secondary" /> Back to Map
                                     </Text>

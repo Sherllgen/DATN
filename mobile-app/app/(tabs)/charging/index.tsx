@@ -69,7 +69,7 @@ export default function ChargingPage() {
 
     // Pulse animation for "Charging..." text
     useEffect(() => {
-        Animated.loop(
+        const animation = Animated.loop(
             Animated.sequence([
                 Animated.timing(pulseAnim, {
                     toValue: 1.1,
@@ -84,7 +84,14 @@ export default function ChargingPage() {
                     useNativeDriver: true,
                 }),
             ])
-        ).start();
+        );
+
+        animation.start();
+
+        // CRITICAL: Stop animation on unmount to prevent memory leak
+        return () => {
+            animation.stop();
+        };
     }, []);
 
     // Fade in animation on mount
