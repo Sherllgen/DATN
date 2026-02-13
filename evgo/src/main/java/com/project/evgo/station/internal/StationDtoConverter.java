@@ -9,7 +9,7 @@ import com.project.evgo.sharedkernel.enums.ChargerStatus;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
 import com.project.evgo.sharedkernel.utils.GeoUtils;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -22,11 +22,17 @@ import java.util.stream.Collectors;
  * Internal - handles entity to DTO mapping within the module.
  */
 @Component
-@RequiredArgsConstructor
 public class StationDtoConverter {
 
         private final PortCountProvider portCountProvider;
         private final ChargerService chargerService;
+
+        // Explicit constructor to apply @Lazy annotation
+        public StationDtoConverter(PortCountProvider portCountProvider,
+                        @Lazy ChargerService chargerService) {
+                this.portCountProvider = portCountProvider;
+                this.chargerService = chargerService;
+        }
 
         public StationResponse convert(Station from) {
                 // Calculate port counts using provider interface
