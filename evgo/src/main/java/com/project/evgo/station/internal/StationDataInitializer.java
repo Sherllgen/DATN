@@ -185,8 +185,8 @@ public class StationDataInitializer implements CommandLineRunner {
                                         "Bình Đại Coastal Hub",
                                         "Fast charging near the coastal area",
                                         "Khu du lịch biển Bình Đại, Bến Tre",
-                                        10.22213,
-                                        106.46238,
+                                        10.2701299,
+                                        106.4973792,
                                         4.8,
                                         List.of("https://www.egat.co.th/home/en/wp-content/uploads/2023/02/MRT-EV-04-1024x683.jpg"));
 
@@ -196,8 +196,8 @@ public class StationDataInitializer implements CommandLineRunner {
                                         "Bình Đại West Point",
                                         "Convenient stop for travelers heading west",
                                         "Ấp 3, Bình Đại, Bến Tre",
-                                        10.29213,
-                                        106.45938,
+                                        10.2521299,
+                                        106.5153792,
                                         4.2,
                                         List.of("https://www.egat.co.th/home/en/wp-content/uploads/2021/12/02.jpg"));
 
