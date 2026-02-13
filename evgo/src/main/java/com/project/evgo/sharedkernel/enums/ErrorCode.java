@@ -51,14 +51,26 @@ public enum ErrorCode {
     STATION_NOT_FOUND(5001, HttpStatus.NOT_FOUND, "Station not found"),
     STATION_NOT_OWNED(5002, HttpStatus.FORBIDDEN, "You are not the owner of this station"),
     STATION_NAME_ALREADY_EXISTS(5003, HttpStatus.CONFLICT, "Station name already exists for this owner"),
+    STATION_NOT_APPROVED(5004, HttpStatus.FORBIDDEN, "Station not yet approved by admin"),
+    STATION_ALREADY_APPROVED(5005, HttpStatus.BAD_REQUEST, "Station is already approved"),
+    STATION_ALREADY_SUSPENDED(5006, HttpStatus.BAD_REQUEST, "Station is already suspended"),
+    STATION_INVALID_STATUS_CHANGE(5007, HttpStatus.BAD_REQUEST, "Invalid station status change"),
 
-    // Search errors (5xxx)
-    INVALID_SEARCH_QUERY(5010, HttpStatus.BAD_REQUEST, "Search query cannot be empty"),
-    INVALID_COORDINATES(5011, HttpStatus.BAD_REQUEST, "Invalid GPS coordinates"),
+    // Charger errors (6xxx)
+    CHARGER_NOT_FOUND(6001, HttpStatus.NOT_FOUND, "Charger not found"),
+    CHARGER_NOT_OWNED(6002, HttpStatus.FORBIDDEN, "You don't own this charger's station"),
 
-    // Navigation errors (6xxx)
-    NAVIGATION_SERVICE_UNAVAILABLE(6001, HttpStatus.SERVICE_UNAVAILABLE, "Navigation service unavailable"),
-    ROUTE_CALCULATION_FAILED(6002, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to calculate route");
+    // Port errors (7xxx)
+    PORT_NOT_FOUND(7001, HttpStatus.NOT_FOUND, "Port not found"),
+
+    // Search errors (8xxx)
+    INVALID_SEARCH_QUERY(8001, HttpStatus.BAD_REQUEST, "Search query cannot be empty"),
+    INVALID_COORDINATES(8002, HttpStatus.BAD_REQUEST, "Invalid GPS coordinates"),
+
+    // Navigation errors (9xxx)
+    NAVIGATION_SERVICE_UNAVAILABLE(9001, HttpStatus.SERVICE_UNAVAILABLE, "Navigation service unavailable"),
+    ROUTE_CALCULATION_FAILED(9002, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to calculate route"),
+    ;
 
     private final int code;
     private final HttpStatus status;

@@ -8,6 +8,7 @@ import com.project.evgo.station.internal.StationDtoConverter;
 import com.project.evgo.station.internal.StationRepository;
 import com.project.evgo.station.internal.StationServiceImpl;
 import com.project.evgo.station.request.CreateStationRequest;
+import com.project.evgo.station.request.StationOpeningHoursRequest;
 import com.project.evgo.station.request.UpdateStationRequest;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.user.security.SecurityUtil;
@@ -21,7 +22,10 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -92,7 +96,8 @@ class StationServiceTest {
                     "New Address",
                     10.123,
                     106.456,
-                    List.of());
+                    List.of(),
+                    null);
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
@@ -121,7 +126,8 @@ class StationServiceTest {
                     "New Address",
                     10.123,
                     106.456,
-                    List.of());
+                    List.of(),
+                    null);
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
@@ -165,7 +171,8 @@ class StationServiceTest {
                     "Updated Address",
                     10.999,
                     106.999,
-                    List.of("https://example.com/image1.jpg"));
+                    List.of("https://example.com/image1.jpg"),
+                    null);
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
@@ -195,7 +202,8 @@ class StationServiceTest {
                     "Updated Address",
                     10.999,
                     106.999,
-                    List.of());
+                    List.of(),
+                    null);
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OTHER_OWNER_ID);
@@ -224,7 +232,8 @@ class StationServiceTest {
                     "Updated Address",
                     10.999,
                     106.999,
-                    List.of());
+                    List.of(),
+                    null);
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
@@ -444,8 +453,8 @@ class StationServiceTest {
                     "New Address",
                     10.123,
                     106.456,
-                    List.of() // Empty image list
-            );
+                    List.of(), // Empty image list
+                    null); // Added openingHours
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
@@ -474,7 +483,8 @@ class StationServiceTest {
                     "New Address",
                     10.123,
                     106.456,
-                    List.of("https://example.com/image.jpg"));
+                    List.of("https://example.com/image.jpg"),
+                    null); // Added openingHours
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
@@ -488,6 +498,161 @@ class StationServiceTest {
 
                 // Then
                 verify(stationRepository).save(argThat(station -> station.getStatus() == StationStatus.PENDING));
+            }
+        }
+    }
+
+    // ==================== OPENING HOURS TESTS ====================
+
+    @Nested
+    @DisplayName("Opening Hours Tests")
+    class OpeningHoursTests {
+
+        @Test
+        @DisplayName("Should create station with opening hours")
+        void create_WithOpeningHours_Success() {
+            // Given
+            List<StationOpeningHoursRequest> openingHours = List.of(
+                    new StationOpeningHoursRequest(DayOfWeek.MONDAY, LocalTime.of(7, 0), LocalTime.of(22, 0), true),
+                    new StationOpeningHoursRequest(DayOfWeek.SUNDAY, null, null, false));
+
+            CreateStationRequest request = new CreateStationRequest(
+                    "Station with Hours",
+                    "Description",
+                    "Address",
+                    10.123,
+                    106.456,
+                    List.of(),
+                    openingHours);
+
+            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
+                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
+                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong()))
+                        .thenReturn(false);
+                when(stationRepository.save(any(Station.class))).thenAnswer(i -> {
+                    Station s = i.getArgument(0);
+                    s.setId(1L);
+                    return s;
+                });
+                when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
+
+                // When
+                StationResponse result = stationService.create(request);
+
+                // Then
+                assertThat(result).isNotNull();
+                verify(stationRepository).save(argThat(station -> station.getOpeningHours() != null &&
+                        station.getOpeningHours().size() == 2));
+            }
+        }
+
+        @Test
+        @DisplayName("Should create station without opening hours (24/7 default)")
+        void create_WithoutOpeningHours_Success() {
+            // Given
+            CreateStationRequest request = new CreateStationRequest(
+                    "24/7 Station",
+                    "Description",
+                    "Address",
+                    10.123,
+                    106.456,
+                    List.of(),
+                    null);
+
+            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
+                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
+                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong()))
+                        .thenReturn(false);
+                when(stationRepository.save(any(Station.class))).thenReturn(testStation);
+                when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
+
+                // When
+                StationResponse result = stationService.create(request);
+
+                // Then
+                assertThat(result).isNotNull();
+                verify(stationRepository).save(
+                        argThat(station -> station.getOpeningHours() == null || station.getOpeningHours().isEmpty()));
+            }
+        }
+
+        @Test
+        @DisplayName("Should update station opening hours")
+        void update_WithOpeningHours_ReplacesExisting() {
+            // Given
+            List<StationOpeningHoursRequest> newOpeningHours = List.of(
+                    new StationOpeningHoursRequest(DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(20, 0), true));
+
+            UpdateStationRequest request = new UpdateStationRequest(
+                    "Updated Station",
+                    "Updated Description",
+                    "Updated Address",
+                    10.999,
+                    106.999,
+                    List.of(),
+                    newOpeningHours);
+
+            testStation.setOpeningHours(new ArrayList<>()); // Existing empty list
+
+            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
+                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
+                when(stationRepository.findByIdAndDeletedAtIsNull(STATION_ID))
+                        .thenReturn(Optional.of(testStation));
+                when(stationRepository.existsByNameAndOwnerIdAndIdNotAndDeletedAtIsNull(
+                        anyString(), anyLong(), anyLong())).thenReturn(false);
+                when(stationRepository.save(any(Station.class))).thenReturn(testStation);
+                when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
+
+                // When
+                StationResponse result = stationService.update(STATION_ID, request);
+
+                // Then
+                assertThat(result).isNotNull();
+                verify(stationRepository).save(argThat(station -> station.getOpeningHours() != null &&
+                        station.getOpeningHours().size() == 1));
+            }
+        }
+
+        @Test
+        @DisplayName("Should handle opening hours with isOpen=false (closed day)")
+        void create_WithClosedDay_Success() {
+            // Given - Sunday is closed
+            List<StationOpeningHoursRequest> openingHours = List.of(
+                    new StationOpeningHoursRequest(DayOfWeek.SUNDAY, null, null, false));
+
+            CreateStationRequest request = new CreateStationRequest(
+                    "Station Closed Sunday",
+                    "Description",
+                    "Address",
+                    10.123,
+                    106.456,
+                    List.of(),
+                    openingHours);
+
+            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
+                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
+                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong()))
+                        .thenReturn(false);
+                when(stationRepository.save(any(Station.class))).thenAnswer(i -> {
+                    Station s = i.getArgument(0);
+                    s.setId(1L);
+                    return s;
+                });
+                when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
+
+                // When
+                StationResponse result = stationService.create(request);
+
+                // Then
+                assertThat(result).isNotNull();
+                verify(stationRepository).save(argThat(station -> {
+                    if (station.getOpeningHours() == null || station.getOpeningHours().isEmpty()) {
+                        return false;
+                    }
+                    var sundayHour = station.getOpeningHours().get(0);
+                    return sundayHour.getDayOfWeek() == DayOfWeek.SUNDAY &&
+                            Boolean.FALSE.equals(sundayHour.getIsOpen());
+                }));
             }
         }
     }

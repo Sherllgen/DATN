@@ -66,6 +66,20 @@ public class StationServiceImpl implements StationService {
             station.setImageUrls(request.imageUrls());
         }
 
+        if (request.openingHours() != null) {
+            List<StationOpeningHours> hours = request.openingHours().stream()
+                    .map(h -> {
+                        StationOpeningHours soh = new StationOpeningHours();
+                        soh.setStation(station);
+                        soh.setDayOfWeek(h.dayOfWeek());
+                        soh.setOpenTime(h.openTime());
+                        soh.setCloseTime(h.closeTime());
+                        soh.setIsOpen(h.isOpen());
+                        return soh;
+                    }).toList();
+            station.setOpeningHours(hours);
+        }
+
         Station saved = stationRepository.save(station);
         return stationDtoConverter.convert(saved);
     }
@@ -100,6 +114,21 @@ public class StationServiceImpl implements StationService {
         station.setLongitude(request.longitude());
         if (request.imageUrls() != null) {
             station.setImageUrls(request.imageUrls());
+        }
+
+        if (request.openingHours() != null) {
+            station.getOpeningHours().clear();
+            List<StationOpeningHours> hours = request.openingHours().stream()
+                    .map(h -> {
+                        StationOpeningHours soh = new StationOpeningHours();
+                        soh.setStation(station);
+                        soh.setDayOfWeek(h.dayOfWeek());
+                        soh.setOpenTime(h.openTime());
+                        soh.setCloseTime(h.closeTime());
+                        soh.setIsOpen(h.isOpen());
+                        return soh;
+                    }).toList();
+            station.getOpeningHours().addAll(hours);
         }
 
         Station updated = stationRepository.save(station);
@@ -147,6 +176,29 @@ public class StationServiceImpl implements StationService {
         station.setStatus(status);
         Station updated = stationRepository.save(station);
         return stationDtoConverter.convert(updated);
+    }
+
+    // ==================== CROSS-MODULE API ====================
+
+    @Override
+    public void verifyOwnership(Long stationId) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+
+        Station station = stationRepository.findByIdAndDeletedAtIsNull(stationId)
+                .orElseThrow(() -> new AppException(ErrorCode.STATION_NOT_FOUND));
+
+        if (!station.getOwnerId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.STATION_NOT_OWNED);
+        }
+    }
+
+    @Override
+    public boolean isOwner(Long stationId) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+
+        return stationRepository.findByIdAndDeletedAtIsNull(stationId)
+                .map(station -> station.getOwnerId().equals(currentUserId))
+                .orElse(false);
     }
 
     @Override

@@ -1,5 +1,8 @@
 package com.project.evgo.station.internal;
 
+import com.project.evgo.sharedkernel.enums.StationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +25,11 @@ public interface StationRepository extends JpaRepository<Station, Long> {
     Optional<Station> findByIdAndDeletedAtIsNull(Long id);
 
     List<Station> findAllByDeletedAtIsNull();
+
+    // Admin queries
+    Page<Station> findByDeletedAtIsNull(Pageable pageable);
+
+    Page<Station> findByStatusAndDeletedAtIsNull(StationStatus status, Pageable pageable);
 
     /**
      * Find nearby stations within a radius using PostGIS geography.

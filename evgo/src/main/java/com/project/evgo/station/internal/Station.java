@@ -61,6 +61,9 @@ public class Station {
     @Column(name = "image_url", length = 500)
     private List<String> imageUrls = new ArrayList<>();
 
+    @OneToMany(mappedBy = "station", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StationOpeningHours> openingHours = new ArrayList<>();
+
     private LocalDateTime deletedAt;
 
     @CreationTimestamp

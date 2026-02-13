@@ -4,8 +4,10 @@ import com.project.evgo.sharedkernel.dto.ApiResponse;
 import com.project.evgo.sharedkernel.infra.FileStorageService;
 import com.project.evgo.user.UserService;
 import com.project.evgo.user.request.UpdateAvatarRequest;
+import com.project.evgo.user.request.UpdateBusinessProfileRequest;
 import com.project.evgo.user.request.UpdateProfileRequest;
 import com.project.evgo.user.request.ChangePasswordRequest;
+import com.project.evgo.user.response.StationOwnerProfileResponse;
 import com.project.evgo.user.response.UploadSignatureResponse;
 import com.project.evgo.user.response.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -66,8 +68,7 @@ public class UserController {
                     signature.get("apiKey"),
                     signature.get("timestamp"),
                     signature.get("signature"),
-                    signature.get("folder")
-            );
+                    signature.get("folder"));
             return ResponseEntity.ok(new ApiResponse<>(200, "Upload signature successfully", uploadSignatureResponse));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -88,6 +89,23 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(500, "Failed to update avatar: " + e.getMessage(), null));
         }
+    }
+
+    @GetMapping("/me/business-profile")
+    @PreAuthorize("hasRole('STATION_OWNER')")
+    @Operation(summary = "Get business profile", description = "Get business profile for current station owner")
+    public ResponseEntity<ApiResponse<StationOwnerProfileResponse>> getBusinessProfile() {
+        StationOwnerProfileResponse response = userService.getBusinessProfile();
+        return ResponseEntity.ok(new ApiResponse<>(200, "Get business profile successfully", response));
+    }
+
+    @PutMapping("/me/business-profile")
+    @PreAuthorize("hasRole('STATION_OWNER')")
+    @Operation(summary = "Update business profile", description = "Update business profile for current station owner")
+    public ResponseEntity<ApiResponse<StationOwnerProfileResponse>> updateBusinessProfile(
+            @Valid @RequestBody UpdateBusinessProfileRequest request) {
+        StationOwnerProfileResponse response = userService.updateBusinessProfile(request);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Business profile updated successfully", response));
     }
 
 }

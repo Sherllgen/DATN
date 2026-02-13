@@ -24,5 +24,7 @@ public record UpdateStationRequest(
         @NotNull(message = "Longitude is required") 
         Double longitude,
 
-        List<String> imageUrls) {
+        List<String> imageUrls,
+
+        List<StationOpeningHoursRequest> openingHours) {
 }
