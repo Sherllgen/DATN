@@ -83,45 +83,40 @@ export default function Modal({
                         ].join(" ")}
                     >
                         {/* Header */}
-                        {(title || showCloseButton) && (
-                            <View
-                                className={[
-                                    "flex-row justify-between items-center px-6 py-4",
-                                    variant === "bottom-sheet"
-                                        ? "border-b border-border"
-                                        : "",
-                                ].join(" ")}
-                            >
-                                {/* Swipe Indicator for Bottom Sheet */}
-                                {variant === "bottom-sheet" && !title && (
-                                    <View className="absolute top-2 left-1/2 -translate-x-1/2">
-                                        <View className="bg-border rounded-full w-12 h-1" />
-                                    </View>
-                                )}
+                        {/* Header Container (No Divider) */}
+                        <View className="relative">
+                            {/* Swipe Indicator (Centered) */}
+                            {variant === "bottom-sheet" && (
+                                <View className="w-full items-center py-3">
+                                    <View className="bg-white/20 rounded-full w-12 h-1.5" />
+                                </View>
+                            )}
 
-                                {/* Title */}
-                                {title && (
-                                    <Text className="font-semibold text-white text-lg flex-1">
+                            {/* Title (Centered) */}
+                            {title && (
+                                <View className="px-6 pb-4 pt-1">
+                                    <Text className="font-semibold text-white text-lg text-center">
                                         {title}
                                     </Text>
-                                )}
+                                </View>
+                            )}
 
-                                {/* Close Button */}
-                                {showCloseButton && (
-                                    <TouchableOpacity
-                                        onPress={onClose}
-                                        activeOpacity={0.7}
-                                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                    >
-                                        <Ionicons
-                                            name="close"
-                                            size={28}
-                                            color="#9BA1A6"
-                                        />
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        )}
+                            {/* Close Button - Only for non-bottom-sheet variants if requested */}
+                            {showCloseButton && variant !== "bottom-sheet" && (
+                                <TouchableOpacity
+                                    onPress={onClose}
+                                    activeOpacity={0.7}
+                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                    className="absolute top-3 right-4 z-50"
+                                >
+                                    <Ionicons
+                                        name="close"
+                                        size={24}
+                                        color="#9BA1A6"
+                                    />
+                                </TouchableOpacity>
+                            )}
+                        </View>
 
                         {/* Content */}
                         <View className={variant === "bottom-sheet" ? "px-6 pt-4" : "p-6"}>

@@ -61,7 +61,16 @@ public enum ErrorCode {
     CHARGER_NOT_OWNED(6002, HttpStatus.FORBIDDEN, "You don't own this charger's station"),
 
     // Port errors (7xxx)
-    PORT_NOT_FOUND(7001, HttpStatus.NOT_FOUND, "Port not found");
+    PORT_NOT_FOUND(7001, HttpStatus.NOT_FOUND, "Port not found"),
+
+    // Search errors (8xxx)
+    INVALID_SEARCH_QUERY(8001, HttpStatus.BAD_REQUEST, "Search query cannot be empty"),
+    INVALID_COORDINATES(8002, HttpStatus.BAD_REQUEST, "Invalid GPS coordinates"),
+
+    // Navigation errors (9xxx)
+    NAVIGATION_SERVICE_UNAVAILABLE(9001, HttpStatus.SERVICE_UNAVAILABLE, "Navigation service unavailable"),
+    ROUTE_CALCULATION_FAILED(9002, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to calculate route"),
+    ;
 
     private final int code;
     private final HttpStatus status;

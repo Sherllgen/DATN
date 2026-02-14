@@ -128,6 +128,7 @@ export default function TabLayout() {
                             color={color}
                         />
                     ),
+                    href: null,
                 }}
             />
 

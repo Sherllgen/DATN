@@ -1,7 +1,12 @@
 import React from "react";
 import { LinearGradient, LinearGradientProps } from "expo-linear-gradient";
 import { ColorValue } from "react-native";
+import { cssInterop } from "nativewind";
 import { GRADIENTS, GradientKey, DEFAULT_GRADIENT } from "@/constants/gradients";
+
+cssInterop(LinearGradient, {
+    className: "style",
+});
 
 interface GradientBackgroundProps extends Omit<LinearGradientProps, "colors" | "start" | "end"> {
     /** Use a preset gradient by name, or provide custom colors */

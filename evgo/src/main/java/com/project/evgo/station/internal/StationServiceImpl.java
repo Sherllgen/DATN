@@ -5,8 +5,11 @@ import com.project.evgo.sharedkernel.enums.StationStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.StationService;
 import com.project.evgo.station.request.CreateStationRequest;
+import com.project.evgo.station.request.SearchNearbyRequest;
+import com.project.evgo.station.request.SearchTextRequest;
 import com.project.evgo.station.request.UpdateStationRequest;
 import com.project.evgo.station.response.StationResponse;
+import com.project.evgo.station.response.StationSearchResult;
 import com.project.evgo.user.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -196,5 +199,68 @@ public class StationServiceImpl implements StationService {
         return stationRepository.findByIdAndDeletedAtIsNull(stationId)
                 .map(station -> station.getOwnerId().equals(currentUserId))
                 .orElse(false);
+    }
+
+    @Override
+    public List<StationSearchResult> searchNearby(SearchNearbyRequest request) {
+        // Validate inputs
+        if (request.latitude() == null || request.longitude() == null) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Latitude and longitude are required");
+        }
+
+        // Convert radius from km to meters
+        double radiusMeters = request.radiusKm() * 1000;
+
+        // Query database using optimized PostGIS query
+        List<StationProjection> projections = stationRepository.findNearByStations(
+                request.latitude(),
+                request.longitude(),
+                radiusMeters,
+                request.maxResults());
+
+        // Convert to DTOs with charger counts
+        return stationDtoConverter.convertToSearchResults(projections);
+    }
+
+    @Override
+    public List<StationSearchResult> searchByText(SearchTextRequest request) {
+        // Validate query
+        if (request.query() == null || request.query().isBlank()) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Search query is required");
+        }
+
+        // Query database
+        List<StationProjection> projections = stationRepository.searchByText(
+                request.query().trim(),
+                request.latitude(),
+                request.longitude(),
+                request.maxResults());
+
+        // Convert to DTOs with charger counts
+        return stationDtoConverter.convertToSearchResults(projections);
+    }
+
+    @Override
+    public List<StationSearchResult> findStationsInBound(Double minLat, Double maxLat, Double minLng, Double maxLng,
+            Double userLat, Double userLng, Integer maxResults) {
+        // Validate bounding box coordinates
+        if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "All bounding box coordinates are required");
+        }
+
+        if (minLat >= maxLat) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "minLat must be less than maxLat");
+        }
+
+        if (minLng >= maxLng) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "minLng must be less than maxLng");
+        }
+
+        // Query database using PostGIS spatial query with optional distance calculation
+        List<StationProjection> projections = stationRepository.findStationsInBound(
+                minLat, maxLat, minLng, maxLng, userLat, userLng, maxResults);
+
+        // Convert to DTOs with charger counts
+        return stationDtoConverter.convertToSearchResults(projections);
     }
 }

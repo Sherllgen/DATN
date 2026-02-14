@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.locationtech.jts.geom.Point;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -41,6 +42,9 @@ public class Station {
     private Double latitude;
 
     private Double longitude;
+
+    @Column(columnDefinition = "geometry(Point,4326)")
+    private Point location;
 
     @Column(precision = 2)
     private Double rate;

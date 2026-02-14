@@ -2,6 +2,7 @@ package com.project.evgo.charger;
 
 import com.project.evgo.charger.request.CreateChargerRequest;
 import com.project.evgo.charger.request.CreatePortRequest;
+import com.project.evgo.charger.internal.ChargerStatisticProjection;
 import com.project.evgo.charger.response.ChargerResponse;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.enums.ConnectorType;
@@ -38,4 +39,6 @@ public interface ChargerService {
     PortResponse updatePortStatus(Long id, PortStatus status);
 
     void deletePort(Long id);
+
+    List<ChargerStatisticProjection> findStatisticsByStationId(Long stationId);
 }

@@ -17,17 +17,18 @@ axiosInstance.interceptors.request.use(
         }
 
         // Log request
-        console.log("➡️ AXIOS REQUEST:", {
+        console.log("AXIOS REQUEST:", {
             method: config.method?.toUpperCase(),
             url: config.baseURL ? `${config.baseURL}${config.url}` : config.url,
             headers: config.headers,
+            params: config.params,
             data: config.data,
         });
 
         return config;
     },
     (error) => {
-        console.error("❌ REQUEST ERROR:", error);
+        console.error("REQUEST ERROR:", error);
         return Promise.reject(error);
     }
 );
@@ -35,7 +36,7 @@ axiosInstance.interceptors.request.use(
 // RESPONSE INTERCEPTOR — log lỗi chi tiết
 axiosInstance.interceptors.response.use(
     (response) => {
-        console.log("✅ AXIOS RESPONSE:", {
+        console.log("AXIOS RESPONSE:", {
             status: response.status,
             url: response.config.url,
             data: response.data,
@@ -44,7 +45,13 @@ axiosInstance.interceptors.response.use(
     },
     (error) => {
         if (axios.isAxiosError(error)) {
-            console.error("🔥 AXIOS ERROR DETAILS:", {
+            // Skip logging for cancelled requests
+            if (error.code === 'ERR_CANCELED') {
+                console.log('Request canceled', error.message);
+                return Promise.reject(error);
+            }
+
+            console.error("AXIOS ERROR DETAILS:", {
                 message: error.message,
                 code: error.code,
                 config: {
@@ -57,16 +64,16 @@ axiosInstance.interceptors.response.use(
                 },
                 response: error.response
                     ? {
-                          status: error.response.status,
-                          statusText: error.response.statusText,
-                          data: error.response.data, // JSON error từ backend
-                          headers: error.response.headers,
-                      }
-                    : "❌ No response received (Network error)",
+                        status: error.response.status,
+                        statusText: error.response.statusText,
+                        data: error.response.data, // JSON error từ backend
+                        headers: error.response.headers,
+                    }
+                    : "No response received (Network error)",
                 request: !!error.request,
             });
         } else {
-            console.error("❌ UNKNOWN ERROR:", error);
+            console.error("UNKNOWN ERROR:", error);
         }
 
         return Promise.reject(error);

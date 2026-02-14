@@ -165,4 +165,9 @@ public class ChargerServiceImpl implements ChargerService {
 
         return port;
     }
+
+    @Override
+    public List<ChargerStatisticProjection> findStatisticsByStationId(Long stationId) {
+        return chargerRepository.findStatisticsByStationId(stationId);
+    }
 }

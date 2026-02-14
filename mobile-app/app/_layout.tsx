@@ -1,21 +1,16 @@
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import "react-native-reanimated";
-
+import { useEffect } from "react";
+import { View, Text } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 
 import { LinearGradient } from "expo-linear-gradient";
 import ToastManager from "toastify-react-native";
 import "../global.css";
 
-export const unstable_settings = {
-    anchor: "(tabs)",
-};
-
-SplashScreen.setOptions({
-    duration: 1000,
-    fade: true,
-});
+// Prevent the splash screen from auto-hiding before asset loading is complete
+SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 const BlackTheme = {
     ...DarkTheme, // hoặc DefaultTheme đều được, miễn override colors
@@ -29,6 +24,15 @@ const BlackTheme = {
 };
 
 export default function RootLayout() {
+    console.log('RootLayout rendering...');
+
+    useEffect(() => {
+        console.log('RootLayout mounted, hiding splash...');
+        // Hide the splash screen after the app is ready
+        SplashScreen.hideAsync().catch(console.warn);
+    }, []);
+
+    console.log('About to return JSX...');
     return (
         <LinearGradient
             colors={["#33404F", "#000000"]}
@@ -39,8 +43,7 @@ export default function RootLayout() {
             <ThemeProvider value={BlackTheme}>
                 <Stack
                     screenOptions={{
-                        animation: "fade",
-                        animationDuration: 1550,
+                        headerShown: false, // Remove all native headers
                     }}
                 >
                     <Stack.Screen
@@ -53,6 +56,14 @@ export default function RootLayout() {
                     />
                     <Stack.Screen
                         name="payment"
+                        options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="map"
+                        options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="station"
                         options={{ headerShown: false }}
                     />
                 </Stack>
