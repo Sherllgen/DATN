@@ -14,6 +14,14 @@ export interface ChargerSummary {
     total: number;
 }
 
+export interface StationOpeningHours {
+    id: number;
+    dayOfWeek: string; // "MONDAY", "TUESDAY", etc.
+    openTime: string | null; // ISO time format "HH:MM:SS" or null for 24/7
+    closeTime: string | null; // ISO time format "HH:MM:SS" or null for 24/7
+    isOpen: boolean;
+}
+
 export interface Station {
     id: number;
     ownerId: number;
@@ -29,6 +37,7 @@ export interface Station {
     availableChargersCount: number;
     totalChargersCount: number;
     chargers: ChargerSummary[];
+    openingHours: StationOpeningHours[];
     createdAt: string;
     updatedAt: string;
 }

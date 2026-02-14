@@ -21,18 +21,38 @@ import StatusBadge, {
 } from "@/components/station/StatusBadge";
 import ChargerTypeTag from "@/components/station/ChargerTypeTag";
 import { getStationById } from "@/apis/stationApi/stationApi";
-import { Station, StationStatus } from "@/types/station.types";
+import { Station, StationStatus, StationOpeningHours } from "@/types/station.types";
 import { useStationCache } from "@/stores/stationCacheStore";
 
-const mockOperatingHours = [
-    { day: "Monday", hours: "00:00 - 00:00" },
-    { day: "Tuesday", hours: "00:00 - 00:00" },
-    { day: "Wednesday", hours: "00:00 - 00:00" },
-    { day: "Thursday", hours: "00:00 - 00:00" },
-    { day: "Friday", hours: "00:00 - 00:00" },
-    { day: "Saturday", hours: "00:00 - 00:00" },
-    { day: "Sunday", hours: "00:00 - 00:00" },
-];
+// Helper function to format day of week
+const formatDayOfWeek = (day: string): string => {
+    const dayMap: { [key: string]: string } = {
+        MONDAY: "Monday",
+        TUESDAY: "Tuesday",
+        WEDNESDAY: "Wednesday",
+        THURSDAY: "Thursday",
+        FRIDAY: "Friday",
+        SATURDAY: "Saturday",
+        SUNDAY: "Sunday",
+    };
+    return dayMap[day] || day;
+};
+
+// Helper function to format time range
+const formatTimeRange = (openTime: string | null, closeTime: string | null): string => {
+    if (!openTime || !closeTime) {
+        return "00:00 - 00:00";
+    }
+    // Convert "HH:MM:SS" to "HH:MM"
+    const formatTime = (time: string) => time.substring(0, 5);
+    return `${formatTime(openTime)} - ${formatTime(closeTime)}`;
+};
+
+// Helper function to check if station is 24/7
+const isStation24x7 = (openingHours: StationOpeningHours[]): boolean => {
+    if (!openingHours || openingHours.length === 0) return false;
+    return openingHours.every(hours => !hours.openTime && !hours.closeTime && hours.isOpen);
+};
 
 export default function StationDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -222,11 +242,11 @@ export default function StationDetailScreen() {
                             <Button
                                 variant="outline"
                                 fullWidth={false}
-                                onPress={() => console.log("Get Directions")}
+                                onPress={() => console.log("Rate station")}
                                 className="flex-1"
                             >
-                                <Ionicons name="navigate" size={20} color="white" />
-                                {"  "}Direct
+                                <Ionicons name="star-outline" size={20} color="white" />
+                                {"  "}Rate
                             </Button>
                             <Button
                                 variant="primary"
@@ -271,35 +291,39 @@ export default function StationDetailScreen() {
                         </View>
 
                         {/* Operating Hours */}
-                        <View className="mb-8">
-                            <View className="flex-row items-center justify-between mb-3">
-                                <Text className="text-lg font-semibold text-white">
-                                    Opening Hours
-                                </Text>
-                                <View className="flex-row items-center">
-                                    <View className="w-2 h-2 rounded-full bg-[#4CAF50] mr-2" />
-                                    <Text className="text-sm font-medium text-[#4CAF50]">
-                                        Open · 24 hours
+                        {station.openingHours && station.openingHours.length > 0 && (
+                            <View className="mb-8">
+                                <View className="flex-row items-center justify-between mb-3">
+                                    <Text className="text-lg font-semibold text-white">
+                                        Opening Hours
                                     </Text>
+                                    {/* <View className="flex-row items-center">
+                                        <View className="w-2 h-2 rounded-full bg-[#4CAF50] mr-2" />
+                                        <Text className="text-sm font-medium text-[#4CAF50]">
+                                            {isStation24x7(station.openingHours)
+                                                ? "Open · 24 hours"
+                                                : "Open"}
+                                        </Text>
+                                    </View> */}
+                                </View>
+
+                                <View className="bg-[#4A5568]/20 rounded-lg p-4 border border-[#4A5568]">
+                                    {station.openingHours.map((hours, index) => (
+                                        <View
+                                            key={hours.id || index}
+                                            className="flex-row justify-between py-2"
+                                        >
+                                            <Text className="text-base text-white font-medium">
+                                                {formatDayOfWeek(hours.dayOfWeek)}
+                                            </Text>
+                                            <Text className="text-base text-[#9BA1A6]">
+                                                {formatTimeRange(hours.openTime, hours.closeTime)}
+                                            </Text>
+                                        </View>
+                                    ))}
                                 </View>
                             </View>
-
-                            <View className="bg-[#4A5568]/20 rounded-lg p-4 border border-[#4A5568]">
-                                {mockOperatingHours.map((schedule, index) => (
-                                    <View
-                                        key={index}
-                                        className="flex-row justify-between py-2"
-                                    >
-                                        <Text className="text-base text-white font-medium">
-                                            {schedule.day}
-                                        </Text>
-                                        <Text className="text-base text-[#9BA1A6]">
-                                            {schedule.hours}
-                                        </Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
+                        )}
 
                         {/* Charger Types */}
                         <View className="mb-8">

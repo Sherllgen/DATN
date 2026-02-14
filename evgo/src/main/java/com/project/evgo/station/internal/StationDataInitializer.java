@@ -14,6 +14,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -330,7 +333,46 @@ public class StationDataInitializer implements CommandLineRunner {
                 station.setStatus(StationStatus.ACTIVE);
                 station.setImageUrls(imageUrls);
                 station.setIsFlaggedLowQuality(false);
+
+                // Add default 24/7 opening hours
+                List<StationOpeningHours> openingHours = createDefaultOpeningHours(station);
+                station.setOpeningHours(openingHours);
+
                 return station;
+        }
+
+        private List<StationOpeningHours> createDefaultOpeningHours(Station station) {
+                List<StationOpeningHours> openingHours = new ArrayList<>();
+
+                // Default: 24/7 operation
+                for (DayOfWeek day : DayOfWeek.values()) {
+                        StationOpeningHours hours = new StationOpeningHours();
+                        hours.setStation(station);
+                        hours.setDayOfWeek(day);
+                        hours.setOpenTime(null); // null indicates 24/7
+                        hours.setCloseTime(null);
+                        hours.setIsOpen(true);
+                        openingHours.add(hours);
+                }
+
+                return openingHours;
+        }
+
+        private List<StationOpeningHours> createCustomOpeningHours(Station station, LocalTime openTime,
+                        LocalTime closeTime) {
+                List<StationOpeningHours> openingHours = new ArrayList<>();
+
+                for (DayOfWeek day : DayOfWeek.values()) {
+                        StationOpeningHours hours = new StationOpeningHours();
+                        hours.setStation(station);
+                        hours.setDayOfWeek(day);
+                        hours.setOpenTime(openTime);
+                        hours.setCloseTime(closeTime);
+                        hours.setIsOpen(true);
+                        openingHours.add(hours);
+                }
+
+                return openingHours;
         }
 
         private Charger createCharger(String name, double maxPower, ConnectorType connectorType, ChargerStatus status) {
