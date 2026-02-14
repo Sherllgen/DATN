@@ -3,52 +3,40 @@ import MapView, { UrlTile, Marker } from 'react-native-maps';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
-import * as Location from "expo-location";
 
 import GradientBackground from "@/components/ui/GradientBackground";
+import LocationPermissionModal from "@/components/map/LocationPermissionModal";
+import ManualLocationInput from "@/components/map/ManualLocationInput";
 import { searchNearbyStations } from "@/apis/stationApi/stationApi";
 import { StationSearchResult, StationStatus } from "@/types/station.types";
+import { useLocationPermission } from "@/hooks/useLocationPermission";
+import { useLocationStore } from "@/stores/locationStore";
 
 export default function HomePage() {
-    const [hasLocationPermission, setHasLocationPermission] = useState(false);
-    const [location, setLocation] = useState<Location.LocationObject | null>(null);
+    const locationPerm = useLocationPermission(true); // Auto-check on mount
+    const globalLocation = useLocationStore((state) => state.location);
+    const setGlobalLocation = useLocationStore((state) => state.setLocation);
     const [stations, setStations] = useState<StationSearchResult[]>([]);
     const [loading, setLoading] = useState(false);
 
+    // Sync local location to global store
     useEffect(() => {
-        checkLocationPermission();
-    }, []);
-
-    const checkLocationPermission = async () => {
-        // Only CHECK permission, don't request
-        const { status } = await Location.getForegroundPermissionsAsync();
-
-        if (status === "granted") {
-            setHasLocationPermission(true);
-            getCurrentLocation();
+        if (locationPerm.location) {
+            setGlobalLocation(locationPerm.location);
         }
-        // If not granted, just show static image - don't request
-    };
+    }, [locationPerm.location]);
 
-    const getCurrentLocation = async () => {
-        try {
-            const userLocation = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced,
-            });
-
-            setLocation(userLocation);
-
-            // Fetch nearby stations (5km radius)
+    // Watch for location changes and fetch nearby stations
+    // Use global location to ensure we get location from map screen too
+    useEffect(() => {
+        const currentLocation = locationPerm.location || globalLocation;
+        if (currentLocation) {
             fetchNearbyStations(
-                userLocation.coords.latitude,
-                userLocation.coords.longitude
+                currentLocation.coords.latitude,
+                currentLocation.coords.longitude
             );
-        } catch (error) {
-            console.warn("Error getting location:", error);
-            // On error, just show static image
-            setHasLocationPermission(false);
         }
-    };
+    }, [locationPerm.location, globalLocation]);
 
     const fetchNearbyStations = async (lat: number, lng: number) => {
         try {
@@ -99,7 +87,7 @@ export default function HomePage() {
                         </View>
 
                         {/* Conditional: Show live map if permission granted, otherwise static image */}
-                        {hasLocationPermission && location ? (
+                        {(locationPerm.hasPermission || globalLocation) && (locationPerm.location || globalLocation) ? (
                             // Has Location Permission - Show Live Map
                             <TouchableOpacity
                                 style={{ height: 208, marginTop: 16 }}
@@ -115,8 +103,8 @@ export default function HomePage() {
                                     zoomEnabled={false}
                                     showsUserLocation={true} // Use default user location marker
                                     initialRegion={{
-                                        latitude: location.coords.latitude,
-                                        longitude: location.coords.longitude,
+                                        latitude: (locationPerm.location || globalLocation)!.coords.latitude,
+                                        longitude: (locationPerm.location || globalLocation)!.coords.longitude,
                                         latitudeDelta: 0.05,
                                         longitudeDelta: 0.05,
                                     }}
@@ -190,6 +178,28 @@ export default function HomePage() {
                     </View>
                 </View>
             </SafeAreaView>
+
+            {/* Location Permission Modal */}
+            <LocationPermissionModal
+                visible={locationPerm.showPermissionModal}
+                status={locationPerm.permissionStatus}
+                onPrimaryAction={() => {
+                    if (locationPerm.permissionStatus === "permission_required") {
+                        locationPerm.requestLocationPermission();
+                    }
+                }}
+                onEnterManually={locationPerm.handleEnterManually}
+                onCancel={() => locationPerm.setShowPermissionModal(false)}
+            />
+
+            {/* Manual Location Input */}
+            <ManualLocationInput
+                visible={locationPerm.showManualInput}
+                onClose={() => locationPerm.setShowPermissionModal(false)}
+                onLocationSet={(lat, lng) => {
+                    locationPerm.handleManualLocationSet(lat, lng);
+                }}
+            />
         </GradientBackground>
     );
 }

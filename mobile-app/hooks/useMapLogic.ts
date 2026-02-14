@@ -9,6 +9,7 @@ import mapboxPolyline from "@mapbox/polyline";
 import { haversineDistance, simplifyPolyline } from "@/utils/location";
 import { LocationModalStatus } from "@/components/map/LocationPermissionModal";
 import { useStationCache } from "@/stores/stationCacheStore";
+import { useLocationStore } from "@/stores/locationStore";
 
 export interface UseMapLogicReturn {
     // State
@@ -73,6 +74,9 @@ const INITIAL_REGION: Region = {
  * - Abort controller for cancelling pending requests
  */
 export const useMapLogic = (): UseMapLogicReturn => {
+    // ==================== GLOBAL LOCATION STORE ====================
+    const setGlobalLocation = useLocationStore((state) => state.setLocation);
+
     // ==================== STATE ====================
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -106,6 +110,14 @@ export const useMapLogic = (): UseMapLogicReturn => {
         fetchStationsInBound(initialRegionRef.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // ==================== SYNC LOCATION TO GLOBAL STORE ====================
+    // Whenever location changes in map, sync it to global store for home screen
+    useEffect(() => {
+        if (location) {
+            setGlobalLocation(location);
+        }
+    }, [location]);
 
     // ==================== NAVIGATION CAMERA CONTROL ====================
     // Effect to fit map to route when coordinates update

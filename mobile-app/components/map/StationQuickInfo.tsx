@@ -48,17 +48,18 @@ export default function StationQuickInfo({
                             {station.address}
                         </Text>
                     </View>
-                    <TouchableOpacity
-                        className="w-10 h-10 rounded-full bg-secondary items-center justify-center ml-2"
-                        activeOpacity={0.7}
+                    <Button
+                        variant="primary"
+                        size="md"
                         onPress={onNavigate}
+                        className="px-4 ml-2"
+                        textWrapper={false}
                     >
-                        <Ionicons
-                            name="navigate"
-                            size={20}
-                            color="#FFFFFF"
-                        />
-                    </TouchableOpacity>
+                        <View className="flex-row items-center gap-1">
+                            <Ionicons name="navigate" size={18} color="#FFFFFF" />
+                            <Text className="text-white font-semibold text-base">Direct</Text>
+                        </View>
+                    </Button>
                 </View>
 
                 {/* Rating and Reviews */}
