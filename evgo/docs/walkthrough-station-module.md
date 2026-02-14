@@ -51,6 +51,10 @@ erDiagram
 |--------|----------|-------|
 | `GET` | `/api/v1/stations` | Danh sách trạm sạc đang hoạt động |
 | `GET` | `/api/v1/stations/{id}` | Chi tiết trạm sạc |
+| `GET` | `/api/v1/stations/search/nearby` | Tìm trạm quanh vị trí (theo bán kính) |
+| `GET` | `/api/v1/stations/search/text` | Tìm kiếm trạm theo tên/địa chỉ (full-text search) |
+| `GET` | `/api/v1/stations/in-bound` | Tìm trạm trong vùng hiển thị bản đồ (viewport) |
+| `GET` | `/api/v1/stations/directions` | Tìm đường đi từ điểm A đến B |
 
 ### Station Owner APIs
 
@@ -95,6 +99,12 @@ public interface StationService {
     // Cross-module APIs (dùng bởi Charger, Booking modules)
     void verifyOwnership(Long stationId);  // Throws if not owner
     boolean isOwner(Long stationId);       // Returns boolean
+
+    // Search APIs
+    List<StationSearchResult> searchNearby(SearchNearbyRequest request);
+    List<StationSearchResult> searchByText(SearchTextRequest request);
+    List<StationSearchResult> findStationsInBound(Double minLat, Double maxLat, Double minLng, Double maxLng,
+            Double userLat, Double userLng, Integer maxResults);
 }
 ```
 
@@ -180,15 +190,36 @@ public record StationOpeningHoursRequest(
 >   - `false`: Trạm **đóng cửa cả ngày** (ngày nghỉ, lễ). Khi này `openTime`/`closeTime` bị bỏ qua
 
 **Ví dụ JSON:**
-```json
 [
   { "dayOfWeek": "MONDAY", "isOpen": true, "openTime": "07:00", "closeTime": "22:00" },
   { "dayOfWeek": "SUNDAY", "isOpen": false, "openTime": null, "closeTime": null }
 ]
 ```
 
-### StationResponse
+### SearchNearbyRequest
 
+```java
+public record SearchNearbyRequest(
+    @NotNull Double latitude,
+    @NotNull Double longitude,
+    @Positive Double radiusKm,      // Default: 5.0
+    @Positive Integer maxResults    // Default: 20
+) {}
+```
+
+### SearchTextRequest
+
+```java
+public record SearchTextRequest(
+    @NotBlank String query,
+    Double latitude,                // Optional (kết hợp để sort theo khoảng cách)
+    Double longitude,               // Optional
+    @Positive Integer maxResults    // Default: 10
+) {}
+```
+
+### StationResponse
+DTO này có 1 số fields bị duplicated chưa được giải quyết. 
 ```java
 @Builder
 public record StationResponse(
@@ -203,11 +234,27 @@ public record StationResponse(
     StationStatus status,
     List<String> imageUrls,
     Boolean isFlaggedLowQuality,
+    Integer availableChargersCount,
+    Integer totalChargersCount,
+    List<ChargerSummary> chargers,
     List<StationOpeningHoursResponse> openingHours,
+    Integer totalPorts,
+    Integer availablePorts,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
-) {}
+) {
+    /**
+     * Charger summary for station detail
+     */
+    public record ChargerSummary(
+        String connectorType,
+        Integer available,
+        Integer total
+    ) {}
+}
 ```
+### StationDtoConverter
+Gặp tình trạng Circular Dependency chưa giải quyết root cause mà chỉ mới sử dụng @Lazy tại dependency point.
 
 ### StationOpeningHoursResponse
 
@@ -219,6 +266,27 @@ public record StationOpeningHoursResponse(
     LocalTime openTime,
     LocalTime closeTime,
     Boolean isOpen
+) {}
+```
+
+### StationSearchResult
+
+DTO tối ưu cho việc hiển thị danh sách trạm trên bản đồ và kết quả tìm kiếm.
+
+```java
+@Builder
+public record StationSearchResult(
+    Long id,
+    String name,
+    String address,
+    Double latitude,
+    Double longitude,
+    Double rate,
+    StationStatus status,
+    Boolean isFlaggedLowQuality,
+    Double distanceKm,             // Khoảng cách từ vị trí user (nếu có)
+    Integer availableChargersCount, // Số lượng trụ sạc còn trống
+    Integer totalChargersCount      // Tổng số trụ sạc
 ) {}
 ```
 
