@@ -23,7 +23,6 @@ import java.util.List;
 
 /**
  * REST Controller for station management.
- * Internal - not accessible by other modules, but exposed via HTTP.
  */
 @RestController
 @RequestMapping("/api/v1/stations")

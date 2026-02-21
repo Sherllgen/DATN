@@ -56,6 +56,14 @@ public enum ErrorCode {
     STATION_ALREADY_SUSPENDED(5006, HttpStatus.BAD_REQUEST, "Station is already suspended"),
     STATION_INVALID_STATUS_CHANGE(5007, HttpStatus.BAD_REQUEST, "Invalid station status change"),
 
+    // Station Photo errors (501x)
+    STATION_PHOTO_NOT_FOUND(5010, HttpStatus.NOT_FOUND, "Station photo not found"),
+    STATION_PHOTO_LIMIT_EXCEEDED(5011, HttpStatus.BAD_REQUEST, "Maximum number of photos exceeded"),
+
+    // Price Setting errors (502x)
+    PRICE_SETTING_NOT_FOUND(5020, HttpStatus.NOT_FOUND, "Price setting not found"),
+    INVALID_PRICE_VALUE(5021, HttpStatus.BAD_REQUEST, "Price value must be positive"),
+
     // Charger errors (6xxx)
     CHARGER_NOT_FOUND(6001, HttpStatus.NOT_FOUND, "Charger not found"),
     CHARGER_NOT_OWNED(6002, HttpStatus.FORBIDDEN, "You don't own this charger's station"),
