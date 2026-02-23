@@ -1,15 +1,18 @@
 package com.project.evgo.station.internal;
 
+import com.project.evgo.sharedkernel.dto.FileUploadResult;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
+import com.project.evgo.sharedkernel.infra.FileStorageService;
 import com.project.evgo.station.StationPhotoService;
 import com.project.evgo.station.StationService;
-import com.project.evgo.station.request.AddStationPhotoRequest;
 import com.project.evgo.station.request.UpdateStationPhotoRequest;
 import com.project.evgo.station.response.StationPhotoResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -19,19 +22,22 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StationPhotoServiceImpl implements StationPhotoService {
 
     private static final int MAX_PHOTOS_PER_STATION = 10;
+    private static final String CLOUDINARY_FOLDER = "stations/photos";
 
     private final StationPhotoRepository stationPhotoRepository;
     private final StationPhotoDtoConverter stationPhotoDtoConverter;
     private final StationService stationService;
+    private final FileStorageService fileStorageService;
 
     @Override
     @Transactional
-    public StationPhotoResponse addPhoto(Long stationId, AddStationPhotoRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("Request cannot be null");
+    public StationPhotoResponse addPhoto(Long stationId, MultipartFile file, String caption) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Image file is required");
         }
 
         // Verify station exists and current user owns it
@@ -43,11 +49,15 @@ public class StationPhotoServiceImpl implements StationPhotoService {
             throw new AppException(ErrorCode.STATION_PHOTO_LIMIT_EXCEEDED);
         }
 
+        // Upload to Cloudinary
+        FileUploadResult uploadResult = fileStorageService.saveImageFile(file, CLOUDINARY_FOLDER);
+
         StationPhoto photo = new StationPhoto();
         photo.setStationId(stationId);
-        photo.setImageUrl(request.imageUrl());
-        photo.setCaption(request.caption());
-        photo.setDisplayOrder(request.displayOrder() != null ? request.displayOrder() : currentCount);
+        photo.setImageUrl(uploadResult.fileUrl());
+        photo.setCloudinaryPublicId(uploadResult.publicId());
+        photo.setCaption(caption);
+        photo.setDisplayOrder(currentCount);
 
         StationPhoto saved = stationPhotoRepository.save(photo);
         return stationPhotoDtoConverter.convert(saved);
@@ -92,6 +102,15 @@ public class StationPhotoServiceImpl implements StationPhotoService {
         // Verify ownership
         stationService.verifyOwnership(photo.getStationId());
 
+        // Delete from Cloudinary
+        if (photo.getCloudinaryPublicId() != null) {
+            try {
+                fileStorageService.deleteFile(photo.getCloudinaryPublicId());
+            } catch (Exception e) {
+                log.warn("Failed to delete image from Cloudinary: {}", photo.getCloudinaryPublicId(), e);
+            }
+        }
+
         stationPhotoRepository.delete(photo);
     }
 
@@ -116,12 +135,12 @@ public class StationPhotoServiceImpl implements StationPhotoService {
 
         // Update display order
         for (int i = 0; i < photoIdsInOrder.size(); i++) {
-            Long photoId = photoIdsInOrder.get(i);
-            StationPhoto photo = existingPhotos.stream()
-                    .filter(p -> p.getId().equals(photoId))
+            Long photoIdVal = photoIdsInOrder.get(i);
+            StationPhoto p = existingPhotos.stream()
+                    .filter(ep -> ep.getId().equals(photoIdVal))
                     .findFirst()
                     .orElseThrow(() -> new AppException(ErrorCode.STATION_PHOTO_NOT_FOUND));
-            photo.setDisplayOrder(i);
+            p.setDisplayOrder(i);
         }
 
         List<StationPhoto> saved = stationPhotoRepository.saveAll(existingPhotos);

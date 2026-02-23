@@ -56,6 +56,35 @@ public class CloudinaryServiceImpl implements FileStorageService {
     }
 
     @Override
+    public FileUploadResult saveImageFile(MultipartFile file, String folder) {
+        try {
+            Map<String, Object> uploadParams = new HashMap<>();
+            uploadParams.put("resource_type", "image");
+            uploadParams.put("folder", folder);
+            uploadParams.put("public_id", UUID.randomUUID().toString());
+            uploadParams.put("quality", "auto");
+            uploadParams.put("fetch_format", "auto");
+
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    uploadParams);
+
+            String cloudinaryUrl = (String) uploadResult.get("secure_url");
+            String publicId = (String) uploadResult.get("public_id");
+            log.info("Image uploaded to Cloudinary: folder={}, publicId={}", folder, publicId);
+
+            return FileUploadResult.builder()
+                    .fileUrl(cloudinaryUrl)
+                    .publicId(publicId)
+                    .build();
+
+        } catch (IOException e) {
+            log.error("Failed to upload image to Cloudinary: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED, "Failed to upload image to Cloudinary");
+        }
+    }
+
+    @Override
     public FileUploadResult savePdfFile(MultipartFile file) {
         try {
             Map<String, Object> uploadParams = new HashMap<>();

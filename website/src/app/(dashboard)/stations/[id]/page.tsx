@@ -60,6 +60,9 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { PhotoManager, StationPhoto } from "@/components/station/photo-manager";
+import { PricingEditor, PriceSetting } from "@/components/station/pricing-editor";
+import { PricingHistory } from "@/components/station/pricing-history";
 
 type StationStatus = "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
 type ConnectorType = "SOCKET_220V" | "VINFAST_STD" | "DATBIKE_FAST" | "IEC_TYPE_2" | "OTHER";
@@ -175,6 +178,11 @@ export default function StationDetailPage() {
     const [portToDelete, setPortToDelete] = useState<Port | null>(null);
     const [deleting, setDeleting] = useState(false);
 
+    // Photos & Pricing State
+    const [photos, setPhotos] = useState<StationPhoto[]>([]);
+    const [activePricing, setActivePricing] = useState<PriceSetting | null>(null);
+    const [pricingRefreshKey, setPricingRefreshKey] = useState(0);
+
     useEffect(() => {
         fetchData();
     }, [stationId]);
@@ -182,9 +190,11 @@ export default function StationDetailPage() {
     async function fetchData() {
         try {
             setLoading(true);
-            const [stationRes, chargersRes] = await Promise.all([
+            const [stationRes, chargersRes, photosRes, pricingRes] = await Promise.all([
                 axios.get(`/api/stations/${stationId}`, { withCredentials: true }),
                 axios.get(`/api/chargers?stationId=${stationId}`, { withCredentials: true }),
+                axios.get(`/api/stations/${stationId}/photos`, { withCredentials: true }).catch(() => ({ data: { data: [] } })),
+                axios.get(`/api/stations/${stationId}/pricing`, { withCredentials: true }).catch(() => ({ data: { data: null } })),
             ]);
 
             if (stationRes.data?.data) {
@@ -193,6 +203,8 @@ export default function StationDetailPage() {
             if (chargersRes.data?.data) {
                 setChargers(chargersRes.data.data);
             }
+            setPhotos(photosRes.data?.data || []);
+            setActivePricing(pricingRes.data?.data || null);
         } catch (error) {
             console.error("Failed to fetch data:", error);
             toast.error("Failed to load station data");
@@ -200,6 +212,19 @@ export default function StationDetailPage() {
         } finally {
             setLoading(false);
         }
+    }
+
+    function refreshPhotos() {
+        axios.get(`/api/stations/${stationId}/photos`, { withCredentials: true })
+            .then((res) => setPhotos(res.data?.data || []))
+            .catch(console.error);
+    }
+
+    function refreshPricing() {
+        axios.get(`/api/stations/${stationId}/pricing`, { withCredentials: true })
+            .then((res) => setActivePricing(res.data?.data || null))
+            .catch(console.error);
+        setPricingRefreshKey((k) => k + 1);
     }
 
     async function fetchPorts(chargerId: number) {
@@ -499,6 +524,26 @@ export default function StationDetailPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Station Photos */}
+            <PhotoManager
+                stationId={parseInt(stationId)}
+                photos={photos}
+                onPhotosChange={refreshPhotos}
+            />
+
+            {/* Pricing Configuration */}
+            <PricingEditor
+                stationId={parseInt(stationId)}
+                activePricing={activePricing}
+                onPricingChange={refreshPricing}
+            />
+
+            {/* Pricing History */}
+            <PricingHistory
+                stationId={parseInt(stationId)}
+                refreshKey={pricingRefreshKey}
+            />
 
             {/* Chargers Section */}
             <Card>

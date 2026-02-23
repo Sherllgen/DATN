@@ -34,6 +34,9 @@ public class StationPhoto {
     @Column(length = 255)
     private String caption;
 
+    @Column(name = "cloudinary_public_id", length = 255)
+    private String cloudinaryPublicId;
+
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
 

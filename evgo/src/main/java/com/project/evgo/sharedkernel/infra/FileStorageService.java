@@ -11,4 +11,6 @@ public interface FileStorageService {
     void deleteFile(String publicId);
 
     FileUploadResult savePdfFile(MultipartFile file);
+
+    FileUploadResult saveImageFile(MultipartFile file, String folder);
 }

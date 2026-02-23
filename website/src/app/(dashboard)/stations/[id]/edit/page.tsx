@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,7 @@ import {
     DayOfWeek,
     getDefaultOpeningHours,
 } from "@/components/station/opening-hours-editor";
+import { LocationPicker } from "@/components/station/location-picker";
 
 const stationSchema = z.object({
     name: z.string().min(1, "Station name is required").max(200),
@@ -282,64 +283,14 @@ export default function EditStationPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <MapPin className="h-5 w-5" />
-                                Location on Map
-                            </CardTitle>
-                            <CardDescription>
-                                Update the GPS coordinates of your station
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="latitude"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Latitude *</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    step="any"
-                                                    placeholder="e.g. 10.7769"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Value from -90 to 90
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="longitude"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Longitude *</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    step="any"
-                                                    placeholder="e.g. 106.7009"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Value from -180 to 180
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <LocationPicker
+                        latitude={form.watch("latitude")}
+                        longitude={form.watch("longitude")}
+                        onLocationChange={(lat, lng) => {
+                            form.setValue("latitude", lat, { shouldValidate: true });
+                            form.setValue("longitude", lng, { shouldValidate: true });
+                        }}
+                    />
 
                     <OpeningHoursEditor
                         value={openingHours}

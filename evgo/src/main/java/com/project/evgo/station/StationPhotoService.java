@@ -1,8 +1,8 @@
 package com.project.evgo.station;
 
-import com.project.evgo.station.request.AddStationPhotoRequest;
 import com.project.evgo.station.request.UpdateStationPhotoRequest;
 import com.project.evgo.station.response.StationPhotoResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -13,13 +13,14 @@ import java.util.List;
 public interface StationPhotoService {
 
     /**
-     * Add a new photo to a station.
+     * Add a new photo to a station by uploading a file.
      *
      * @param stationId Station ID
-     * @param request   Photo details
+     * @param file      Image file to upload
+     * @param caption   Optional caption
      * @return Created photo response
      */
-    StationPhotoResponse addPhoto(Long stationId, AddStationPhotoRequest request);
+    StationPhotoResponse addPhoto(Long stationId, MultipartFile file, String caption);
 
     /**
      * Get all photos for a station, ordered by displayOrder.
@@ -39,7 +40,7 @@ public interface StationPhotoService {
     StationPhotoResponse updatePhoto(Long photoId, UpdateStationPhotoRequest request);
 
     /**
-     * Delete a photo.
+     * Delete a photo (also removes from Cloudinary).
      *
      * @param photoId Photo ID
      */

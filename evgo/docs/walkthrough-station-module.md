@@ -10,8 +10,8 @@ Module quản lý trạm sạc, cho phép Station Owner tạo, cập nhật và 
 |------------|---------|
 | **Package** | `com.project.evgo.station` |
 | **Display Name** | Station Management |
-| **Số Services** | 2 (StationService, StationAdminService) |
-| **Số Controllers** | 2 (StationController, StationAdminController) |
+| **Số Services** | 4 (StationService, StationAdminService, StationPhotoService, PriceSettingService) |
+| **Số Controllers** | 4 (StationController, StationAdminController, StationPhotoController, PriceSettingController) |
 
 ---
 
@@ -21,6 +21,8 @@ Module quản lý trạm sạc, cho phép Station Owner tạo, cập nhật và 
 erDiagram
     STATION ||--o{ CHARGER : has
     STATION ||--o{ STATION_OPENING_HOURS : has
+    STATION ||--o{ STATION_PHOTO : has
+    STATION ||--o{ PRICE_SETTING : has
 
     STATION {
         Long id
@@ -39,6 +41,28 @@ erDiagram
         LocalTime closeTime
         Boolean isOpen
     }
+
+    STATION_PHOTO {
+        Long id
+        Long stationId
+        String imageUrl
+        String caption
+        Integer displayOrder
+        LocalDateTime createdAt
+    }
+
+    PRICE_SETTING {
+        Long id
+        Long stationId
+        Integer version
+        BigDecimal chargingRatePerKwh
+        BigDecimal bookingFee
+        BigDecimal idlePenaltyPerMinute
+        Integer gracePeriodMinutes
+        Boolean isActive
+        String notes
+        LocalDateTime effectiveFrom
+    }
 ```
 
 ---
@@ -55,6 +79,9 @@ erDiagram
 | `GET` | `/api/v1/stations/search/text` | Tìm kiếm trạm theo tên/địa chỉ (full-text search) |
 | `GET` | `/api/v1/stations/in-bound` | Tìm trạm trong vùng hiển thị bản đồ (viewport) |
 | `GET` | `/api/v1/stations/directions` | Tìm đường đi từ điểm A đến B |
+| `GET` | `/api/v1/stations/{id}/photos` | Danh sách ảnh trạm sạc |
+| `GET` | `/api/v1/stations/{id}/pricing` | Bảng giá hiện tại của trạm |
+| `GET` | `/api/v1/stations/{id}/pricing/calculate-idle-fee?overstayMinutes=N` | Tính phí phạt quá giờ |
 
 ### Station Owner APIs
 
@@ -65,6 +92,22 @@ erDiagram
 | `PUT` | `/api/v1/stations/{id}` | Cập nhật thông tin trạm | STATION_OWNER |
 | `DELETE` | `/api/v1/stations/{id}` | Xóa trạm (soft delete) | STATION_OWNER |
 | `PATCH` | `/api/v1/stations/{id}/status` | Cập nhật trạng thái | STATION_OWNER |
+
+### Station Photo APIs (STATION_OWNER)
+
+| Method | Endpoint | Mô tả | Role |
+|--------|----------|-------|------|
+| `POST` | `/api/v1/stations/{id}/photos` | Thêm ảnh (tối đa 10) | STATION_OWNER |
+| `PUT` | `/api/v1/stations/{id}/photos/{photoId}` | Cập nhật caption/thứ tự | STATION_OWNER |
+| `DELETE` | `/api/v1/stations/{id}/photos/{photoId}` | Xóa ảnh | STATION_OWNER |
+| `PUT` | `/api/v1/stations/{id}/photos/reorder` | Sắp xếp lại thứ tự ảnh | STATION_OWNER |
+
+### Station Pricing APIs (STATION_OWNER)
+
+| Method | Endpoint | Mô tả | Role |
+|--------|----------|-------|------|
+| `POST` | `/api/v1/stations/{id}/pricing` | Tạo version bảng giá mới | STATION_OWNER |
+| `GET` | `/api/v1/stations/{id}/pricing/history` | Lịch sử thay đổi bảng giá | STATION_OWNER |
 
 ### Admin APIs
 
@@ -103,8 +146,7 @@ public interface StationService {
     // Search APIs
     List<StationSearchResult> searchNearby(SearchNearbyRequest request);
     List<StationSearchResult> searchByText(SearchTextRequest request);
-    List<StationSearchResult> findStationsInBound(Double minLat, Double maxLat, Double minLng, Double maxLng,
-            Double userLat, Double userLng, Integer maxResults);
+    List<StationSearchResult> findStationsInBound(...);
 }
 ```
 
@@ -120,6 +162,34 @@ public interface StationAdminService {
     void unsuspendStation(Long stationId);
 }
 ```
+
+### StationPhotoService
+
+```java
+public interface StationPhotoService {
+    StationPhotoResponse addPhoto(Long stationId, AddStationPhotoRequest request);   // Max 10 per station
+    List<StationPhotoResponse> getPhotos(Long stationId);
+    StationPhotoResponse updatePhoto(Long photoId, UpdateStationPhotoRequest request);
+    void deletePhoto(Long photoId);
+    List<StationPhotoResponse> reorderPhotos(Long stationId, List<Long> photoIdsInOrder);
+    void deleteAllPhotos(Long stationId);
+}
+```
+
+### PriceSettingService
+
+```java
+public interface PriceSettingService {
+    PriceSettingResponse createPriceSetting(Long stationId, CreatePriceSettingRequest request);
+    PriceSettingResponse getActivePriceSetting(Long stationId);
+    List<PriceSettingResponse> getPricingHistory(Long stationId);  // Owner only
+    BigDecimal calculateIdleFee(Long stationId, int overstayMinutes);
+}
+```
+
+> [!NOTE]
+> **Pricing Versioning**: Mỗi lần tạo bảng giá mới, version cũ tự động bị deactivate.
+> Idle fee = `max(0, overstayMinutes - gracePeriodMinutes) × idlePenaltyPerMinute`
 
 ---
 
@@ -421,6 +491,9 @@ public enum StationStatus {
 
 - ✅ Xem danh sách trạm sạc đang hoạt động
 - ✅ Xem chi tiết thông tin trạm sạc
+- ✅ Xem ảnh trạm sạc
+- ✅ Xem bảng giá hiện tại
+- ✅ Tính phí phạt quá giờ
 
 ### Station Owner Features
 
@@ -429,7 +502,10 @@ public enum StationStatus {
 - ✅ Xóa trạm sạc (soft delete)
 - ✅ Quản lý trạng thái trạm (ACTIVE ↔ INACTIVE)
 - ✅ Xem danh sách trạm của mình
-- ✅ **[NEW]** Cấu hình giờ hoạt động (opening hours)
+- ✅ Cấu hình giờ hoạt động (opening hours)
+- ✅ **[NEW]** Quản lý ảnh trạm (thêm/sửa/xóa/sắp xếp, tối đa 10 ảnh)
+- ✅ **[NEW]** Cấu hình bảng giá động (versioning, grace period, idle penalty)
+- ✅ **[NEW]** Xem lịch sử thay đổi bảng giá
 
 ### Admin Features
 
@@ -451,28 +527,46 @@ public enum StationStatus {
 
 ```
 station/
-├── package-info.java              # @ApplicationModule
-├── StationService.java            # Public service interface
-├── StationAdminService.java       # Admin service interface
+├── package-info.java                  # @ApplicationModule
+├── StationService.java                # Public service interface
+├── StationAdminService.java           # Admin service interface
+├── StationPhotoService.java           # [NEW] Photo service interface
+├── PriceSettingService.java           # [NEW] Pricing service interface
 ├── request/
 │   ├── CreateStationRequest.java
 │   ├── UpdateStationRequest.java
 │   ├── StationOpeningHoursRequest.java
 │   ├── RejectStationRequest.java
-│   └── SuspendStationRequest.java
+│   ├── SuspendStationRequest.java
+│   ├── AddStationPhotoRequest.java    # [NEW]
+│   ├── UpdateStationPhotoRequest.java # [NEW]
+│   ├── ReorderStationPhotosRequest.java # [NEW]
+│   └── CreatePriceSettingRequest.java # [NEW]
 ├── response/
 │   ├── StationResponse.java
-│   └── StationOpeningHoursResponse.java
+│   ├── StationOpeningHoursResponse.java
+│   ├── StationPhotoResponse.java      # [NEW]
+│   └── PriceSettingResponse.java      # [NEW]
 └── internal/
-    ├── Station.java               # Entity
-    ├── StationOpeningHours.java   # Entity
+    ├── Station.java                   # Entity
+    ├── StationOpeningHours.java       # Entity
+    ├── StationPhoto.java              # [NEW] Entity
+    ├── PriceSetting.java              # [NEW] Entity (versioned)
     ├── StationRepository.java
+    ├── StationPhotoRepository.java    # [NEW]
+    ├── PriceSettingRepository.java    # [NEW]
     ├── StationDtoConverter.java
+    ├── StationPhotoDtoConverter.java  # [NEW]
+    ├── PriceSettingDtoConverter.java  # [NEW]
     ├── StationServiceImpl.java
     ├── StationAdminServiceImpl.java
+    ├── StationPhotoServiceImpl.java   # [NEW]
+    ├── PriceSettingServiceImpl.java   # [NEW]
     └── web/
         ├── StationController.java
-        └── StationAdminController.java
+        ├── StationAdminController.java
+        ├── StationPhotoController.java    # [NEW]
+        └── PriceSettingController.java    # [NEW]
 ```
 
 ---
@@ -499,3 +593,9 @@ Module `station` được sử dụng bởi:
 4. **Admin Actions**: Chỉ `SUPER_ADMIN` mới có quyền approve/reject/suspend/unsuspend stations.
 
 5. **Status Validation**: Hệ thống kiểm tra và chặn các chuyển đổi status không hợp lệ (VD: không thể suspend trạm PENDING).
+
+6. **Photo Limit**: Mỗi trạm tối đa 10 ảnh. Ảnh được sắp xếp theo `displayOrder`.
+
+7. **Price Versioning**: Bảng giá là immutable. Tạo mới sẽ tự động deactivate version cũ. Grace period mặc định 30 phút.
+
+8. **Idle Fee Calculation**: `max(0, overstayMinutes - gracePeriodMinutes) × idlePenaltyPerMinute`. Nếu penalty = null/0, phí luôn = 0.

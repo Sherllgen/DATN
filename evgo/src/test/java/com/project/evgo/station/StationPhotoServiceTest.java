@@ -1,12 +1,13 @@
 package com.project.evgo.station;
 
+import com.project.evgo.sharedkernel.dto.FileUploadResult;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
+import com.project.evgo.sharedkernel.infra.FileStorageService;
 import com.project.evgo.station.internal.StationPhoto;
 import com.project.evgo.station.internal.StationPhotoDtoConverter;
 import com.project.evgo.station.internal.StationPhotoRepository;
 import com.project.evgo.station.internal.StationPhotoServiceImpl;
-import com.project.evgo.station.request.AddStationPhotoRequest;
 import com.project.evgo.station.request.UpdateStationPhotoRequest;
 import com.project.evgo.station.response.StationPhotoResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,12 +28,12 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for StationPhotoService.
- * Tests are written BEFORE implementation (TDD approach).
  */
 @ExtendWith(MockitoExtension.class)
 class StationPhotoServiceTest {
@@ -47,19 +50,25 @@ class StationPhotoServiceTest {
     @Mock
     private StationService stationService;
 
+    @Mock
+    private FileStorageService fileStorageService;
+
     private static final Long STATION_ID = 100L;
     private static final Long PHOTO_ID = 200L;
     private static final Long OTHER_PHOTO_ID = 201L;
 
     private StationPhoto testPhoto;
     private StationPhotoResponse testPhotoResponse;
+    private MockMultipartFile testFile;
+    private FileUploadResult testUploadResult;
 
     @BeforeEach
     void setUp() {
         testPhoto = new StationPhoto();
         testPhoto.setId(PHOTO_ID);
         testPhoto.setStationId(STATION_ID);
-        testPhoto.setImageUrl("https://example.com/photo1.jpg");
+        testPhoto.setImageUrl("https://res.cloudinary.com/demo/image/upload/photo1.jpg");
+        testPhoto.setCloudinaryPublicId("stations/photos/abc123");
         testPhoto.setCaption("Main entrance");
         testPhoto.setDisplayOrder(0);
         testPhoto.setCreatedAt(LocalDateTime.now());
@@ -67,10 +76,18 @@ class StationPhotoServiceTest {
         testPhotoResponse = StationPhotoResponse.builder()
                 .id(PHOTO_ID)
                 .stationId(STATION_ID)
-                .imageUrl("https://example.com/photo1.jpg")
+                .imageUrl("https://res.cloudinary.com/demo/image/upload/photo1.jpg")
                 .caption("Main entrance")
                 .displayOrder(0)
                 .createdAt(testPhoto.getCreatedAt())
+                .build();
+
+        testFile = new MockMultipartFile(
+                "file", "photo.jpg", "image/jpeg", "fake-image-bytes".getBytes());
+
+        testUploadResult = FileUploadResult.builder()
+                .fileUrl("https://res.cloudinary.com/demo/image/upload/photo1.jpg")
+                .publicId("stations/photos/abc123")
                 .build();
     }
 
@@ -81,49 +98,63 @@ class StationPhotoServiceTest {
     class AddPhotoTests {
 
         @Test
-        @DisplayName("Should add photo successfully with valid request")
-        void addPhoto_ValidRequest_ReturnsPhotoResponse() {
+        @DisplayName("Should upload and add photo successfully")
+        void addPhoto_ValidFile_UploadsAndReturnsPhotoResponse() {
             // Given
-            AddStationPhotoRequest request = new AddStationPhotoRequest(
-                    "https://example.com/new-photo.jpg",
-                    "Station front view",
-                    0);
-
             doNothing().when(stationService).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.countByStationId(STATION_ID)).thenReturn(3);
+            when(fileStorageService.saveImageFile(any(MultipartFile.class), anyString()))
+                    .thenReturn(testUploadResult);
             when(stationPhotoRepository.save(any(StationPhoto.class))).thenReturn(testPhoto);
             when(stationPhotoDtoConverter.convert(any(StationPhoto.class))).thenReturn(testPhotoResponse);
 
             // When
-            StationPhotoResponse result = stationPhotoService.addPhoto(STATION_ID, request);
+            StationPhotoResponse result = stationPhotoService.addPhoto(STATION_ID, testFile, "Main entrance");
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.imageUrl()).isEqualTo("https://example.com/photo1.jpg");
-            verify(stationService).verifyOwnership(STATION_ID);
+            assertThat(result.imageUrl()).contains("cloudinary");
+            verify(fileStorageService).saveImageFile(testFile, "stations/photos");
             verify(stationPhotoRepository).save(any(StationPhoto.class));
         }
 
         @Test
-        @DisplayName("Should auto-assign displayOrder when not provided")
-        void addPhoto_NoDisplayOrder_AssignsOrderBasedOnCount() {
+        @DisplayName("Should store cloudinaryPublicId on saved photo")
+        void addPhoto_ValidFile_StoresPublicId() {
             // Given
-            AddStationPhotoRequest request = new AddStationPhotoRequest(
-                    "https://example.com/new-photo.jpg",
-                    "Side view",
-                    null); // No displayOrder
+            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            when(stationPhotoRepository.countByStationId(STATION_ID)).thenReturn(0);
+            when(fileStorageService.saveImageFile(any(MultipartFile.class), anyString()))
+                    .thenReturn(testUploadResult);
+            when(stationPhotoRepository.save(any(StationPhoto.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(stationPhotoDtoConverter.convert(any(StationPhoto.class))).thenReturn(testPhotoResponse);
 
+            // When
+            stationPhotoService.addPhoto(STATION_ID, testFile, "Caption");
+
+            // Then
+            verify(stationPhotoRepository)
+                    .save(argThat(photo -> "stations/photos/abc123".equals(photo.getCloudinaryPublicId())
+                            && photo.getImageUrl().contains("cloudinary")));
+        }
+
+        @Test
+        @DisplayName("Should auto-assign displayOrder based on current count")
+        void addPhoto_NoExplicitOrder_AssignsOrderBasedOnCount() {
+            // Given
             doNothing().when(stationService).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.countByStationId(STATION_ID)).thenReturn(5);
-            when(stationPhotoRepository.save(any(StationPhoto.class))).thenAnswer(invocation -> {
-                StationPhoto saved = invocation.getArgument(0);
+            when(fileStorageService.saveImageFile(any(MultipartFile.class), anyString()))
+                    .thenReturn(testUploadResult);
+            when(stationPhotoRepository.save(any(StationPhoto.class))).thenAnswer(inv -> {
+                StationPhoto saved = inv.getArgument(0);
                 saved.setId(PHOTO_ID);
                 return saved;
             });
             when(stationPhotoDtoConverter.convert(any(StationPhoto.class))).thenReturn(testPhotoResponse);
 
             // When
-            stationPhotoService.addPhoto(STATION_ID, request);
+            stationPhotoService.addPhoto(STATION_ID, testFile, "Side view");
 
             // Then - displayOrder should be set to current count (5)
             verify(stationPhotoRepository).save(argThat(photo -> photo.getDisplayOrder() == 5));
@@ -133,14 +164,11 @@ class StationPhotoServiceTest {
         @DisplayName("Should throw exception when station not found")
         void addPhoto_StationNotFound_ThrowsNotFound() {
             // Given
-            AddStationPhotoRequest request = new AddStationPhotoRequest(
-                    "https://example.com/photo.jpg", "Caption", 0);
-
             doThrow(new AppException(ErrorCode.STATION_NOT_FOUND))
                     .when(stationService).verifyOwnership(STATION_ID);
 
             // When & Then
-            assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, request))
+            assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, testFile, "Caption"))
                     .isInstanceOf(AppException.class)
                     .satisfies(ex -> {
                         AppException appEx = (AppException) ex;
@@ -154,14 +182,11 @@ class StationPhotoServiceTest {
         @DisplayName("Should throw exception when user is not station owner")
         void addPhoto_NotOwner_ThrowsForbidden() {
             // Given
-            AddStationPhotoRequest request = new AddStationPhotoRequest(
-                    "https://example.com/photo.jpg", "Caption", 0);
-
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
                     .when(stationService).verifyOwnership(STATION_ID);
 
             // When & Then
-            assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, request))
+            assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, testFile, "Caption"))
                     .isInstanceOf(AppException.class)
                     .satisfies(ex -> {
                         AppException appEx = (AppException) ex;
@@ -175,14 +200,11 @@ class StationPhotoServiceTest {
         @DisplayName("Should throw exception when max photos exceeded")
         void addPhoto_MaxPhotosExceeded_ThrowsException() {
             // Given
-            AddStationPhotoRequest request = new AddStationPhotoRequest(
-                    "https://example.com/photo.jpg", "Caption", 0);
-
             doNothing().when(stationService).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.countByStationId(STATION_ID)).thenReturn(10); // At limit
 
             // When & Then
-            assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, request))
+            assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, testFile, "Caption"))
                     .isInstanceOf(AppException.class)
                     .satisfies(ex -> {
                         AppException appEx = (AppException) ex;
@@ -190,13 +212,26 @@ class StationPhotoServiceTest {
                     });
 
             verify(stationPhotoRepository, never()).save(any());
+            verify(fileStorageService, never()).saveImageFile(any(), anyString());
         }
 
         @Test
-        @DisplayName("Should throw exception when request is null")
-        void addPhoto_NullRequest_ThrowsException() {
+        @DisplayName("Should throw exception when file is null")
+        void addPhoto_NullFile_ThrowsException() {
             // When & Then
-            assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, null))
+            assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, null, "Caption"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("Should throw exception when file is empty")
+        void addPhoto_EmptyFile_ThrowsException() {
+            // Given
+            MockMultipartFile emptyFile = new MockMultipartFile(
+                    "file", "empty.jpg", "image/jpeg", new byte[0]);
+
+            // When & Then
+            assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, emptyFile, "Caption"))
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
@@ -353,8 +388,8 @@ class StationPhotoServiceTest {
     class DeletePhotoTests {
 
         @Test
-        @DisplayName("Should delete photo successfully when owner is correct")
-        void deletePhoto_ValidOwner_DeletesPhoto() {
+        @DisplayName("Should delete photo and cleanup Cloudinary")
+        void deletePhoto_ValidOwner_DeletesPhotoAndCloudinary() {
             // Given
             when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
             doNothing().when(stationService).verifyOwnership(STATION_ID);
@@ -363,6 +398,39 @@ class StationPhotoServiceTest {
             stationPhotoService.deletePhoto(PHOTO_ID);
 
             // Then
+            verify(fileStorageService).deleteFile("stations/photos/abc123");
+            verify(stationPhotoRepository).delete(testPhoto);
+        }
+
+        @Test
+        @DisplayName("Should still delete from DB even if Cloudinary cleanup fails")
+        void deletePhoto_CloudinaryFails_StillDeletesFromDb() {
+            // Given
+            when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
+            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doThrow(new RuntimeException("Cloudinary error"))
+                    .when(fileStorageService).deleteFile(anyString());
+
+            // When
+            stationPhotoService.deletePhoto(PHOTO_ID);
+
+            // Then — DB delete should still happen
+            verify(stationPhotoRepository).delete(testPhoto);
+        }
+
+        @Test
+        @DisplayName("Should skip Cloudinary cleanup when no publicId")
+        void deletePhoto_NoPublicId_SkipsCloudinaryCleanup() {
+            // Given
+            testPhoto.setCloudinaryPublicId(null);
+            when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
+            doNothing().when(stationService).verifyOwnership(STATION_ID);
+
+            // When
+            stationPhotoService.deletePhoto(PHOTO_ID);
+
+            // Then
+            verify(fileStorageService, never()).deleteFile(anyString());
             verify(stationPhotoRepository).delete(testPhoto);
         }
 
