@@ -70,6 +70,14 @@ public enum ErrorCode {
     // Navigation errors (9xxx)
     NAVIGATION_SERVICE_UNAVAILABLE(9001, HttpStatus.SERVICE_UNAVAILABLE, "Navigation service unavailable"),
     ROUTE_CALCULATION_FAILED(9002, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to calculate route"),
+
+    // Payment / ZaloPay errors (10xxx)
+    ZALOPAY_ORDER_CREATION_FAILED(10001, HttpStatus.BAD_GATEWAY, "Failed to create ZaloPay order"),
+    ZALOPAY_INVALID_CALLBACK_MAC(10002, HttpStatus.UNAUTHORIZED, "Invalid ZaloPay callback MAC signature"),
+    ZALOPAY_ORDER_NOT_FOUND(10003, HttpStatus.NOT_FOUND, "ZaloPay order not found"),
+    ZALOPAY_QUERY_FAILED(10004, HttpStatus.BAD_GATEWAY, "Failed to query ZaloPay order status"),
+    INVOICE_NOT_FOUND(10005, HttpStatus.NOT_FOUND, "Invoice not found"),
+    INVOICE_ALREADY_PAID(10006, HttpStatus.CONFLICT, "Invoice has already been paid"),
     ;
 
     private final int code;

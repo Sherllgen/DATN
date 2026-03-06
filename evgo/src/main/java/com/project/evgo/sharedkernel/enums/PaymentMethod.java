@@ -5,5 +5,6 @@ package com.project.evgo.sharedkernel.enums;
  */
 public enum PaymentMethod {
     MOMO, // MoMo e-wallet
+    ZALOPAY, // ZaloPay e-wallet (App-to-App)
     BANK_TRANSFER // Bank transfer
 }

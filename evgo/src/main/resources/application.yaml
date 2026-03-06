@@ -110,3 +110,10 @@ cloudinary:
     cloud-name: ${CLOUD_NAME}
     api-key: ${CLOUD_API_KEY}
     api-secret: ${CLOUD_API_SECRET}
+
+zalopay:
+  app-id: ${ZALOPAY_APP_ID}
+  key1: ${ZALOPAY_KEY1}
+  key2: ${ZALOPAY_KEY2}
+  endpoint: ${ZALOPAY_ENDPOINT}
+  callback-url: ${ZALOPAY_CALLBACK_URL}
