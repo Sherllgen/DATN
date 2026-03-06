@@ -1,6 +1,7 @@
 package com.project.evgo.charger.internal;
 
 import com.project.evgo.charger.ChargerService;
+import com.project.evgo.charger.ChargerStatistic;
 import com.project.evgo.charger.request.CreateChargerRequest;
 import com.project.evgo.charger.request.CreatePortRequest;
 import com.project.evgo.charger.response.ChargerResponse;
@@ -167,7 +168,9 @@ public class ChargerServiceImpl implements ChargerService {
     }
 
     @Override
-    public List<ChargerStatisticProjection> findStatisticsByStationId(Long stationId) {
-        return chargerRepository.findStatisticsByStationId(stationId);
+    public List<ChargerStatistic> findStatisticsByStationId(Long stationId) {
+        return chargerRepository.findStatisticsByStationId(stationId).stream()
+                .map(p -> new ChargerStatistic(p.getType(), p.getStatus(), p.getCount()))
+                .toList();
     }
 }

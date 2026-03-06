@@ -4,12 +4,11 @@ import com.project.evgo.station.PortCountProvider;
 import com.project.evgo.station.PortCounts;
 import com.project.evgo.station.response.StationOpeningHoursResponse;
 import com.project.evgo.charger.ChargerService;
-import com.project.evgo.charger.internal.ChargerStatisticProjection;
+import com.project.evgo.charger.ChargerStatistic;
 import com.project.evgo.sharedkernel.enums.ChargerStatus;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
 import com.project.evgo.sharedkernel.utils.GeoUtils;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -28,8 +27,7 @@ public class StationDtoConverter {
         private final ChargerService chargerService;
 
         // Explicit constructor to apply @Lazy annotation
-        public StationDtoConverter(PortCountProvider portCountProvider,
-                        @Lazy ChargerService chargerService) {
+        public StationDtoConverter(PortCountProvider portCountProvider, ChargerService chargerService) {
                 this.portCountProvider = portCountProvider;
                 this.chargerService = chargerService;
         }
@@ -41,29 +39,29 @@ public class StationDtoConverter {
                 int availablePorts = counts.availablePorts();
 
                 // Get charger statistics directly from DB
-                List<ChargerStatisticProjection> stats = chargerService.findStatisticsByStationId(from.getId());
+                List<ChargerStatistic> stats = chargerService.findStatisticsByStationId(from.getId());
 
                 // Calculate counts
-                int totalChargers = (int) stats.stream().mapToLong(ChargerStatisticProjection::getCount).sum();
+                int totalChargers = (int) stats.stream().mapToLong(ChargerStatistic::count).sum();
                 int availableChargers = (int) stats.stream()
-                                .filter(s -> s.getStatus() == ChargerStatus.AVAILABLE)
-                                .mapToLong(ChargerStatisticProjection::getCount)
+                                .filter(s -> s.status() == ChargerStatus.AVAILABLE)
+                                .mapToLong(ChargerStatistic::count)
                                 .sum();
 
                 // Group by connector type
-                Map<String, List<ChargerStatisticProjection>> statsByType = stats.stream()
-                                .collect(Collectors.groupingBy(s -> s.getType().name()));
+                Map<String, List<ChargerStatistic>> statsByType = stats.stream()
+                                .collect(Collectors.groupingBy(s -> s.type().name()));
 
                 // Create charger summaries
                 List<StationResponse.ChargerSummary> chargerSummaries = statsByType.entrySet().stream()
                                 .map(entry -> {
                                         String type = entry.getKey();
-                                        List<ChargerStatisticProjection> typeStats = entry.getValue();
+                                        List<ChargerStatistic> typeStats = entry.getValue();
                                         int total = (int) typeStats.stream()
-                                                        .mapToLong(ChargerStatisticProjection::getCount).sum();
+                                                        .mapToLong(ChargerStatistic::count).sum();
                                         int available = (int) typeStats.stream()
-                                                        .filter(s -> s.getStatus() == ChargerStatus.AVAILABLE)
-                                                        .mapToLong(ChargerStatisticProjection::getCount)
+                                                        .filter(s -> s.status() == ChargerStatus.AVAILABLE)
+                                                        .mapToLong(ChargerStatistic::count)
                                                         .sum();
                                         return new StationResponse.ChargerSummary(type, available, total);
                                 })

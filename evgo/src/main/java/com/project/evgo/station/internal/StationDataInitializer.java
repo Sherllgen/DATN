@@ -15,7 +15,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -358,22 +357,23 @@ public class StationDataInitializer implements CommandLineRunner {
                 return openingHours;
         }
 
-        private List<StationOpeningHours> createCustomOpeningHours(Station station, LocalTime openTime,
-                        LocalTime closeTime) {
-                List<StationOpeningHours> openingHours = new ArrayList<>();
+        // private List<StationOpeningHours> createCustomOpeningHours(Station station,
+        // LocalTime openTime,
+        // LocalTime closeTime) {
+        // List<StationOpeningHours> openingHours = new ArrayList<>();
 
-                for (DayOfWeek day : DayOfWeek.values()) {
-                        StationOpeningHours hours = new StationOpeningHours();
-                        hours.setStation(station);
-                        hours.setDayOfWeek(day);
-                        hours.setOpenTime(openTime);
-                        hours.setCloseTime(closeTime);
-                        hours.setIsOpen(true);
-                        openingHours.add(hours);
-                }
+        // for (DayOfWeek day : DayOfWeek.values()) {
+        // StationOpeningHours hours = new StationOpeningHours();
+        // hours.setStation(station);
+        // hours.setDayOfWeek(day);
+        // hours.setOpenTime(openTime);
+        // hours.setCloseTime(closeTime);
+        // hours.setIsOpen(true);
+        // openingHours.add(hours);
+        // }
 
-                return openingHours;
-        }
+        // return openingHours;
+        // }
 
         private Charger createCharger(String name, double maxPower, ConnectorType connectorType, ChargerStatus status) {
                 Charger charger = new Charger();
