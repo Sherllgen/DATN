@@ -15,7 +15,7 @@ import com.project.evgo.sharedkernel.enums.ConnectorType;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
-import com.project.evgo.station.StationService;
+import com.project.evgo.station.StationOwnershipValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -50,7 +50,7 @@ class ChargerServiceTest {
     private PortRepository portRepository;
 
     @Mock
-    private StationService stationService;
+    private StationOwnershipValidator stationValidator;
 
     @Mock
     private ChargerDtoConverter converter;
@@ -112,7 +112,7 @@ class ChargerServiceTest {
             request.setMaxPower(50.0);
             request.setStationId(STATION_ID);
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationValidator).verifyOwnership(STATION_ID);
             when(chargerRepository.save(any(Charger.class))).thenReturn(testCharger);
             when(converter.toChargerResponse(any(Charger.class))).thenReturn(testChargerResponse);
 
@@ -135,7 +135,7 @@ class ChargerServiceTest {
             request.setStationId(STATION_ID);
 
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> chargerService.createCharger(request))
@@ -158,7 +158,7 @@ class ChargerServiceTest {
             request.setStationId(STATION_ID);
 
             doThrow(new AppException(ErrorCode.STATION_NOT_FOUND))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> chargerService.createCharger(request))
@@ -182,7 +182,7 @@ class ChargerServiceTest {
             // Given
             when(chargerRepository.findById(CHARGER_ID))
                     .thenReturn(Optional.of(testCharger));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationValidator).verifyOwnership(STATION_ID);
             when(chargerRepository.save(any(Charger.class))).thenReturn(testCharger);
             when(converter.toChargerResponse(any(Charger.class))).thenReturn(testChargerResponse);
 
@@ -202,7 +202,7 @@ class ChargerServiceTest {
             when(chargerRepository.findById(CHARGER_ID))
                     .thenReturn(Optional.of(testCharger));
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(
@@ -246,7 +246,7 @@ class ChargerServiceTest {
             // Given
             when(chargerRepository.findById(CHARGER_ID))
                     .thenReturn(Optional.of(testCharger));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationValidator).verifyOwnership(STATION_ID);
 
             // When
             chargerService.deleteCharger(CHARGER_ID);
@@ -262,7 +262,7 @@ class ChargerServiceTest {
             when(chargerRepository.findById(CHARGER_ID))
                     .thenReturn(Optional.of(testCharger));
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> chargerService.deleteCharger(CHARGER_ID))
@@ -290,7 +290,7 @@ class ChargerServiceTest {
 
             when(chargerRepository.findById(CHARGER_ID))
                     .thenReturn(Optional.of(testCharger));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationValidator).verifyOwnership(STATION_ID);
             when(portRepository.save(any(Port.class))).thenReturn(testPort);
             when(converter.toPortResponse(any(Port.class))).thenReturn(testPortResponse);
 
@@ -312,7 +312,7 @@ class ChargerServiceTest {
             when(chargerRepository.findById(CHARGER_ID))
                     .thenReturn(Optional.of(testCharger));
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> chargerService.createPort(CHARGER_ID, request))
@@ -338,7 +338,7 @@ class ChargerServiceTest {
             // Given
             when(portRepository.findById(PORT_ID))
                     .thenReturn(Optional.of(testPort));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationValidator).verifyOwnership(STATION_ID);
             when(portRepository.save(any(Port.class))).thenReturn(testPort);
             when(converter.toPortResponse(any(Port.class))).thenReturn(testPortResponse);
 
@@ -357,7 +357,7 @@ class ChargerServiceTest {
             when(portRepository.findById(PORT_ID))
                     .thenReturn(Optional.of(testPort));
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> chargerService.updatePortStatus(PORT_ID, PortStatus.CHARGING))
@@ -383,7 +383,7 @@ class ChargerServiceTest {
             // Given
             when(portRepository.findById(PORT_ID))
                     .thenReturn(Optional.of(testPort));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationValidator).verifyOwnership(STATION_ID);
 
             // When
             chargerService.deletePort(PORT_ID);

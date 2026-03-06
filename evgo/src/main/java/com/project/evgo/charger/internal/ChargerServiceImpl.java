@@ -11,7 +11,7 @@ import com.project.evgo.sharedkernel.enums.ConnectorType;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
-import com.project.evgo.station.StationService;
+import com.project.evgo.station.StationOwnershipValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +29,7 @@ public class ChargerServiceImpl implements ChargerService {
 
     private final ChargerRepository chargerRepository;
     private final PortRepository portRepository;
-    private final StationService stationService;
+    private final StationOwnershipValidator stationValidator;
     private final ChargerDtoConverter converter;
 
     // ==================== READ OPERATIONS ====================
@@ -61,8 +61,8 @@ public class ChargerServiceImpl implements ChargerService {
     @Override
     @Transactional
     public ChargerResponse createCharger(CreateChargerRequest request) {
-        // Verify ownership via StationService public API
-        stationService.verifyOwnership(request.getStationId());
+        // Verify ownership via StationOwnershipValidator public API
+        stationValidator.verifyOwnership(request.getStationId());
 
         Charger charger = new Charger();
         charger.setName(request.getName());
@@ -135,9 +135,9 @@ public class ChargerServiceImpl implements ChargerService {
         Charger charger = chargerRepository.findById(chargerId)
                 .orElseThrow(() -> new AppException(ErrorCode.CHARGER_NOT_FOUND));
 
-        // Verify ownership via StationService public API
+        // Verify ownership via StationOwnershipValidator public API
         try {
-            stationService.verifyOwnership(charger.getStationId());
+            stationValidator.verifyOwnership(charger.getStationId());
         } catch (AppException e) {
             if (e.getErrorCode() == ErrorCode.STATION_NOT_OWNED) {
                 throw new AppException(ErrorCode.CHARGER_NOT_OWNED);
@@ -154,9 +154,9 @@ public class ChargerServiceImpl implements ChargerService {
 
         Charger charger = port.getCharger();
 
-        // Verify ownership via StationService public API
+        // Verify ownership via StationOwnershipValidator public API
         try {
-            stationService.verifyOwnership(charger.getStationId());
+            stationValidator.verifyOwnership(charger.getStationId());
         } catch (AppException e) {
             if (e.getErrorCode() == ErrorCode.STATION_NOT_OWNED) {
                 throw new AppException(ErrorCode.CHARGER_NOT_OWNED);
