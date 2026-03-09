@@ -34,6 +34,11 @@ public class ChargerDtoConverter {
                 .ports(portResponses)
                 .totalPorts(totalPorts)
                 .availablePorts(availablePorts)
+                .chargePointVendor(charger.getChargePointVendor())
+                .chargePointModel(charger.getChargePointModel())
+                .chargePointSerial(charger.getChargePointSerial())
+                .firmwareVersion(charger.getFirmwareVersion())
+                .lastHeartbeat(charger.getLastHeartbeat())
                 .createdAt(charger.getCreatedAt())
                 .build();
     }

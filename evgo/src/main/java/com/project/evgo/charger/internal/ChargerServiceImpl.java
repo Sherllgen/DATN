@@ -1,21 +1,25 @@
 package com.project.evgo.charger.internal;
 
+import com.project.evgo.charger.ChargePointBootedEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.ChargerStatistic;
 import com.project.evgo.charger.request.CreateChargerRequest;
 import com.project.evgo.charger.request.CreatePortRequest;
+import com.project.evgo.charger.request.UpdateChargerRequest;
 import com.project.evgo.charger.response.ChargerResponse;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.enums.ChargerStatus;
-import com.project.evgo.sharedkernel.enums.ConnectorType;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.StationOwnershipValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +27,7 @@ import java.util.Optional;
  * Implementation of ChargerService.
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ChargerServiceImpl implements ChargerService {
@@ -31,6 +36,7 @@ public class ChargerServiceImpl implements ChargerService {
     private final PortRepository portRepository;
     private final StationOwnershipValidator stationValidator;
     private final ChargerDtoConverter converter;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ==================== READ OPERATIONS ====================
 
@@ -67,7 +73,7 @@ public class ChargerServiceImpl implements ChargerService {
         Charger charger = new Charger();
         charger.setName(request.getName());
         charger.setMaxPower(request.getMaxPower());
-        charger.setConnectorType(ConnectorType.VINFAST_STD); // Default, TODO: add to request
+        charger.setConnectorType(request.getConnectorType());
         charger.setStatus(ChargerStatus.AVAILABLE);
         charger.setStationId(request.getStationId());
 
@@ -77,12 +83,12 @@ public class ChargerServiceImpl implements ChargerService {
 
     @Override
     @Transactional
-    public ChargerResponse updateCharger(Long id, String name, Double maxPower, ConnectorType connectorType) {
+    public ChargerResponse updateCharger(Long id, UpdateChargerRequest request) {
         Charger charger = findChargerAndVerifyOwner(id);
 
-        charger.setName(name);
-        charger.setMaxPower(maxPower);
-        charger.setConnectorType(connectorType);
+        charger.setName(request.name());
+        charger.setMaxPower(request.maxPower());
+        charger.setConnectorType(request.connectorType());
 
         Charger saved = chargerRepository.save(charger);
         return converter.toChargerResponse(saved);
@@ -172,5 +178,45 @@ public class ChargerServiceImpl implements ChargerService {
         return chargerRepository.findStatisticsByStationId(stationId).stream()
                 .map(p -> new ChargerStatistic(p.getType(), p.getStatus(), p.getCount()))
                 .toList();
+    }
+
+    // ==================== OCPP OPERATIONS ====================
+
+    @Override
+    @Transactional
+    public Optional<ChargerResponse> processBootNotification(
+            Long chargerId, String vendor, String model, String serial, String firmware) {
+
+        Optional<Charger> optionalCharger = chargerRepository.findById(chargerId);
+        if (optionalCharger.isEmpty()) {
+            log.warn("BootNotification from unregistered charge point ID: {}", chargerId);
+            return Optional.empty();
+        }
+
+        Charger charger = optionalCharger.get();
+        charger.setChargePointVendor(vendor);
+        charger.setChargePointModel(model);
+        charger.setChargePointSerial(serial);
+        charger.setFirmwareVersion(firmware);
+        charger.setStatus(ChargerStatus.AVAILABLE);
+        charger.setLastHeartbeat(Instant.now());
+
+        Charger saved = chargerRepository.save(charger);
+        log.info("BootNotification processed for charge point ID: {}", saved.getId());
+
+        eventPublisher.publishEvent(new ChargePointBootedEvent(saved.getId()));
+
+        return Optional.of(converter.toChargerResponse(saved));
+    }
+
+    @Override
+    @Transactional
+    public void updateHeartbeat(Long chargerId) {
+        chargerRepository.findById(chargerId)
+                .ifPresent(charger -> {
+                    charger.setLastHeartbeat(Instant.now());
+                    chargerRepository.save(charger);
+                    log.debug("Heartbeat updated for charge point ID: {}", chargerId);
+                });
     }
 }

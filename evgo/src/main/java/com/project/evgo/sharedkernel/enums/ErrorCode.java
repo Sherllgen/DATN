@@ -86,6 +86,10 @@ public enum ErrorCode {
     ZALOPAY_QUERY_FAILED(10004, HttpStatus.BAD_GATEWAY, "Failed to query ZaloPay order status"),
     INVOICE_NOT_FOUND(10005, HttpStatus.NOT_FOUND, "Invoice not found"),
     INVOICE_ALREADY_PAID(10006, HttpStatus.CONFLICT, "Invoice has already been paid"),
+
+    // OCPP errors (11xxx)
+    OCPP_INVALID_MESSAGE(11001, HttpStatus.BAD_REQUEST, "Invalid OCPP message format"),
+    OCPP_CHARGE_POINT_NOT_CONNECTED(11002, HttpStatus.NOT_FOUND, "Charge point is not connected"),
     ;
 
     private final int code;

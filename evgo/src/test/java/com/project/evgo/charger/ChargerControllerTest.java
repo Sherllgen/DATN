@@ -139,6 +139,7 @@ class ChargerControllerTest {
 			request.setName("New Charger");
 			request.setMaxPower(50.0);
 			request.setStationId(STATION_ID);
+			request.setConnectorType(ConnectorType.VINFAST_STD);
 
 			when(chargerService.createCharger(any(CreateChargerRequest.class)))
 					.thenReturn(testChargerResponse);
@@ -158,6 +159,7 @@ class ChargerControllerTest {
 			request.setName("New Charger");
 			request.setMaxPower(50.0);
 			request.setStationId(STATION_ID);
+			request.setConnectorType(ConnectorType.VINFAST_STD);
 
 			when(chargerService.createCharger(any(CreateChargerRequest.class)))
 					.thenThrow(new AppException(ErrorCode.STATION_NOT_OWNED));
@@ -181,7 +183,7 @@ class ChargerControllerTest {
 			UpdateChargerRequest request = new UpdateChargerRequest(
 					"Updated Charger", 100.0, ConnectorType.IEC_TYPE_2);
 
-			when(chargerService.updateCharger(eq(CHARGER_ID), any(), any(), any()))
+			when(chargerService.updateCharger(eq(CHARGER_ID), any(UpdateChargerRequest.class)))
 					.thenReturn(testChargerResponse);
 
 			mockMvc.perform(put("/api/v1/chargers/{id}", CHARGER_ID)
@@ -198,7 +200,7 @@ class ChargerControllerTest {
 			UpdateChargerRequest request = new UpdateChargerRequest(
 					"Updated Charger", 100.0, ConnectorType.IEC_TYPE_2);
 
-			when(chargerService.updateCharger(eq(CHARGER_ID), any(), any(), any()))
+			when(chargerService.updateCharger(eq(CHARGER_ID), any(UpdateChargerRequest.class)))
 					.thenThrow(new AppException(ErrorCode.CHARGER_NOT_FOUND));
 
 			mockMvc.perform(put("/api/v1/chargers/{id}", CHARGER_ID)

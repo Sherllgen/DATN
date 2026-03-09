@@ -2,9 +2,9 @@ package com.project.evgo.charger;
 
 import com.project.evgo.charger.request.CreateChargerRequest;
 import com.project.evgo.charger.request.CreatePortRequest;
+import com.project.evgo.charger.request.UpdateChargerRequest;
 import com.project.evgo.charger.response.ChargerResponse;
 import com.project.evgo.charger.response.PortResponse;
-import com.project.evgo.sharedkernel.enums.ConnectorType;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 
 import java.util.List;
@@ -28,7 +28,7 @@ public interface ChargerService {
     // Charger management (Owner only)
     ChargerResponse createCharger(CreateChargerRequest request);
 
-    ChargerResponse updateCharger(Long id, String name, Double maxPower, ConnectorType connectorType);
+    ChargerResponse updateCharger(Long id, UpdateChargerRequest request);
 
     void deleteCharger(Long id);
 
@@ -40,4 +40,23 @@ public interface ChargerService {
     void deletePort(Long id);
 
     List<ChargerStatistic> findStatisticsByStationId(Long stationId);
+
+    // -------------------------------------OCPP operations-------------------------------------
+
+    /**
+     * Process a BootNotification from an OCPP charge point.
+     * Updates charger metadata and status, publishes ChargePointBootedEvent.
+     *
+     * @param chargerId the database ID of the charger
+     * @return the updated ChargerResponse, or empty if charger not found
+     */
+    Optional<ChargerResponse> processBootNotification(
+            Long chargerId, String vendor, String model, String serial, String firmware);
+
+    /**
+     * Update the last heartbeat timestamp for a charge point.
+     *
+     * @param chargerId the database ID of the charger
+     */
+    void updateHeartbeat(Long chargerId);
 }
