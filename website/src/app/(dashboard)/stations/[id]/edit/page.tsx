@@ -35,6 +35,7 @@ import {
     DayOfWeek,
     getDefaultOpeningHours,
 } from "@/components/station/opening-hours-editor";
+import { PhotoManager, StationPhoto } from "@/components/station/photo-manager";
 import { LocationPicker } from "@/components/station/location-picker";
 
 const stationSchema = z.object({
@@ -59,9 +60,10 @@ export default function EditStationPage() {
     const router = useRouter();
     const params = useParams();
     const stationId = params.id as string;
-
+    
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [photos, setPhotos] = useState<StationPhoto[]>([]);
     const [is24_7, setIs24_7] = useState(true);
     const [openingHours, setOpeningHours] = useState<OpeningHoursEntry[]>(
         getDefaultOpeningHours()
@@ -88,6 +90,9 @@ export default function EditStationPage() {
 
                 if (response.data?.data) {
                     const station = response.data.data;
+                    const photosRes = await axios.get(`/api/stations/${stationId}/photos`, {
+                        withCredentials: true,
+                    });
                     form.reset({
                         name: station.name || "",
                         address: station.address || "",
@@ -118,6 +123,7 @@ export default function EditStationPage() {
                         setIs24_7(true);
                         setOpeningHours(getDefaultOpeningHours());
                     }
+                    setPhotos(photosRes.data?.data || []);
                 }
             } catch (error) {
                 console.error("Failed to fetch station:", error);
@@ -198,6 +204,12 @@ export default function EditStationPage() {
                 </Card>
             </div>
         );
+    }
+
+    function refreshPhotos() {
+        axios.get(`/api/stations/${stationId}/photos`, { withCredentials: true })
+            .then((res) => setPhotos(res.data?.data || []))
+            .catch(console.error);
     }
 
     return (
@@ -290,6 +302,13 @@ export default function EditStationPage() {
                             form.setValue("latitude", lat, { shouldValidate: true });
                             form.setValue("longitude", lng, { shouldValidate: true });
                         }}
+                    />
+
+                    {/* Station Photos */}
+                    <PhotoManager
+                        stationId={parseInt(stationId)}
+                        photos={photos}
+                        onPhotosChange={refreshPhotos}
                     />
 
                     <OpeningHoursEditor

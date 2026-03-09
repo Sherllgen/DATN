@@ -60,22 +60,12 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { PhotoManager, StationPhoto } from "@/components/station/photo-manager";
 import { PricingEditor, PriceSetting } from "@/components/station/pricing-editor";
 import { PricingHistory } from "@/components/station/pricing-history";
 
 type StationStatus = "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
 type ConnectorType = "SOCKET_220V" | "VINFAST_STD" | "DATBIKE_FAST" | "IEC_TYPE_2" | "OTHER";
 type PortStatus = "AVAILABLE" | "RESERVED" | "CHARGING" | "MAINTENANCE";
-type DayOfWeek = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
-
-interface OpeningHoursEntry {
-    id?: number;
-    dayOfWeek: DayOfWeek;
-    openTime: string | null;
-    closeTime: string | null;
-    isOpen: boolean;
-}
 
 interface Station {
     id: number;
@@ -85,7 +75,6 @@ interface Station {
     longitude: number;
     status: StationStatus;
     description?: string;
-    openingHours?: OpeningHoursEntry[];
 }
 
 interface Port {
@@ -178,8 +167,7 @@ export default function StationDetailPage() {
     const [portToDelete, setPortToDelete] = useState<Port | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    // Photos & Pricing State
-    const [photos, setPhotos] = useState<StationPhoto[]>([]);
+    // Pricing State
     const [activePricing, setActivePricing] = useState<PriceSetting | null>(null);
     const [pricingRefreshKey, setPricingRefreshKey] = useState(0);
 
@@ -190,10 +178,9 @@ export default function StationDetailPage() {
     async function fetchData() {
         try {
             setLoading(true);
-            const [stationRes, chargersRes, photosRes, pricingRes] = await Promise.all([
+            const [stationRes, chargersRes, pricingRes] = await Promise.all([
                 axios.get(`/api/stations/${stationId}`, { withCredentials: true }),
                 axios.get(`/api/chargers?stationId=${stationId}`, { withCredentials: true }),
-                axios.get(`/api/stations/${stationId}/photos`, { withCredentials: true }).catch(() => ({ data: { data: [] } })),
                 axios.get(`/api/stations/${stationId}/pricing`, { withCredentials: true }).catch(() => ({ data: { data: null } })),
             ]);
 
@@ -203,7 +190,6 @@ export default function StationDetailPage() {
             if (chargersRes.data?.data) {
                 setChargers(chargersRes.data.data);
             }
-            setPhotos(photosRes.data?.data || []);
             setActivePricing(pricingRes.data?.data || null);
         } catch (error) {
             console.error("Failed to fetch data:", error);
@@ -212,12 +198,6 @@ export default function StationDetailPage() {
         } finally {
             setLoading(false);
         }
-    }
-
-    function refreshPhotos() {
-        axios.get(`/api/stations/${stationId}/photos`, { withCredentials: true })
-            .then((res) => setPhotos(res.data?.data || []))
-            .catch(console.error);
     }
 
     function refreshPricing() {
@@ -490,47 +470,6 @@ export default function StationDetailPage() {
                     </CardContent>
                 </Card>
             )}
-
-            {/* Opening Hours Section */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        Opening Hours
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {!station.openingHours || station.openingHours.length === 0 ? (
-                        <p className="text-muted-foreground">Open 24/7</p>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map((day) => {
-                                const entry = station.openingHours?.find((e) => e.dayOfWeek === day);
-                                const dayLabel = day.charAt(0) + day.slice(1).toLowerCase();
-                                return (
-                                    <div key={day} className="flex justify-between py-1 border-b last:border-0">
-                                        <span className="font-medium">{dayLabel}</span>
-                                        <span className="text-muted-foreground">
-                                            {entry?.isOpen === false
-                                                ? "Closed"
-                                                : entry?.openTime && entry?.closeTime
-                                                ? `${entry.openTime} - ${entry.closeTime}`
-                                                : "24 hours"}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Station Photos */}
-            <PhotoManager
-                stationId={parseInt(stationId)}
-                photos={photos}
-                onPhotosChange={refreshPhotos}
-            />
 
             {/* Pricing Configuration */}
             <PricingEditor
