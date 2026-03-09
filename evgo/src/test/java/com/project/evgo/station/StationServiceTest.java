@@ -656,4 +656,96 @@ class StationServiceTest {
             }
         }
     }
+
+    // ==================== SEARCH TESTS ====================
+
+    @Nested
+    @DisplayName("Search Stations Tests")
+    class SearchStationsTests {
+
+        @Test
+        @DisplayName("searchNearby should return found stations")
+        void searchNearby_ValidRequest_ReturnsResults() {
+            // Given
+            com.project.evgo.station.request.SearchNearbyRequest request = new com.project.evgo.station.request.SearchNearbyRequest(
+                    10.0, 106.0, 5.0, 10);
+
+            com.project.evgo.station.internal.StationProjection projection = mock(
+                    com.project.evgo.station.internal.StationProjection.class);
+            List<com.project.evgo.station.internal.StationProjection> projections = List.of(projection);
+
+            when(stationRepository.findNearByStations(10.0, 106.0, 5000.0, 10))
+                    .thenReturn(projections);
+
+            List<com.project.evgo.station.response.StationSearchResult> mockResults = List.of(
+                    com.project.evgo.station.response.StationSearchResult.builder().id(1L).name("Station A").build());
+            when(stationDtoConverter.convertToSearchResults(projections)).thenReturn(mockResults);
+
+            // When
+            List<com.project.evgo.station.response.StationSearchResult> results = stationService.searchNearby(request);
+
+            // Then
+            assertThat(results).hasSize(1);
+            assertThat(results.get(0).name()).isEqualTo("Station A");
+            verify(stationRepository).findNearByStations(10.0, 106.0, 5000.0, 10);
+            verify(stationDtoConverter).convertToSearchResults(projections);
+        }
+
+        @Test
+        @DisplayName("searchNearby should throw exception when coordinates are missing")
+        void searchNearby_MissingCoordinates_ThrowsException() {
+            // Given
+            com.project.evgo.station.request.SearchNearbyRequest request = new com.project.evgo.station.request.SearchNearbyRequest(
+                    null, null, 5.0, 10);
+
+            // When / Then
+            assertThatThrownBy(() -> stationService.searchNearby(request))
+                    .isInstanceOf(AppException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST);
+
+            verify(stationRepository, never()).findNearByStations(anyDouble(), anyDouble(), anyDouble(), anyInt());
+        }
+
+        @Test
+        @DisplayName("searchByText should return found stations")
+        void searchByText_ValidRequest_ReturnsResults() {
+            // Given
+            com.project.evgo.station.request.SearchTextRequest request = new com.project.evgo.station.request.SearchTextRequest(
+                    "Test", 10.0, 106.0, 10);
+
+            com.project.evgo.station.internal.StationProjection projection = mock(
+                    com.project.evgo.station.internal.StationProjection.class);
+            List<com.project.evgo.station.internal.StationProjection> projections = List.of(projection);
+
+            when(stationRepository.searchByText("Test", 10.0, 106.0, 10))
+                    .thenReturn(projections);
+
+            List<com.project.evgo.station.response.StationSearchResult> mockResults = List.of(
+                    com.project.evgo.station.response.StationSearchResult.builder().id(1L).name("Station A").build());
+            when(stationDtoConverter.convertToSearchResults(projections)).thenReturn(mockResults);
+
+            // When
+            List<com.project.evgo.station.response.StationSearchResult> results = stationService.searchByText(request);
+
+            // Then
+            assertThat(results).hasSize(1);
+            assertThat(results.get(0).name()).isEqualTo("Station A");
+            verify(stationRepository).searchByText("Test", 10.0, 106.0, 10);
+        }
+
+        @Test
+        @DisplayName("searchByText should throw exception when query is empty")
+        void searchByText_EmptyQuery_ThrowsException() {
+            // Given
+            com.project.evgo.station.request.SearchTextRequest request = new com.project.evgo.station.request.SearchTextRequest(
+                    "   ", 10.0, 106.0, 10);
+
+            // When / Then
+            assertThatThrownBy(() -> stationService.searchByText(request))
+                    .isInstanceOf(AppException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST);
+
+            verify(stationRepository, never()).searchByText(anyString(), anyDouble(), anyDouble(), anyInt());
+        }
+    }
 }
