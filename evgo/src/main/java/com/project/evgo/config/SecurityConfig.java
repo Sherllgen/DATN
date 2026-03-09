@@ -31,29 +31,30 @@ public class SecurityConfig {
 	 * Public endpoints that don't require authentication.
 	 */
 	private static final String[] PUBLIC_ENDPOINTS = {
-		"/api/v1/auth/**",
-		"/swagger-ui/**",
-		"/swagger-ui.html",
-		"/v3/api-docs/**",
-		"/swagger-resources/**",
-		"/webjars/**",
-            "/api/v1/guests/**"
+			"/api/v1/auth/**",
+			"/swagger-ui/**",
+			"/swagger-ui.html",
+			"/v3/api-docs/**",
+			"/swagger-resources/**",
+			"/webjars/**",
+			"/api/v1/guests/**",
+			"/api/v1/zalopay/callback" // ZaloPay IPN webhook — MAC-verified internally
 	};
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
-			.csrf(AbstractHttpConfigurer::disable)
-			.exceptionHandling(exception -> exception
-							.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-			.sessionManagement(session -> session
-							.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-			.authorizeHttpRequests(auth -> auth
-							.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-							.requestMatchers(HttpMethod.GET, "/api/v1/stations/**").permitAll()
-                            .requestMatchers("/api/v1/admin/**").hasRole("SUPER_ADMIN")
-							.anyRequest().authenticated())
-			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+				.csrf(AbstractHttpConfigurer::disable)
+				.exceptionHandling(exception -> exception
+						.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+				.sessionManagement(session -> session
+						.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/v1/stations/**").permitAll()
+						.requestMatchers("/api/v1/admin/**").hasRole("SUPER_ADMIN")
+						.anyRequest().authenticated())
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
 	}

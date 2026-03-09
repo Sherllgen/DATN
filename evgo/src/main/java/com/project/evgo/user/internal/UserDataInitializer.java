@@ -34,6 +34,7 @@ public class UserDataInitializer implements CommandLineRunner {
         initRoles();
         initAdminUser();
         initStationOwner();
+        initRegularUser();
     }
 
     private void initRoles() {
@@ -110,6 +111,29 @@ public class UserDataInitializer implements CommandLineRunner {
 
             userRepository.save(owner);
             log.info("Created default station owner user: {}", ownerEmail);
+        }
+    }
+
+    private void initRegularUser() {
+        String userEmail = "user@gmail.com";
+
+        if (!userRepository.existsByEmail(userEmail)) {
+            Role userRole = roleRepository.findByName("USER")
+                    .orElseThrow(() -> new RuntimeException("USER role not found"));
+
+            User regularUser = new User();
+            regularUser.setEmail(userEmail);
+            regularUser.setPassword(passwordEncoder.encode("User@123"));
+            regularUser.setFullName("Test Regular User");
+            regularUser.setPhoneNumber("0987654321");
+            regularUser.setStatus(UserStatus.ACTIVE);
+            regularUser.setEmailVerified(true);
+            regularUser.setPhoneVerified(true);
+            regularUser.setAuthProvider(AuthProvider.LOCAL);
+            regularUser.setRoles(Set.of(userRole));
+
+            userRepository.save(regularUser);
+            log.info("Created default regular user: {}", userEmail);
         }
     }
 }
