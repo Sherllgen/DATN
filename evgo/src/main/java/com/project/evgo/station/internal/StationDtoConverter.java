@@ -4,15 +4,12 @@ import com.project.evgo.station.PortCountProvider;
 import com.project.evgo.station.PortCounts;
 import com.project.evgo.station.response.StationOpeningHoursResponse;
 import com.project.evgo.station.ChargerStatisticProvider;
-import com.project.evgo.station.StationChargerStatistic;
-import com.project.evgo.sharedkernel.enums.ChargerStatus;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
 import com.project.evgo.sharedkernel.utils.GeoUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -40,32 +37,13 @@ public class StationDtoConverter {
 		int availablePorts = counts.availablePorts();
 
 		// Get charger statistics through provider directly from DB
-		List<StationChargerStatistic> stats = chargerStatisticProvider.getStatistics(from.getId());
+		int totalChargers = (int) chargerStatisticProvider.getTotalChargerCount(from.getId());
+		int availableChargers = (int) chargerStatisticProvider.getAvailableChargerCount(from.getId());
 
-		// Calculate counts
-		int totalChargers = (int) stats.stream().mapToLong(StationChargerStatistic::count).sum();
-		int availableChargers = (int) stats.stream()
-				.filter(s -> s.status() == ChargerStatus.AVAILABLE)
-				.mapToLong(StationChargerStatistic::count)
-				.sum();
-
-		// Group by connector type
-		Map<String, List<StationChargerStatistic>> statsByType = stats.stream()
-				.collect(Collectors.groupingBy(s -> s.type().name()));
-
-		// Create charger summaries
-		List<StationResponse.ChargerSummary> chargerSummaries = statsByType.entrySet().stream()
-				.map(entry -> {
-					String type = entry.getKey();
-					List<StationChargerStatistic> typeStats = entry.getValue();
-					int total = (int) typeStats.stream()
-							.mapToLong(StationChargerStatistic::count).sum();
-					int available = (int) typeStats.stream()
-							.filter(s -> s.status() == ChargerStatus.AVAILABLE)
-							.mapToLong(StationChargerStatistic::count)
-							.sum();
-					return new StationResponse.ChargerSummary(type, available, total);
-				})
+		// Fetch port summaries directly representing counts by connector type
+		List<StationResponse.ChargerSummary> chargerSummaries = portCountProvider.getPortSummaries(from.getId())
+				.stream()
+				.map(s -> new StationResponse.ChargerSummary(s.type().name(), s.available(), s.total()))
 				.toList();
 
 		return StationResponse.builder()

@@ -16,4 +16,13 @@ public interface PortRepository extends JpaRepository<Port, Long> {
     long countByChargerStationId(Long stationId);
 
     long countByChargerStationIdAndStatus(Long stationId, PortStatus status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT c.connectorType as type, " +
+            "COUNT(p) as total, " +
+            "COALESCE(SUM(CASE WHEN p.status = 'AVAILABLE' THEN 1 ELSE 0 END), 0) as available " +
+            "FROM Charger c LEFT JOIN c.ports p " +
+            "WHERE c.stationId = :stationId " +
+            "GROUP BY c.connectorType")
+    List<PortSummaryProjection> findPortSummariesByStationId(
+            @org.springframework.data.repository.query.Param("stationId") Long stationId);
 }
