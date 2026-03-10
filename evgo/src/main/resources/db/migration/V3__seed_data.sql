@@ -1,8 +1,42 @@
 -- =========================================================================
--- Seed Data script replacing StationDataInitializer and InvoiceDataInitializer
+-- Seed Data script replacing StationDataInitializer, InvoiceDataInitializer,
+-- and UserDataInitializer
 -- Note: Replace table names (e.g. `station`, `charger`, `users`, `invoice`) 
 -- and column names with the exact generated names from your JPA/Hibernate schema.
 -- =========================================================================
+
+-- Roles
+INSERT INTO roles (id, name) VALUES
+(1, 'USER'),
+(2, 'STATION_OWNER'),
+(3, 'STAFF'),
+(4, 'SUPER_ADMIN')
+ON CONFLICT DO NOTHING;
+
+-- Users
+-- id, email, password, full_name, status, email_verified, phone_verified, auth_provider, created_at, updated_at
+INSERT INTO "users" (id, email, password, full_name, status, email_verified, phone_verified, auth_provider, created_at, updated_at) VALUES 
+(1, 'admin@evgo.com', '$2a$10$G26BqZOyxIwD7vzfoplmk.gyELYQOnn/xiwD1nbNxW46YLfjPAiIK', 'System Administrator', 'ACTIVE', true, false, 'LOCAL', NOW(), NOW()),
+(2, 'stationowner@evgo.com', '$2a$10$gYbyIxyEQHhtbS.OG/xc2.O.Kl8jhKvrXg8O5YDD3ziyr8Y7JRSMW', 'Station Owner', 'ACTIVE', true, false, 'LOCAL', NOW(), NOW())
+ON CONFLICT (email) DO NOTHING;
+
+-- Users with phone_number
+INSERT INTO "users" (id, email, phone_number, password, full_name, status, email_verified, phone_verified, auth_provider, created_at, updated_at) VALUES 
+(3, 'station.owner@evgo.com', '0901234567', '$2a$10$nBBv.PuYr.ipj6QfKFtureFUvpXnZB86GRV8uHVsYLZ/7LRGytR1m', 'Test Station Owner', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW()),
+(4, 'user@gmail.com', '0987654321', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Test Regular User', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW())
+ON CONFLICT (email) DO NOTHING;
+
+-- User Roles
+INSERT INTO user_roles (user_id, role_id) VALUES
+(1, 4), -- SUPER_ADMIN
+(2, 2), -- STATION_OWNER
+(3, 2), -- STATION_OWNER
+(4, 1)  -- USER
+ON CONFLICT DO NOTHING;
+
+-- Update sequences to avoid collision
+SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));
+SELECT setval('users_id_seq', (SELECT MAX(id) FROM "users"));
 
 -- Stations
 INSERT INTO stations (id, owner_id, name, description, address, latitude, longitude, rate, status, is_flagged_low_quality)
@@ -27,7 +61,7 @@ INSERT INTO station_images (station_id, image_url) VALUES
 -- Chargers
 INSERT INTO chargers (id, station_id, name, max_power, connector_type, status) VALUES
 (2001, 1001, 'Bitexco AC-01', 22.0, 'IEC_TYPE_2', 'AVAILABLE'),
-(2002, 1001, 'Bitexco DC-Rapid', 150.0, 'VINFAST_STD', 'IN_USE'),
+(2002, 1001, 'Bitexco DC-Rapid', 150.0, 'VINFAST_STD', 'AVAILABLE'),
 (2003, 1002, 'Palace AC-01', 11.0, 'IEC_TYPE_2', 'AVAILABLE'),
 (2004, 1003, 'Crescent AC-01', 7.4, 'IEC_TYPE_2', 'AVAILABLE'),
 (2005, 1003, 'Crescent DC-01', 50.0, 'VINFAST_STD', 'AVAILABLE'),
@@ -37,14 +71,33 @@ INSERT INTO chargers (id, station_id, name, max_power, connector_type, status) V
 
 -- Ports
 INSERT INTO ports (id, charger_id, port_number, status) VALUES
+-- Charger 2001: Bitexco AC-01
 (4001, 2001, 1, 'AVAILABLE'),
-(4002, 2002, 1, 'CHARGING'),
-(4003, 2003, 1, 'AVAILABLE'),
-(4004, 2004, 1, 'AVAILABLE'),
-(4005, 2005, 1, 'AVAILABLE'),
-(4006, 2006, 1, 'AVAILABLE'),
-(4007, 2007, 1, 'AVAILABLE'),
-(4008, 2008, 1, 'AVAILABLE');
+(4002, 2001, 2, 'CHARGING'),
+(4003, 2001, 3, 'AVAILABLE'),
+-- Charger 2002: Bitexco DC-Rapid
+(4004, 2002, 1, 'CHARGING'),
+(4005, 2002, 2, 'AVAILABLE'),
+-- Charger 2003: Palace AC-01
+(4006, 2003, 1, 'AVAILABLE'),
+(4007, 2003, 2, 'CHARGING'),
+-- Charger 2004: Crescent AC-01
+(4008, 2004, 1, 'AVAILABLE'),
+(4009, 2004, 2, 'AVAILABLE'),
+-- Charger 2005: Crescent DC-01
+(4010, 2005, 1, 'AVAILABLE'),
+(4011, 2005, 2, 'CHARGING'),
+(4012, 2005, 3, 'AVAILABLE'),
+-- Charger 2006: VNU AC-01
+(4013, 2006, 1, 'CHARGING'),
+(4014, 2006, 2, 'AVAILABLE'),
+-- Charger 2007: VNU DC-Rapid
+(4015, 2007, 1, 'AVAILABLE'),
+(4016, 2007, 2, 'CHARGING'),
+-- Charger 2008: KTX AC-01
+(4017, 2008, 1, 'AVAILABLE'),
+(4018, 2008, 2, 'AVAILABLE'),
+(4019, 2008, 3, 'CHARGING');
 
 -- Invoices
 INSERT INTO invoices (id, "number", user_id, booking_id, charging_session_id, total_cost, purpose, status) VALUES
