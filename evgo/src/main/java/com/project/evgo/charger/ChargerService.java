@@ -39,9 +39,12 @@ public interface ChargerService {
 
     void deletePort(Long id);
 
-    List<ChargerStatistic> findStatisticsByStationId(Long stationId);
+    long countByStationId(Long stationId);
 
-    // -------------------------------------OCPP operations-------------------------------------
+    long countAvailableByStationId(Long stationId);
+
+    // -------------------------------------OCPP
+    // operations-------------------------------------
 
     /**
      * Process a BootNotification from an OCPP charge point.

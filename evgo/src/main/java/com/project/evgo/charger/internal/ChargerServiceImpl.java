@@ -2,7 +2,6 @@ package com.project.evgo.charger.internal;
 
 import com.project.evgo.charger.ChargePointBootedEvent;
 import com.project.evgo.charger.ChargerService;
-import com.project.evgo.charger.ChargerStatistic;
 import com.project.evgo.charger.request.CreateChargerRequest;
 import com.project.evgo.charger.request.CreatePortRequest;
 import com.project.evgo.charger.request.UpdateChargerRequest;
@@ -174,10 +173,13 @@ public class ChargerServiceImpl implements ChargerService {
     }
 
     @Override
-    public List<ChargerStatistic> findStatisticsByStationId(Long stationId) {
-        return chargerRepository.findStatisticsByStationId(stationId).stream()
-                .map(p -> new ChargerStatistic(p.getType(), p.getStatus(), p.getCount()))
-                .toList();
+    public long countByStationId(Long stationId) {
+        return chargerRepository.countByStationId(stationId);
+    }
+
+    @Override
+    public long countAvailableByStationId(Long stationId) {
+        return chargerRepository.countByStationIdAndStatus(stationId, ChargerStatus.AVAILABLE);
     }
 
     // ==================== OCPP OPERATIONS ====================
