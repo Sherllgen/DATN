@@ -48,14 +48,14 @@ class StationPhotoServiceTest {
     private StationPhotoDtoConverter stationPhotoDtoConverter;
 
     @Mock
-    private StationService stationService;
+    private StationOwnershipValidator stationOwnershipValidator;
 
     @Mock
     private FileStorageService fileStorageService;
 
     private static final Long STATION_ID = 100L;
     private static final Long PHOTO_ID = 200L;
-    private static final Long OTHER_PHOTO_ID = 201L;
+    //private static final Long OTHER_PHOTO_ID = 201L;
 
     private StationPhoto testPhoto;
     private StationPhotoResponse testPhotoResponse;
@@ -101,7 +101,7 @@ class StationPhotoServiceTest {
         @DisplayName("Should upload and add photo successfully")
         void addPhoto_ValidFile_UploadsAndReturnsPhotoResponse() {
             // Given
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.countByStationId(STATION_ID)).thenReturn(3);
             when(fileStorageService.saveImageFile(any(MultipartFile.class), anyString()))
                     .thenReturn(testUploadResult);
@@ -122,7 +122,7 @@ class StationPhotoServiceTest {
         @DisplayName("Should store cloudinaryPublicId on saved photo")
         void addPhoto_ValidFile_StoresPublicId() {
             // Given
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.countByStationId(STATION_ID)).thenReturn(0);
             when(fileStorageService.saveImageFile(any(MultipartFile.class), anyString()))
                     .thenReturn(testUploadResult);
@@ -142,7 +142,7 @@ class StationPhotoServiceTest {
         @DisplayName("Should auto-assign displayOrder based on current count")
         void addPhoto_NoExplicitOrder_AssignsOrderBasedOnCount() {
             // Given
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.countByStationId(STATION_ID)).thenReturn(5);
             when(fileStorageService.saveImageFile(any(MultipartFile.class), anyString()))
                     .thenReturn(testUploadResult);
@@ -165,7 +165,7 @@ class StationPhotoServiceTest {
         void addPhoto_StationNotFound_ThrowsNotFound() {
             // Given
             doThrow(new AppException(ErrorCode.STATION_NOT_FOUND))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, testFile, "Caption"))
@@ -183,7 +183,7 @@ class StationPhotoServiceTest {
         void addPhoto_NotOwner_ThrowsForbidden() {
             // Given
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> stationPhotoService.addPhoto(STATION_ID, testFile, "Caption"))
@@ -200,7 +200,7 @@ class StationPhotoServiceTest {
         @DisplayName("Should throw exception when max photos exceeded")
         void addPhoto_MaxPhotosExceeded_ThrowsException() {
             // Given
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.countByStationId(STATION_ID)).thenReturn(10); // At limit
 
             // When & Then
@@ -304,7 +304,7 @@ class StationPhotoServiceTest {
             UpdateStationPhotoRequest request = new UpdateStationPhotoRequest("Updated caption", null);
 
             when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.save(any(StationPhoto.class))).thenReturn(testPhoto);
             when(stationPhotoDtoConverter.convert(any(StationPhoto.class))).thenReturn(testPhotoResponse);
 
@@ -323,7 +323,7 @@ class StationPhotoServiceTest {
             UpdateStationPhotoRequest request = new UpdateStationPhotoRequest(null, 5);
 
             when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.save(any(StationPhoto.class))).thenReturn(testPhoto);
             when(stationPhotoDtoConverter.convert(any(StationPhoto.class))).thenReturn(testPhotoResponse);
 
@@ -359,7 +359,7 @@ class StationPhotoServiceTest {
 
             when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> stationPhotoService.updatePhoto(PHOTO_ID, request))
@@ -392,7 +392,7 @@ class StationPhotoServiceTest {
         void deletePhoto_ValidOwner_DeletesPhotoAndCloudinary() {
             // Given
             when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When
             stationPhotoService.deletePhoto(PHOTO_ID);
@@ -407,7 +407,7 @@ class StationPhotoServiceTest {
         void deletePhoto_CloudinaryFails_StillDeletesFromDb() {
             // Given
             when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             doThrow(new RuntimeException("Cloudinary error"))
                     .when(fileStorageService).deleteFile(anyString());
 
@@ -424,7 +424,7 @@ class StationPhotoServiceTest {
             // Given
             testPhoto.setCloudinaryPublicId(null);
             when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When
             stationPhotoService.deletePhoto(PHOTO_ID);
@@ -455,7 +455,7 @@ class StationPhotoServiceTest {
             // Given
             when(stationPhotoRepository.findById(PHOTO_ID)).thenReturn(Optional.of(testPhoto));
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> stationPhotoService.deletePhoto(PHOTO_ID))
@@ -492,7 +492,7 @@ class StationPhotoServiceTest {
             List<StationPhoto> existingPhotos = List.of(photo1, photo2);
             List<Long> newOrder = List.of(2L, 1L); // Swap order
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.findByStationIdOrderByDisplayOrderAsc(STATION_ID))
                     .thenReturn(existingPhotos);
             when(stationPhotoRepository.saveAll(anyList())).thenReturn(existingPhotos);
@@ -519,7 +519,7 @@ class StationPhotoServiceTest {
             List<StationPhoto> existingPhotos = List.of(photo1);
             List<Long> badOrder = List.of(1L, 999L); // 999 doesn't belong
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(stationPhotoRepository.findByStationIdOrderByDisplayOrderAsc(STATION_ID))
                     .thenReturn(existingPhotos);
 
@@ -555,7 +555,7 @@ class StationPhotoServiceTest {
             List<Long> order = List.of(1L, 2L);
 
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> stationPhotoService.reorderPhotos(STATION_ID, order))

@@ -4,8 +4,8 @@ import com.project.evgo.sharedkernel.dto.FileUploadResult;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.sharedkernel.infra.FileStorageService;
+import com.project.evgo.station.StationOwnershipValidator;
 import com.project.evgo.station.StationPhotoService;
-import com.project.evgo.station.StationService;
 import com.project.evgo.station.request.UpdateStationPhotoRequest;
 import com.project.evgo.station.response.StationPhotoResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class StationPhotoServiceImpl implements StationPhotoService {
 
     private final StationPhotoRepository stationPhotoRepository;
     private final StationPhotoDtoConverter stationPhotoDtoConverter;
-    private final StationService stationService;
+    private final StationOwnershipValidator stationOwnershipValidator;
     private final FileStorageService fileStorageService;
 
     @Override
@@ -41,7 +41,7 @@ public class StationPhotoServiceImpl implements StationPhotoService {
         }
 
         // Verify station exists and current user owns it
-        stationService.verifyOwnership(stationId);
+        stationOwnershipValidator.verifyOwnership(stationId);
 
         // Check photo limit
         int currentCount = stationPhotoRepository.countByStationId(stationId);
@@ -80,7 +80,7 @@ public class StationPhotoServiceImpl implements StationPhotoService {
                 .orElseThrow(() -> new AppException(ErrorCode.STATION_PHOTO_NOT_FOUND));
 
         // Verify ownership
-        stationService.verifyOwnership(photo.getStationId());
+        stationOwnershipValidator.verifyOwnership(photo.getStationId());
 
         if (request.caption() != null) {
             photo.setCaption(request.caption());
@@ -100,7 +100,7 @@ public class StationPhotoServiceImpl implements StationPhotoService {
                 .orElseThrow(() -> new AppException(ErrorCode.STATION_PHOTO_NOT_FOUND));
 
         // Verify ownership
-        stationService.verifyOwnership(photo.getStationId());
+        stationOwnershipValidator.verifyOwnership(photo.getStationId());
 
         // Delete from Cloudinary
         if (photo.getCloudinaryPublicId() != null) {
@@ -122,7 +122,7 @@ public class StationPhotoServiceImpl implements StationPhotoService {
         }
 
         // Verify ownership
-        stationService.verifyOwnership(stationId);
+        stationOwnershipValidator.verifyOwnership(stationId);
 
         // Get existing photos for this station
         List<StationPhoto> existingPhotos = stationPhotoRepository.findByStationIdOrderByDisplayOrderAsc(stationId);

@@ -25,6 +25,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 /**
@@ -44,7 +45,7 @@ class PriceSettingServiceTest {
     private PriceSettingDtoConverter priceSettingDtoConverter;
 
     @Mock
-    private StationService stationService;
+    private StationOwnershipValidator stationOwnershipValidator;
 
     private static final Long STATION_ID = 100L;
     private static final Long PRICE_SETTING_ID = 300L;
@@ -100,7 +101,7 @@ class PriceSettingServiceTest {
                     "Initial pricing",
                     LocalDateTime.now());
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(priceSettingRepository.findTopByStationIdOrderByVersionDesc(STATION_ID))
                     .thenReturn(Optional.empty()); // No existing version
             when(priceSettingRepository.save(any(PriceSetting.class))).thenReturn(testPriceSetting);
@@ -137,7 +138,7 @@ class PriceSettingServiceTest {
                     .isActive(true)
                     .build();
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(priceSettingRepository.findTopByStationIdOrderByVersionDesc(STATION_ID))
                     .thenReturn(Optional.of(existingVersion));
             when(priceSettingRepository.save(any(PriceSetting.class))).thenAnswer(invocation -> {
@@ -168,7 +169,7 @@ class PriceSettingServiceTest {
                     null,
                     null);
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(priceSettingRepository.findTopByStationIdOrderByVersionDesc(STATION_ID))
                     .thenReturn(Optional.empty());
             when(priceSettingRepository.save(any(PriceSetting.class))).thenReturn(testPriceSetting);
@@ -189,7 +190,7 @@ class PriceSettingServiceTest {
                     new BigDecimal("3000"), null, null, null, null, null);
 
             doThrow(new AppException(ErrorCode.STATION_NOT_FOUND))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> priceSettingService.createPriceSetting(STATION_ID, request))
@@ -210,7 +211,7 @@ class PriceSettingServiceTest {
                     new BigDecimal("3000"), null, null, null, null, null);
 
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> priceSettingService.createPriceSetting(STATION_ID, request))
@@ -230,7 +231,7 @@ class PriceSettingServiceTest {
             CreatePriceSettingRequest request = new CreatePriceSettingRequest(
                     BigDecimal.ZERO, null, null, null, null, null);
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> priceSettingService.createPriceSetting(STATION_ID, request))
@@ -250,7 +251,7 @@ class PriceSettingServiceTest {
             CreatePriceSettingRequest request = new CreatePriceSettingRequest(
                     new BigDecimal("-100"), null, null, null, null, null);
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> priceSettingService.createPriceSetting(STATION_ID, request))
@@ -270,7 +271,7 @@ class PriceSettingServiceTest {
                     new BigDecimal("-100"), // Negative booking fee
                     null, null, null, null);
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> priceSettingService.createPriceSetting(STATION_ID, request))
@@ -291,7 +292,7 @@ class PriceSettingServiceTest {
                     new BigDecimal("-500"), // Negative penalty
                     null, null, null);
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> priceSettingService.createPriceSetting(STATION_ID, request))
@@ -322,7 +323,7 @@ class PriceSettingServiceTest {
                     "No grace period",
                     null);
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(priceSettingRepository.findTopByStationIdOrderByVersionDesc(STATION_ID))
                     .thenReturn(Optional.empty());
             when(priceSettingRepository.save(any(PriceSetting.class))).thenReturn(testPriceSetting);
@@ -399,7 +400,7 @@ class PriceSettingServiceTest {
                     PriceSettingResponse.builder().version(2).isActive(true).build(),
                     PriceSettingResponse.builder().version(1).isActive(false).build());
 
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(priceSettingRepository.findByStationIdOrderByVersionDesc(STATION_ID))
                     .thenReturn(history);
             when(priceSettingDtoConverter.convert(history)).thenReturn(responses);
@@ -417,7 +418,7 @@ class PriceSettingServiceTest {
         @DisplayName("Should return empty list when no pricing history")
         void getPricingHistory_NoHistory_ReturnsEmptyList() {
             // Given
-            doNothing().when(stationService).verifyOwnership(STATION_ID);
+            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
             when(priceSettingRepository.findByStationIdOrderByVersionDesc(STATION_ID))
                     .thenReturn(List.of());
             when(priceSettingDtoConverter.convert(List.<PriceSetting>of()))
@@ -435,7 +436,7 @@ class PriceSettingServiceTest {
         void getPricingHistory_NotOwner_ThrowsForbidden() {
             // Given
             doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationService).verifyOwnership(STATION_ID);
+                    .when(stationOwnershipValidator).verifyOwnership(STATION_ID);
 
             // When & Then
             assertThatThrownBy(() -> priceSettingService.getPricingHistory(STATION_ID))

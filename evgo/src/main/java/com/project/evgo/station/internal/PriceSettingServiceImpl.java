@@ -3,7 +3,7 @@ package com.project.evgo.station.internal;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.PriceSettingService;
-import com.project.evgo.station.StationService;
+import com.project.evgo.station.StationOwnershipValidator;
 import com.project.evgo.station.request.CreatePriceSettingRequest;
 import com.project.evgo.station.response.PriceSettingResponse;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ public class PriceSettingServiceImpl implements PriceSettingService {
 
     private final PriceSettingRepository priceSettingRepository;
     private final PriceSettingDtoConverter priceSettingDtoConverter;
-    private final StationService stationService;
+    private final StationOwnershipValidator stationOwnershipValidator;
 
     @Override
     @Transactional
@@ -36,7 +36,7 @@ public class PriceSettingServiceImpl implements PriceSettingService {
         }
 
         // Verify station exists and current user owns it
-        stationService.verifyOwnership(stationId);
+        stationOwnershipValidator.verifyOwnership(stationId);
 
         // Validate prices are positive
         if (request.chargingRatePerKwh().compareTo(BigDecimal.ZERO) <= 0) {
@@ -85,7 +85,7 @@ public class PriceSettingServiceImpl implements PriceSettingService {
     @Override
     public List<PriceSettingResponse> getPricingHistory(Long stationId) {
         // Verify ownership for viewing history
-        stationService.verifyOwnership(stationId);
+        stationOwnershipValidator.verifyOwnership(stationId);
 
         List<PriceSetting> history = priceSettingRepository.findByStationIdOrderByVersionDesc(stationId);
         return priceSettingDtoConverter.convert(history);
