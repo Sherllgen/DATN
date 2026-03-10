@@ -38,7 +38,8 @@ public class SecurityConfig {
 			"/swagger-resources/**",
 			"/webjars/**",
 			"/api/v1/guests/**",
-			"/api/v1/zalopay/callback" // ZaloPay IPN webhook — MAC-verified internally
+			"/api/v1/zalopay/callback", // ZaloPay IPN webhook — MAC-verified internally
+			"/ocpp/**"
 	};
 
 	@Bean

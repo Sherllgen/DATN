@@ -56,6 +56,14 @@ public enum ErrorCode {
     STATION_ALREADY_SUSPENDED(5006, HttpStatus.BAD_REQUEST, "Station is already suspended"),
     STATION_INVALID_STATUS_CHANGE(5007, HttpStatus.BAD_REQUEST, "Invalid station status change"),
 
+    // Station Photo errors (501x)
+    STATION_PHOTO_NOT_FOUND(5010, HttpStatus.NOT_FOUND, "Station photo not found"),
+    STATION_PHOTO_LIMIT_EXCEEDED(5011, HttpStatus.BAD_REQUEST, "Maximum number of photos exceeded"),
+
+    // Price Setting errors (502x)
+    PRICE_SETTING_NOT_FOUND(5020, HttpStatus.NOT_FOUND, "Price setting not found"),
+    INVALID_PRICE_VALUE(5021, HttpStatus.BAD_REQUEST, "Price value must be positive"),
+
     // Charger errors (6xxx)
     CHARGER_NOT_FOUND(6001, HttpStatus.NOT_FOUND, "Charger not found"),
     CHARGER_NOT_OWNED(6002, HttpStatus.FORBIDDEN, "You don't own this charger's station"),
@@ -78,6 +86,10 @@ public enum ErrorCode {
     ZALOPAY_QUERY_FAILED(10004, HttpStatus.BAD_GATEWAY, "Failed to query ZaloPay order status"),
     INVOICE_NOT_FOUND(10005, HttpStatus.NOT_FOUND, "Invoice not found"),
     INVOICE_ALREADY_PAID(10006, HttpStatus.CONFLICT, "Invoice has already been paid"),
+
+    // OCPP errors (11xxx)
+    OCPP_INVALID_MESSAGE(11001, HttpStatus.BAD_REQUEST, "Invalid OCPP message format"),
+    OCPP_CHARGE_POINT_NOT_CONNECTED(11002, HttpStatus.NOT_FOUND, "Charge point is not connected"),
     ;
 
     private final int code;

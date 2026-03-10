@@ -10,12 +10,13 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Charger entity.
+ * Charger entity (maps to OCPP ChargePoint).
  * Internal - not accessible by other modules.
  */
 @Entity
@@ -46,6 +47,25 @@ public class Charger {
 
     @Column(name = "station_id", nullable = false)
     private Long stationId;
+
+    // ==================== OCPP Metadata (populated by BootNotification)
+
+    @Column(name = "charge_point_vendor")
+    private String chargePointVendor;
+
+    @Column(name = "charge_point_model")
+    private String chargePointModel;
+
+    @Column(name = "charge_point_serial")
+    private String chargePointSerial;
+
+    @Column(name = "firmware_version")
+    private String firmwareVersion;
+
+    @Column(name = "last_heartbeat")
+    private Instant lastHeartbeat;
+
+    // ==================== Relationships ====================
 
     @OneToMany(mappedBy = "charger", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Port> ports = new ArrayList<>();

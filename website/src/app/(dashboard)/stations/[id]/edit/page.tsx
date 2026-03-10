@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,8 @@ import {
     DayOfWeek,
     getDefaultOpeningHours,
 } from "@/components/station/opening-hours-editor";
+import { PhotoManager, StationPhoto } from "@/components/station/photo-manager";
+import { LocationPicker } from "@/components/station/location-picker";
 
 const stationSchema = z.object({
     name: z.string().min(1, "Station name is required").max(200),
@@ -58,9 +60,10 @@ export default function EditStationPage() {
     const router = useRouter();
     const params = useParams();
     const stationId = params.id as string;
-
+    
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [photos, setPhotos] = useState<StationPhoto[]>([]);
     const [is24_7, setIs24_7] = useState(true);
     const [openingHours, setOpeningHours] = useState<OpeningHoursEntry[]>(
         getDefaultOpeningHours()
@@ -87,6 +90,9 @@ export default function EditStationPage() {
 
                 if (response.data?.data) {
                     const station = response.data.data;
+                    const photosRes = await axios.get(`/api/stations/${stationId}/photos`, {
+                        withCredentials: true,
+                    });
                     form.reset({
                         name: station.name || "",
                         address: station.address || "",
@@ -117,6 +123,7 @@ export default function EditStationPage() {
                         setIs24_7(true);
                         setOpeningHours(getDefaultOpeningHours());
                     }
+                    setPhotos(photosRes.data?.data || []);
                 }
             } catch (error) {
                 console.error("Failed to fetch station:", error);
@@ -197,6 +204,12 @@ export default function EditStationPage() {
                 </Card>
             </div>
         );
+    }
+
+    function refreshPhotos() {
+        axios.get(`/api/stations/${stationId}/photos`, { withCredentials: true })
+            .then((res) => setPhotos(res.data?.data || []))
+            .catch(console.error);
     }
 
     return (
@@ -282,64 +295,21 @@ export default function EditStationPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <MapPin className="h-5 w-5" />
-                                Location on Map
-                            </CardTitle>
-                            <CardDescription>
-                                Update the GPS coordinates of your station
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="latitude"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Latitude *</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    step="any"
-                                                    placeholder="e.g. 10.7769"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Value from -90 to 90
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                    <LocationPicker
+                        latitude={form.watch("latitude")}
+                        longitude={form.watch("longitude")}
+                        onLocationChange={(lat, lng) => {
+                            form.setValue("latitude", lat, { shouldValidate: true });
+                            form.setValue("longitude", lng, { shouldValidate: true });
+                        }}
+                    />
 
-                                <FormField
-                                    control={form.control}
-                                    name="longitude"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Longitude *</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    step="any"
-                                                    placeholder="e.g. 106.7009"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Value from -180 to 180
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Station Photos */}
+                    <PhotoManager
+                        stationId={parseInt(stationId)}
+                        photos={photos}
+                        onPhotosChange={refreshPhotos}
+                    />
 
                     <OpeningHoursEditor
                         value={openingHours}

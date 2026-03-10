@@ -6,13 +6,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * PriceSetting entity - pricing configuration for a station.
+ * PriceSetting entity - versioned pricing configuration for a station.
+ * Each update creates a new version (immutable records for audit trail).
  * Internal - not accessible by other modules.
  */
 @Entity
@@ -30,18 +30,30 @@ public class PriceSetting {
     @Column(name = "station_id", nullable = false)
     private Long stationId;
 
-    @Column(name = "charging_price_per_kwh", nullable = false, precision = 12, scale = 2)
-    private BigDecimal chargingPricePerKwh;
+    @Column(nullable = false)
+    private Integer version = 1;
 
-    @Column(name = "booking_price", precision = 12, scale = 2)
-    private BigDecimal bookingPrice;
+    @Column(name = "charging_rate_per_kwh", nullable = false, precision = 12, scale = 2)
+    private BigDecimal chargingRatePerKwh;
 
-    @Column(name = "penalty_price", precision = 12, scale = 2)
-    private BigDecimal penaltyPrice;
+    @Column(name = "booking_fee", precision = 12, scale = 2)
+    private BigDecimal bookingFee;
+
+    @Column(name = "idle_penalty_per_minute", precision = 12, scale = 2)
+    private BigDecimal idlePenaltyPerMinute;
+
+    @Column(name = "grace_period_minutes", nullable = false)
+    private Integer gracePeriodMinutes = 30;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    @Column(length = 500)
+    private String notes;
+
+    @Column(name = "effective_from")
+    private LocalDateTime effectiveFrom;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
 }

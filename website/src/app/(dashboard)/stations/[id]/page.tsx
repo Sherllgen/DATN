@@ -60,19 +60,12 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { PricingEditor, PriceSetting } from "@/components/station/pricing-editor";
+import { PricingHistory } from "@/components/station/pricing-history";
 
 type StationStatus = "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
 type ConnectorType = "SOCKET_220V" | "VINFAST_STD" | "DATBIKE_FAST" | "IEC_TYPE_2" | "OTHER";
 type PortStatus = "AVAILABLE" | "RESERVED" | "CHARGING" | "MAINTENANCE";
-type DayOfWeek = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
-
-interface OpeningHoursEntry {
-    id?: number;
-    dayOfWeek: DayOfWeek;
-    openTime: string | null;
-    closeTime: string | null;
-    isOpen: boolean;
-}
 
 interface Station {
     id: number;
@@ -82,7 +75,6 @@ interface Station {
     longitude: number;
     status: StationStatus;
     description?: string;
-    openingHours?: OpeningHoursEntry[];
 }
 
 interface Port {
@@ -175,6 +167,10 @@ export default function StationDetailPage() {
     const [portToDelete, setPortToDelete] = useState<Port | null>(null);
     const [deleting, setDeleting] = useState(false);
 
+    // Pricing State
+    const [activePricing, setActivePricing] = useState<PriceSetting | null>(null);
+    const [pricingRefreshKey, setPricingRefreshKey] = useState(0);
+
     useEffect(() => {
         fetchData();
     }, [stationId]);
@@ -182,9 +178,10 @@ export default function StationDetailPage() {
     async function fetchData() {
         try {
             setLoading(true);
-            const [stationRes, chargersRes] = await Promise.all([
+            const [stationRes, chargersRes, pricingRes] = await Promise.all([
                 axios.get(`/api/stations/${stationId}`, { withCredentials: true }),
                 axios.get(`/api/chargers?stationId=${stationId}`, { withCredentials: true }),
+                axios.get(`/api/stations/${stationId}/pricing`, { withCredentials: true }).catch(() => ({ data: { data: null } })),
             ]);
 
             if (stationRes.data?.data) {
@@ -193,6 +190,7 @@ export default function StationDetailPage() {
             if (chargersRes.data?.data) {
                 setChargers(chargersRes.data.data);
             }
+            setActivePricing(pricingRes.data?.data || null);
         } catch (error) {
             console.error("Failed to fetch data:", error);
             toast.error("Failed to load station data");
@@ -200,6 +198,13 @@ export default function StationDetailPage() {
         } finally {
             setLoading(false);
         }
+    }
+
+    function refreshPricing() {
+        axios.get(`/api/stations/${stationId}/pricing`, { withCredentials: true })
+            .then((res) => setActivePricing(res.data?.data || null))
+            .catch(console.error);
+        setPricingRefreshKey((k) => k + 1);
     }
 
     async function fetchPorts(chargerId: number) {
@@ -466,39 +471,18 @@ export default function StationDetailPage() {
                 </Card>
             )}
 
-            {/* Opening Hours Section */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        Opening Hours
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {!station.openingHours || station.openingHours.length === 0 ? (
-                        <p className="text-muted-foreground">Open 24/7</p>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map((day) => {
-                                const entry = station.openingHours?.find((e) => e.dayOfWeek === day);
-                                const dayLabel = day.charAt(0) + day.slice(1).toLowerCase();
-                                return (
-                                    <div key={day} className="flex justify-between py-1 border-b last:border-0">
-                                        <span className="font-medium">{dayLabel}</span>
-                                        <span className="text-muted-foreground">
-                                            {entry?.isOpen === false
-                                                ? "Closed"
-                                                : entry?.openTime && entry?.closeTime
-                                                ? `${entry.openTime} - ${entry.closeTime}`
-                                                : "24 hours"}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            {/* Pricing Configuration */}
+            <PricingEditor
+                stationId={parseInt(stationId)}
+                activePricing={activePricing}
+                onPricingChange={refreshPricing}
+            />
+
+            {/* Pricing History */}
+            <PricingHistory
+                stationId={parseInt(stationId)}
+                refreshKey={pricingRefreshKey}
+            />
 
             {/* Chargers Section */}
             <Card>

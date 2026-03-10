@@ -22,9 +22,12 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+# Ensure UTC timezone at OS and JVM level
+ENV TZ=UTC
+
 # Copy jar từ build stage
 COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Duser.timezone=UTC", "-jar", "app.jar"]

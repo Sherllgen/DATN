@@ -1,6 +1,6 @@
 # Tài liệu Walkthrough - Charger Module
 
-Module quản lý bộ sạc (Charger) và cổng sạc (Port), cho phép Station Owner cấu hình thiết bị sạc trong trạm.
+Module quản lý bộ sạc (Charger) và cổng sạc (Port), đồng thời cung cấp API nội bộ cho OCPP module để xử lý BootNotification và Heartbeat.
 
 ---
 
@@ -22,26 +22,30 @@ erDiagram
     STATION ||--o{ CHARGER : has
     CHARGER ||--o{ PORT : has
 
-    STATION {
-        Long id
-        String name
-        String address
-    }
-
     CHARGER {
-        Long id
+        Long id PK "Cũng là OCPP chargePointId"
         String name
         Double maxPower
         ConnectorType connectorType
         ChargerStatus status
+        Long stationId FK
+        String chargePointVendor "OCPP metadata"
+        String chargePointModel "OCPP metadata"
+        String chargePointSerial "OCPP metadata"
+        String firmwareVersion "OCPP metadata"
+        Instant lastHeartbeat "OCPP metadata"
     }
 
     PORT {
-        Long id
-        String portNumber
+        Long id PK
+        Integer portNumber
         PortStatus status
+        Long chargerId FK
     }
 ```
+
+> [!IMPORTANT]
+> **Charger ID = OCPP chargePointId.** Trụ sạc vật lý kết nối qua `ws://server/ocpp/{chargerId}`. Không có field `ocppIdentity` riêng — dùng database ID trực tiếp.
 
 ---
 
@@ -52,7 +56,7 @@ erDiagram
 | Method | Endpoint | Mô tả | Auth | Role |
 |--------|----------|-------|------|------|
 | `GET` | `/api/v1/chargers?stationId={id}` | Danh sách charger của station | ❌ | Public |
-| `GET` | `/api/v1/chargers/{id}` | Chi tiết charger | ❌ | Public |
+| `GET` | `/api/v1/chargers/{id}` | Chi tiết charger (bao gồm OCPP metadata) | ❌ | Public |
 | `POST` | `/api/v1/chargers` | Tạo charger mới | ✅ | STATION_OWNER |
 | `PUT` | `/api/v1/chargers/{id}` | Cập nhật charger | ✅ | STATION_OWNER |
 | `DELETE` | `/api/v1/chargers/{id}` | Xóa charger | ✅ | STATION_OWNER |
@@ -64,8 +68,8 @@ erDiagram
 | `GET` | `/api/v1/chargers/{id}/ports` | Danh sách port của charger | ❌ | Public |
 | `GET` | `/api/v1/ports/{portId}` | Chi tiết port | ❌ | Public |
 | `POST` | `/api/v1/chargers/{chargerId}/ports` | Tạo port mới | ✅ | STATION_OWNER |
-| `PUT` | `/api/v1/ports/{portId}` | Cập nhật trạng thái port | ✅ | STATION_OWNER |
-| `DELETE` | `/api/v1/ports/{portId}` | Xóa port | ✅ | STATION_OWNER |
+| `PATCH` | `/api/v1/chargers/ports/{portId}/status` | Cập nhật trạng thái port | ✅ | STATION_OWNER |
+| `DELETE` | `/api/v1/chargers/ports/{portId}` | Xóa port | ✅ | STATION_OWNER |
 
 ---
 
@@ -81,13 +85,21 @@ public interface ChargerService {
 
     // Charger management (Owner only)
     ChargerResponse createCharger(CreateChargerRequest request);
-    ChargerResponse updateCharger(Long id, String name, Double maxPower, ConnectorType connectorType);
+    ChargerResponse updateCharger(Long id, UpdateChargerRequest request);
     void deleteCharger(Long id);
 
     // Port management (Owner only)
-    PortResponse createPort(CreatePortRequest request);
+    PortResponse createPort(Long chargerId, CreatePortRequest request);
     PortResponse updatePortStatus(Long id, PortStatus status);
     void deletePort(Long id);
+
+    // Statistics (Station module uses this for ChargerSummary)
+    List<ChargerStatisticProjection> findStatisticsByStationId(Long stationId);
+
+    // OCPP operations (called by OCPP module handlers)
+    Optional<ChargerResponse> processBootNotification(
+            Long chargerId, String vendor, String model, String serial, String firmware);
+    void updateHeartbeat(Long chargerId);
 }
 ```
 
@@ -108,49 +120,49 @@ sequenceDiagram
     Owner->>ChargerController: POST /chargers
     ChargerController->>ChargerService: createCharger(request)
     ChargerService->>StationService: verifyOwnership(stationId)
-    Note over StationService: Throws if not owner
+    Note over StationService: Throws STATION_NOT_OWNED if not owner
     StationService-->>ChargerService: OK
-    ChargerService->>DB: Save charger
+    ChargerService->>DB: Save charger (status=AVAILABLE)
     ChargerService-->>ChargerController: ChargerResponse
     ChargerController-->>Owner: 201 Created
 ```
 
-### Cập nhật Port Status
+### OCPP BootNotification (cross-module)
+
+```mermaid
+sequenceDiagram
+    participant Charger as Trụ sạc vật lý
+    participant WS as OcppWebSocketHandler
+    participant Boot as BootNotificationHandler
+    participant Service as ChargerService
+    participant DB
+
+    Charger->>WS: ws://server/ocpp/{id}
+    Note over WS: Handshake Interceptor validates ID in DB
+    WS-->>Charger: WebSocket opened
+    Charger->>WS: [2, msgId, "BootNotification", {vendor, model}]
+    WS->>Boot: handle(chargePointId, call)
+    Boot->>Service: processBootNotification(id, vendor, model, ...)
+    Service->>DB: findById(id)
+    Service->>DB: Update metadata + status + lastHeartbeat
+    Service->>Service: Publish ChargePointBootedEvent
+    Service-->>Boot: ChargerResponse
+    Boot-->>WS: CallResult {status: "Accepted", interval: 300}
+    WS-->>Charger: [3, msgId, {Accepted, currentTime, interval}]
+```
+
+### Port Status State Machine
 
 ```mermaid
 stateDiagram-v2
     [*] --> AVAILABLE: Port created
-    AVAILABLE --> IN_USE: Start charging
-    IN_USE --> AVAILABLE: Complete charging
-    AVAILABLE --> MAINTENANCE: Mark for maintenance
-    MAINTENANCE --> AVAILABLE: Complete maintenance
-    AVAILABLE --> OUT_OF_ORDER: Mark broken
+    AVAILABLE --> CHARGING: Start charging (OCPP)
+    CHARGING --> AVAILABLE: Complete charging
+    AVAILABLE --> MAINTENANCE: Admin/Owner action
+    MAINTENANCE --> AVAILABLE: Maintenance complete
+    AVAILABLE --> OUT_OF_ORDER: Hardware fault
     OUT_OF_ORDER --> AVAILABLE: Fixed
 ```
-
----
-
-## Các tính năng đã implement
-
-### Public Features
-
-- ✅ Xem danh sách charger theo station
-- ✅ Xem chi tiết charger
-- ✅ Xem danh sách port theo charger
-- ✅ Xem chi tiết port
-
-### Station Owner Features
-
-- ✅ Thêm charger vào station
-- ✅ Cập nhật thông tin charger (tên, công suất, loại connector)
-- ✅ Xóa charger
-- ✅ Thêm port vào charger
-- ✅ Cập nhật trạng thái port
-- ✅ Xóa port
-
-### Cross-module Integration
-
-- ✅ Sử dụng `StationService.verifyOwnership()` để kiểm tra quyền sở hữu
 
 ---
 
@@ -159,144 +171,68 @@ stateDiagram-v2
 ### CreateChargerRequest
 
 ```java
-public record CreateChargerRequest(
-    @NotNull Long stationId,
-    @NotBlank String name,
-    @NotNull Double maxPower,
-    @NotNull ConnectorType connectorType
-) {}
+@Data @NoArgsConstructor @AllArgsConstructor
+public class CreateChargerRequest {
+    @NotBlank String name;
+    @NotNull @Positive Double maxPower;
+    @NotNull Long stationId;
+    @NotNull ConnectorType connectorType;
+}
 ```
 
 ### UpdateChargerRequest
 
 ```java
 public record UpdateChargerRequest(
-    String name,
-    Double maxPower,
-    ConnectorType connectorType
+    @NotBlank String name,
+    @NotNull @Positive Double maxPower,
+    @NotNull ConnectorType connectorType
 ) {}
 ```
 
 ### ChargerResponse
 
 ```java
-public record ChargerResponse(
-    Long id,
-    Long stationId,
-    String name,
-    Double maxPower,
-    ConnectorType connectorType,
-    ChargerStatus status,
-    Integer totalPorts,
-    Integer availablePorts,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
-) {}
-```
+@Data @Builder
+public class ChargerResponse {
+    Long id;
+    String name;
+    Double maxPower;
+    ConnectorType connectorType;
+    ChargerStatus status;
+    Long stationId;
+    List<PortResponse> ports;
+    Integer totalPorts;
+    Integer availablePorts;
 
-> [!NOTE]
-> **Ý nghĩa các trường đặc biệt:**
-> - `totalPorts`: Tổng số cổng sạc của charger
-> - `availablePorts`: Số cổng sạc đang Available (chưa có ai dùng)
+    // OCPP metadata (populated after BootNotification)
+    String chargePointVendor;
+    String chargePointModel;
+    String chargePointSerial;
+    String firmwareVersion;
+    Instant lastHeartbeat;
 
-### CreatePortRequest
-
-```java
-public record CreatePortRequest(
-    @NotBlank String portNumber
-) {}
-```
-
-### UpdatePortRequest
-
-```java
-public record UpdatePortRequest(
-    @NotNull PortStatus status
-) {}
-```
-
-### PortResponse
-
-```java
-public record PortResponse(
-    Long id,
-    Long chargerId,
-    String portNumber,
-    PortStatus status,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
-) {}
-```
-
----
-
-## Entities
-
-### Charger Entity
-
-```java
-@Entity
-@Table(name = "chargers")
-public class Charger {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "station_id", nullable = false)
-    private Station station;
-
-    @Column(nullable = false)
-    private String name;
-
-    @Column(nullable = false)
-    private Double maxPower;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ConnectorType connectorType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ChargerStatus status = ChargerStatus.ACTIVE;
-
-    @OneToMany(mappedBy = "charger", cascade = CascadeType.ALL)
-    private List<Port> ports = new ArrayList<>();
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    LocalDateTime createdAt;
 }
 ```
 
-### Port Entity
+> [!NOTE]
+> - `totalPorts`: Tổng số cổng sạc của charger
+> - `availablePorts`: Số cổng sạc đang AVAILABLE
+> - OCPP metadata fields sẽ là `null` cho đến khi trụ sạc vật lý kết nối và gửi BootNotification
+
+### CreatePortRequest / PortResponse
 
 ```java
-@Entity
-@Table(name = "ports")
-public class Port {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public record CreatePortRequest(@NotNull Integer portNumber) {}
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "charger_id", nullable = false)
-    private Charger charger;
-
-    @Column(nullable = false)
-    private String portNumber;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private PortStatus status = PortStatus.AVAILABLE;
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+@Data @Builder
+public class PortResponse {
+    Long id;
+    Integer portNumber;
+    PortStatus status;
+    Long chargerId;
+    LocalDateTime createdAt;
 }
 ```
 
@@ -304,63 +240,87 @@ public class Port {
 
 ## Enums
 
-### ConnectorType
-
-```java
-public enum ConnectorType {
-    TYPE_1,         // J1772 (US Standard)
-    TYPE_2,         // Mennekes (EU Standard)
-    CCS1,           // Combined Charging System 1
-    CCS2,           // Combined Charging System 2
-    CHADEMO,        // Japanese DC fast charging
-    TESLA,          // Tesla proprietary
-    GB_T            // Chinese standard
-}
-```
-
-| Value | Mô tả | Thị trường |
-|-------|-------|------------|
-| `TYPE_1` | J1772 | Mỹ, Nhật |
-| `TYPE_2` | Mennekes | Châu Âu |
-| `CCS1` | Combined Charging System 1 | Mỹ |
-| `CCS2` | Combined Charging System 2 | Châu Âu |
-| `CHADEMO` | DC fast charging | Nhật |
-| `TESLA` | Tesla proprietary | Toàn cầu (Tesla) |
-| `GB_T` | Chinese standard | Trung Quốc |
-
-### ChargerStatus
+### ChargerStatus (Aligned with OCPP 1.6)
 
 ```java
 public enum ChargerStatus {
-    ACTIVE,         // Đang hoạt động
-    INACTIVE,       // Không hoạt động
-    MAINTENANCE     // Đang bảo trì
+    AVAILABLE,       // Sẵn sàng nhận giao dịch mới
+    PREPARING,       // Đã cắm connector, chưa sạc
+    CHARGING,        // Đang sạc
+    SUSPENDED_EVSE,  // Trụ tạm dừng cấp điện
+    SUSPENDED_EV,    // Xe tạm dừng nhận điện
+    FINISHING,       // Xong giao dịch, cáp chưa rút
+    RESERVED,        // Đã đặt trước cho user cụ thể
+    UNAVAILABLE,     // Bảo trì hoặc admin tắt
+    FAULTED,         // Lỗi phần cứng
+    OFFLINE          // Internal: mất kết nối WebSocket
 }
 ```
 
-| Status | Mô tả | Hiển thị cho User |
-|--------|-------|-------------------|
-| `ACTIVE` | Đang hoạt động | ✅ Có |
-| `INACTIVE` | Tạm ngưng | ❌ Không |
-| `MAINTENANCE` | Đang bảo trì | ⚠️ Có (với badge) |
+### ConnectorType (Thị trường Việt Nam)
 
-### PortStatus
+| Value | Mô tả |
+|-------|-------|
+| `SOCKET_220V` | Ổ cắm thường 220V |
+| `VINFAST_STD` | Chuẩn VinFast |
+| `DATBIKE_FAST` | Sạc nhanh Dat Bike |
+| `IEC_TYPE_2` | Chuẩn Type 2 quốc tế |
+| `OTHER` | Loại khác |
 
-```java
-public enum PortStatus {
-    AVAILABLE,      // Sẵn sàng
-    IN_USE,         // Đang sạc
-    MAINTENANCE,    // Đang bảo trì
-    OUT_OF_ORDER    // Hỏng
-}
-```
+### PortStatus (Aligned with OCPP 1.6)
 
 | Status | Mô tả | Cho phép Booking |
 |--------|-------|------------------|
-| `AVAILABLE` | Sẵn sàng sử dụng | ✅ Có |
-| `IN_USE` | Đang có người sạc | ❌ Không |
-| `MAINTENANCE` | Đang bảo trì | ❌ Không |
-| `OUT_OF_ORDER` | Hỏng | ❌ Không |
+| `AVAILABLE` | Sẵn sàng nhận giao dịch | ✅ |
+| `PREPARING` | Đã cắm connector, chưa sạc | ❌ |
+| `CHARGING` | Đang sạc | ❌ |
+| `SUSPENDED_EVSE` | Trụ tạm dừng cấp điện | ❌ |
+| `SUSPENDED_EV` | Xe tạm dừng nhận điện | ❌ |
+| `FINISHING` | Xong giao dịch, cáp chưa rút | ❌ |
+| `RESERVED` | Đã đặt trước | ❌ |
+| `UNAVAILABLE` | Bảo trì / admin tắt | ❌ |
+| `FAULTED` | Lỗi phần cứng | ❌ |
+
+---
+
+## Charger Entity
+
+```java
+@Entity
+@Table(name = "chargers")
+public class Charger {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;                    // = OCPP chargePointId
+
+    private String name;
+    private Double maxPower;
+
+    @Enumerated(EnumType.STRING)
+    private ConnectorType connectorType;
+
+    @Enumerated(EnumType.STRING)
+    private ChargerStatus status = ChargerStatus.AVAILABLE;
+
+    @Column(name = "station_id")
+    private Long stationId;             // FK, không dùng @ManyToOne
+
+    // OCPP Metadata (populated by BootNotification)
+    private String chargePointVendor;
+    private String chargePointModel;
+    private String chargePointSerial;
+    private String firmwareVersion;
+    private Instant lastHeartbeat;
+
+    @OneToMany(mappedBy = "charger", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Port> ports;
+
+    private LocalDateTime createdAt;    // @CreationTimestamp
+    private LocalDateTime updatedAt;    // @UpdateTimestamp
+}
+```
+
+> [!NOTE]
+> `stationId` lưu dưới dạng `Long` thay vì quan hệ `@ManyToOne` để tuân thủ Spring Modulith — module `charger` không được import entity `Station` trực tiếp. Thay vào đó, module gọi `StationService.verifyOwnership()` qua public API.
 
 ---
 
@@ -368,23 +328,25 @@ public enum PortStatus {
 
 ```
 charger/
-├── package-info.java              # @ApplicationModule
-├── ChargerService.java            # Public service interface
+├── package-info.java                # @ApplicationModule, depends on sharedkernel + station
+├── ChargerService.java              # Public service interface
+├── ChargePointBootedEvent.java      # Spring event: record(Long chargerId)
 ├── request/
 │   ├── CreateChargerRequest.java
-│   ├── UpdateChargerRequest.java
-│   ├── CreatePortRequest.java
-│   └── UpdatePortRequest.java
+│   ├── UpdateChargerRequest.java    # record
+│   ├── CreatePortRequest.java       # record
+│   └── UpdatePortRequest.java       # record
 ├── response/
-│   ├── ChargerResponse.java
+│   ├── ChargerResponse.java         # Includes OCPP metadata
 │   └── PortResponse.java
 └── internal/
-    ├── Charger.java               # Entity
-    ├── Port.java                  # Entity
+    ├── Charger.java                 # Entity (with OCPP metadata)
+    ├── Port.java                    # Entity
     ├── ChargerRepository.java
     ├── PortRepository.java
+    ├── ChargerStatisticProjection.java  # Projection for station summary
     ├── ChargerDtoConverter.java
-    ├── ChargerServiceImpl.java
+    ├── ChargerServiceImpl.java      # Includes OCPP methods + event publishing
     └── web/
         └── ChargerController.java
 ```
@@ -393,20 +355,27 @@ charger/
 
 ## Dependencies
 
-Module `charger` phụ thuộc vào:
-- `sharedkernel` - DTOs, Enums, Exceptions
-- `station` - Để xác minh quyền sở hữu station trước khi thêm/xóa charger
+```
+charger → sharedkernel (Enums, Exceptions, DTOs)
+charger → station      (StationService.verifyOwnership())
 
-Module `charger` được sử dụng bởi:
-- `booking` - Để kiểm tra port khả dụng
-- `charging` - Để quản lý phiên sạc
+ocpp    → charger      (ChargerService: processBootNotification, updateHeartbeat, findById)
+station → charger      (ChargerService: findStatisticsByStationId — causes circular dep ⚠️)
+```
+
+> [!WARNING]
+> **Circular Dependency:** `station` → `charger` (for statistics) và `charger` → `station` (for ownership). Hiện tại dùng `@Lazy` để tránh khởi tạo vòng. Cần refactor trong tương lai (ví dụ dùng Spring Events hoặc tách statistics ra module riêng).
 
 ---
 
 ## Lưu ý quan trọng
 
-1. **Ownership Cascade**: Khi thêm charger vào station, hệ thống tự động kiểm tra quyền sở hữu station thông qua `StationService.verifyOwnership()`.
+1. **Ownership Cascade**: Mọi thao tác ghi (create/update/delete) đều phải qua `StationService.verifyOwnership()`. Nếu không phải owner → `CHARGER_NOT_OWNED` (403).
 
-2. **Port Counting**: `ChargerResponse` bao gồm `totalPorts` và `availablePorts` để mobile app hiển thị số cổng khả dụng.
+2. **OCPP Integration**: Module `charger` cung cấp `processBootNotification()` và `updateHeartbeat()` cho module `ocpp`. Khi BootNotification thành công, hệ thống publish `ChargePointBootedEvent` qua Spring's `ApplicationEventPublisher`.
 
-3. **Status Management**: Port status được quản lý độc lập, cho phép đánh dấu bảo trì hoặc hỏng mà không ảnh hưởng đến charger khác.
+3. **Handshake Validation**: `OcppHandshakeInterceptor` gọi `ChargerService.findById()` khi trụ sạc xin mở WebSocket. ID không tồn tại → reject kết nối ngay.
+
+4. **Port Counting**: `ChargerResponse` tự tính `totalPorts` và `availablePorts` trong `ChargerDtoConverter`.
+
+5. **Statistics Projection**: `ChargerStatisticProjection` cung cấp dữ liệu `GROUP BY connectorType, status` cho Station module hiển thị `ChargerSummary`.

@@ -1,5 +1,6 @@
 package com.project.evgo.charger.request;
 
+import com.project.evgo.sharedkernel.enums.ConnectorType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -24,4 +25,7 @@ public class CreateChargerRequest {
 
     @NotNull(message = "Station ID is required")
     private Long stationId;
+
+    @NotNull(message = "Connector type is required")
+    private ConnectorType connectorType;
 }

@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,5 +29,13 @@ public class ChargerResponse {
     private List<PortResponse> ports;
     private Integer totalPorts;
     private Integer availablePorts;
+
+    // OCPP metadata
+    private String chargePointVendor;
+    private String chargePointModel;
+    private String chargePointSerial;
+    private String firmwareVersion;
+    private Instant lastHeartbeat;
+
     private LocalDateTime createdAt;
 }

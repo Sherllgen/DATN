@@ -19,7 +19,7 @@ public class GuestController {
 
     private final StationOwnerService stationOwnerService;
 
-    @GetMapping("/track")
+    @PostMapping("/track")
     @Operation(summary = "Track Station Owner Registration Status", description = "Allows guest users to track the status of their station owner registration using email or registration code.")
     public ResponseEntity<ApiResponse<TrackingResponse>> trackGuestUserRegistrationStatus(
             @RequestBody @Valid TrackingRequest request) {

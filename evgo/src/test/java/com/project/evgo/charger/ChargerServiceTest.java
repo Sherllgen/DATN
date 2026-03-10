@@ -8,6 +8,7 @@ import com.project.evgo.charger.internal.Port;
 import com.project.evgo.charger.internal.PortRepository;
 import com.project.evgo.charger.request.CreateChargerRequest;
 import com.project.evgo.charger.request.CreatePortRequest;
+import com.project.evgo.charger.request.UpdateChargerRequest;
 import com.project.evgo.charger.response.ChargerResponse;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.enums.ChargerStatus;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,6 +56,9 @@ class ChargerServiceTest {
 
     @Mock
     private ChargerDtoConverter converter;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private static final Long STATION_ID = 100L;
     private static final Long CHARGER_ID = 200L;
@@ -187,8 +192,8 @@ class ChargerServiceTest {
             when(converter.toChargerResponse(any(Charger.class))).thenReturn(testChargerResponse);
 
             // When
-            ChargerResponse result = chargerService.updateCharger(CHARGER_ID, "Updated Name", 100.0,
-                    ConnectorType.IEC_TYPE_2);
+            ChargerResponse result = chargerService.updateCharger(CHARGER_ID,
+                    new UpdateChargerRequest("Updated Name", 100.0, ConnectorType.IEC_TYPE_2));
 
             // Then
             assertThat(result).isNotNull();
@@ -206,7 +211,8 @@ class ChargerServiceTest {
 
             // When & Then
             assertThatThrownBy(
-                    () -> chargerService.updateCharger(CHARGER_ID, "Updated", 100.0, ConnectorType.VINFAST_STD))
+                    () -> chargerService.updateCharger(CHARGER_ID,
+                            new UpdateChargerRequest("Updated", 100.0, ConnectorType.VINFAST_STD)))
                     .isInstanceOf(AppException.class)
                     .satisfies(ex -> {
                         AppException appEx = (AppException) ex;
@@ -225,7 +231,8 @@ class ChargerServiceTest {
 
             // When & Then
             assertThatThrownBy(
-                    () -> chargerService.updateCharger(CHARGER_ID, "Updated", 100.0, ConnectorType.VINFAST_STD))
+                    () -> chargerService.updateCharger(CHARGER_ID,
+                            new UpdateChargerRequest("Updated", 100.0, ConnectorType.VINFAST_STD)))
                     .isInstanceOf(AppException.class)
                     .satisfies(ex -> {
                         AppException appEx = (AppException) ex;
