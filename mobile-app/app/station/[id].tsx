@@ -153,7 +153,7 @@ export default function StationDetailScreen() {
                                 resizeMode="cover"
                             />
                         ) : (
-                            <View className="w-full h-80 bg-[#4A5568]/20 items-center justify-center">
+                            <View className="w-full h-80 bg-border-gray/20 items-center justify-center">
                                 <Ionicons
                                     name="business"
                                     size={64}
@@ -276,7 +276,7 @@ export default function StationDetailScreen() {
                             <Text className="text-lg font-semibold text-white mb-3">
                                 Cost
                             </Text>
-                            <View className="bg-[#4A5568]/20 rounded-lg p-4 border border-[#4A5568]">
+                            <View className="bg-border-gray/20 rounded-lg p-4 border border-border-gray">
                                 <View className="flex-row items-center">
                                     <Ionicons
                                         name="card"
@@ -307,7 +307,7 @@ export default function StationDetailScreen() {
                                     </View> */}
                                 </View>
 
-                                <View className="bg-[#4A5568]/20 rounded-lg p-4 border border-[#4A5568]">
+                                <View className="bg-border-gray/20 rounded-lg p-4 border border-border-gray">
                                     {station.openingHours.map((hours, index) => (
                                         <View
                                             key={hours.id || index}
@@ -386,8 +386,7 @@ export default function StationDetailScreen() {
                             variant="primary"
                             fullWidth
                             onPress={() => {
-                                // Navigate to QR scan or charging flow
-                                router.push("/qr_scan");
+                                router.push(`/booking/selectVehicle?stationId=${id}`);
                             }}
                             className="mb-6"
                         >

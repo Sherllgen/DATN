@@ -41,6 +41,7 @@ module.exports = {
                 border: {
                     DEFAULT: '#4A5568',
                     light: 'rgba(255,255,255,0.3)',
+                    gray: '#4A5568',
                 }
             },
 

@@ -33,7 +33,7 @@ export default function StationCard({
     return (
         <TouchableOpacity
             className={[
-                "flex-row items-center bg-white/5 rounded-2xl p-3 mb-3 border border-[#4A5568]/20",
+                "flex-row items-center bg-white/5 rounded-2xl p-3 mb-3 border border-border-gray/20",
                 className,
             ].join(" ")}
             onPress={onPress}

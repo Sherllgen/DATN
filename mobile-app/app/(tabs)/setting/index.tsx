@@ -44,7 +44,7 @@ export default function SettingPage() {
                                         user.avatarUrl ||
                                         "https://i.pravatar.cc/150?img=12",
                                 }}
-                                className="bg-[#4A5568] rounded-full w-[60px] h-[60px]"
+                                className="bg-border-gray rounded-full w-[60px] h-[60px]"
                             />
                             <View className="flex-1 ml-4">
                                 <Text className="mb-1 font-semibold text-white text-lg">
@@ -66,7 +66,7 @@ export default function SettingPage() {
                             activeOpacity={0.7}
                             onPress={() => router.push("/auth/login")}
                         >
-                            <View className="justify-center items-center bg-[#4A5568] rounded-full w-[60px] h-[60px]">
+                            <View className="justify-center items-center bg-border-gray rounded-full w-[60px] h-[60px]">
                                 <Ionicons
                                     name="person-outline"
                                     size={32}
@@ -89,7 +89,7 @@ export default function SettingPage() {
                         </TouchableOpacity>
                     )}
 
-                    <View className="bg-[#4A5568]/50 my-4 h-[1px]" />
+                    <View className="bg-border-gray/50 my-4 h-[1px]" />
 
                     {/* Menu Items */}
                     <View>
@@ -107,7 +107,7 @@ export default function SettingPage() {
                                         router.push("/setting/myVehicle")
                                     }
                                 />
-                                <View className="bg-[#4A5568]/50 my-2 h-[1px]" />
+                                <View className="bg-border-gray/50 my-2 h-[1px]" />
                                 <MenuItem
                                     title="Payment Methods"
                                     onPress={() =>
@@ -126,7 +126,7 @@ export default function SettingPage() {
                             title="Privacy Policy"
                             onPress={() => console.log("Privacy Policy")}
                         />
-                        <View className="bg-[#4A5568]/50 my-2 h-[1px]" />
+                        <View className="bg-border-gray/50 my-2 h-[1px]" />
                         <MenuItem
                             title="Help Center"
                             onPress={() => console.log("Help Center")}

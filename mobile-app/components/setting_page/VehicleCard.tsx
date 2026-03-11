@@ -1,5 +1,6 @@
 import { Feather, FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import { Text, TouchableOpacity, View } from "react-native";
+import ListItemCard from "../ui/ListItemCard";
 
 export type VehicleBrand =
     | "VINFAST"
@@ -30,29 +31,10 @@ export default function VehicleCard({
     console.log("vehile: ", vehicle);
 
     return (
-        <View className="bg-[#4A5568]/20 mb-4 p-4 border border-[#4A5568] rounded-lg">
-            <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                    <View className="flex-row items-center">
-                        <MaterialIcons
-                            name="electric-bike"
-                            size={22}
-                            color="#4CAF50"
-                        />
-                        <Text className="ml-2 font-semibold text-[#4CAF50]">
-                            {vehicle.brand}
-                        </Text>
-                    </View>
-                    <Text className="mt-2 text-[#ccc] text-sm">
-                        Model: {vehicle.modelName}
-                    </Text>
-                    <Text className="mt-2 text-[#ccc] text-sm">
-                        Connectors:{" "}
-                        {vehicle.connectorTypes?.join(", ") || "N/A"}
-                    </Text>
-                </View>
-
-                {/* Action Buttons */}
+        <ListItemCard
+            icon={<MaterialIcons name="electric-bike" size={22} color="#4CAF50" />}
+            title={vehicle.brand}
+            actions={
                 <View className="flex-row">
                     <TouchableOpacity
                         className="bg-[#4CAF50]/20 mr-2 p-3 rounded-lg"
@@ -69,7 +51,15 @@ export default function VehicleCard({
                         <FontAwesome5 name="trash" size={18} color="#EF4444" />
                     </TouchableOpacity>
                 </View>
-            </View>
-        </View>
+            }
+        >
+            <Text className="text-[#ccc] text-sm">
+                Model: {vehicle.modelName}
+            </Text>
+            <Text className="mt-2 text-[#ccc] text-sm">
+                Connectors:{" "}
+                {vehicle.connectorTypes?.join(", ") || "N/A"}
+            </Text>
+        </ListItemCard>
     );
 }

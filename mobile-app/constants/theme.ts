@@ -10,6 +10,13 @@ const tintColorDark = "#fff";
 
 export const AppColors = {
     primary: "#33404F",
+    secondary: "#00A452",
+    accent: "#4CAF50",
+    success: "#4CAF50",
+    textSecondary: "#9BA1A6",
+    borderGray: "#4A5568",
+    surface: "#1A202C", 
+    surfaceDark: "#131315",
 };
 
 export const Colors = {

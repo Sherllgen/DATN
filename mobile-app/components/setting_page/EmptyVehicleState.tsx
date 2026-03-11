@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 
 export default function EmptyVehicleState() {
     return (
-        <View className="justify-center items-center bg-[#4A5568]/20 my-10 py-12 rounded-lg">
+        <View className="justify-center items-center bg-border-gray/20 my-10 py-12 rounded-lg">
             <MaterialCommunityIcons
                 name="motorbike-electric"
                 size={70}

@@ -23,7 +23,7 @@ export default function ChargerTypeTag({
     return (
         <View
             className={[
-                "flex-row items-center px-3 py-2 rounded-lg bg-[#4A5568]/20 border border-[#4A5568]",
+                "flex-row items-center px-3 py-2 rounded-lg bg-border-gray/20 border border-border-gray",
                 className,
             ].join(" ")}
         >

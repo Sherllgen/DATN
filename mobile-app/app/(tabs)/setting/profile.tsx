@@ -319,7 +319,7 @@ export default function ProfilePage() {
                                 }));
                                 setIsChanged(true);
                             }}
-                            className="pb-3 border-[#4A5568] border-b text-[#4CAF50] text-base"
+                            className="pb-3 border-border-gray border-b text-[#4CAF50] text-base"
                             placeholderTextColor="#9BA1A6"
                         />
                     </View>
@@ -354,7 +354,7 @@ export default function ProfilePage() {
                                 }));
                                 setIsChanged(true);
                             }}
-                            className="pb-3 border-[#4A5568] border-b text-[#4CAF50] text-base"
+                            className="pb-3 border-border-gray border-b text-[#4CAF50] text-base"
                             placeholderTextColor="#9BA1A6"
                         />
                     </View>
@@ -364,7 +364,7 @@ export default function ProfilePage() {
                         <Text className="mb-4 text-[#9BA1A6] text-sm">
                             Email
                         </Text>
-                        <View className="flex-row justify-between items-center pb-3 border-[#4A5568] border-b">
+                        <View className="flex-row justify-between items-center pb-3 border-border-gray border-b">
                             <Text className="text-[#4CAF50] text-base">
                                 andrewainsley@gmail.com
                             </Text>
@@ -379,7 +379,7 @@ export default function ProfilePage() {
                         <Text className="mb-3 text-[#9BA1A6] text-sm">
                             Phone number
                         </Text>
-                        <View className="flex-row justify-between items-center pb-3 border-[#4A5568] border-b">
+                        <View className="flex-row justify-between items-center pb-3 border-border-gray border-b">
                             <Text className="text-[#4CAF50] text-base">
                                 {user?.phone || "Chưa cập nhật"}
                             </Text>

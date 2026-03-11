@@ -492,7 +492,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
     const handleBook = () => {
         if (selectedStation) {
             setShowQuickInfo(false);
-            console.log("Book station:", selectedStation.id);
+            router.push(`/booking/selectVehicle?stationId=${selectedStation.id}`);
         }
     };
 

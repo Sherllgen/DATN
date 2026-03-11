@@ -56,12 +56,6 @@ export default function HomePage() {
         }
     };
 
-    const getMarkerColor = (station: StationSearchResult) => {
-        return station.status === StationStatus.ACTIVE
-            ? "#4CAF50" // Green - ACTIVE
-            : "#EF4444"; // Red - INACTIVE
-    };
-
     return (
         <GradientBackground className="flex-1 px-6 pt-6">
             <SafeAreaView className="flex-1">
@@ -72,7 +66,7 @@ export default function HomePage() {
                     </Text>
                 </View>
 
-                <View className="flex-1 bg-white/10 -mx-6 mt-8 px-6 rounded-s-[3em]">
+                <View className="flex-1 bg-white/10 -mx-6 mt-8 px-6 rounded-t-[3em]">
                     {/* Map Preview */}
                     <View>
                         <View className="flex-row items-center justify-between">

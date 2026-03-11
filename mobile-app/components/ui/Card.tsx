@@ -20,7 +20,7 @@ export default function Card({
 }: CardProps) {
     // Variant styles based on Design System
     const variantStyles = {
-        default: "bg-surface-light border border-border",
+        default: "bg-[#4A5568]/20 border border-[#4A5568]",
         elevated: "bg-surface",
         outlined: "bg-transparent border-2 border-border",
     };

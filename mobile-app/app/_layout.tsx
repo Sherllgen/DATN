@@ -10,7 +10,7 @@ import ToastManager from "toastify-react-native";
 import "../global.css";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete
-SplashScreen.preventAutoHideAsync().catch(console.warn);
+// SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 const BlackTheme = {
     ...DarkTheme, // hoặc DefaultTheme đều được, miễn override colors
@@ -64,6 +64,10 @@ export default function RootLayout() {
                     />
                     <Stack.Screen
                         name="station"
+                        options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="booking"
                         options={{ headerShown: false }}
                     />
                 </Stack>
