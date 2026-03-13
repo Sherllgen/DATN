@@ -85,6 +85,8 @@ erDiagram
 | `GET` | `/api/v1/stations/{id}/photos` | Ảnh trạm sạc |
 | `GET` | `/api/v1/stations/{id}/pricing` | Bảng giá hiện tại |
 | `GET` | `/api/v1/stations/{id}/pricing/calculate-idle-fee?overstayMinutes=N` | Tính phí phạt quá giờ |
+| `GET` | `/api/v1/stations/metadata` | Power range, connector types, statuses cho Filter UI |
+| `GET` | `/api/v1/stations/filter` | Lọc trạm theo power, connectorType, status (all optional) |
 
 ### Station Owner APIs
 

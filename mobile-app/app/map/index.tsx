@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, TouchableOpacity, TextInput, FlatList, ActivityIndicator } from "react-native";
 import MapView, { Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,6 +14,8 @@ import StationMarker from "@/components/map/StationMarker";
 import NavigationInfo from "@/components/map/NavigationInfo";
 import { useMapLogic } from "@/hooks/useMapLogic";
 import { useStationCache } from "@/stores/stationCacheStore";
+import FilterBottomSheet from "@/components/map/FilterBottomSheet";
+import { StationFilterParams, StationStatus } from "@/types/station.types";
 
 /**
  * MapScreen - Pure UI Component
@@ -29,6 +31,19 @@ import { useStationCache } from "@/stores/stationCacheStore";
  */
 export default function MapScreen() {
     const mapLogic = useMapLogic();
+    const [showFilterSheet, setShowFilterSheet] = useState(false);
+    const [activeFilters, setActiveFilters] = useState<StationFilterParams>();
+
+    // Check if there are actual non-default filters applied
+    const hasActiveFilters = useMemo(() => {
+        if (!activeFilters || !mapLogic.filterMeta) return false;
+        const meta = mapLogic.filterMeta;
+        if (activeFilters.minPower !== undefined && activeFilters.minPower > meta.minPower) return true;
+        if (activeFilters.maxPower !== undefined && activeFilters.maxPower < meta.maxPower) return true;
+        if (activeFilters.connectorTypes && activeFilters.connectorTypes.length > 0) return true;
+        if (activeFilters.status && activeFilters.status !== StationStatus.ACTIVE) return true;
+        return false;
+    }, [activeFilters, mapLogic.filterMeta]);
 
     // Memoize markers with smart state logic
     const markers = useMemo(
@@ -73,11 +88,17 @@ export default function MapScreen() {
                         <View className="flex-1 flex-row items-center bg-white rounded-full px-4 py-3">
                             <Ionicons name="search" size={20} color="#9BA1A6" />
                             <TextInput
-                                className="flex-1 ml-3 text-base text-[#11181C]"
+                                className="flex-1 ml-3 mb-1 text-base text-[#11181C]"
                                 placeholder="Search station"
                                 placeholderTextColor="#9BA1A6"
                                 value={mapLogic.searchQuery}
                                 onChangeText={mapLogic.setSearchQuery}
+                                returnKeyType="search"
+                                autoCorrect={false}
+                                onSubmitEditing={() => {
+                                    mapLogic.setViewMode("list");
+                                    mapLogic.fetchListStations(0, activeFilters);
+                                }}
                             />
                         </View>
 
@@ -85,8 +106,9 @@ export default function MapScreen() {
                         <TouchableOpacity
                             className="w-12 h-12 bg-secondary rounded-full items-center justify-center shadow-lg"
                             activeOpacity={0.7}
+                            onPress={() => setShowFilterSheet(true)}
                         >
-                            <Ionicons name="options" size={24} color="#FFF" />
+                            <Ionicons name="options" size={24} color={hasActiveFilters ? "#035c1cff" : "#FFF"} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -174,7 +196,7 @@ export default function MapScreen() {
                 <View style={{ flex: 1, display: mapLogic.viewMode === "list" ? "flex" : "none" }}>
                     <View className="flex-1 px-4">
                         <FlatList
-                            data={mapLogic.stations}
+                            data={mapLogic.listStations}
                             keyExtractor={(item) => item.id.toString()}
                             renderItem={({ item }) => (
                                 <StationCard
@@ -187,6 +209,15 @@ export default function MapScreen() {
                                 />
                             )}
                             contentContainerStyle={{ paddingBottom: 100 }}
+                            onEndReached={mapLogic.loadMoreListStations}
+                            onEndReachedThreshold={0.5}
+                            ListFooterComponent={
+                                mapLogic.isListLoading ? (
+                                    <View className="py-4 items-center">
+                                        <ActivityIndicator color="#00A452" />
+                                    </View>
+                                ) : null
+                            }
                             ListHeaderComponent={
                                 <TouchableOpacity className="mb-4 py-2" onPress={() => {
                                     mapLogic.setViewMode("map");
@@ -231,6 +262,20 @@ export default function MapScreen() {
                 visible={mapLogic.showManualInput}
                 onClose={() => mapLogic.setShowPermissionModal(false)}
                 onLocationSet={mapLogic.handleManualLocationSet}
+            />
+
+            <FilterBottomSheet
+                visible={showFilterSheet}
+                onClose={() => setShowFilterSheet(false)}
+                initialFilters={activeFilters}
+                meta={mapLogic.filterMeta}
+                onApply={(filters) => {
+                    setActiveFilters(filters);
+                    // Switch to List View
+                    mapLogic.setViewMode("list");
+                    // Refetch list when filters change
+                    mapLogic.fetchListStations(0, filters);
+                }}
             />
         </GradientBackground>
     );

@@ -16,6 +16,209 @@ import java.util.Optional;
  */
 public interface StationRepository extends JpaRepository<Station, Long> {
 
+    // ==================== METADATA QUERIES ====================
+
+    /**
+     * Returns the minimum powerOutput (max_power) across all chargers.
+     * Used to populate the power-range filter metadata.
+     */
+    @Query(value = "SELECT MIN(c.max_power) FROM chargers c", nativeQuery = true)
+    Double findMinPowerOutput();
+
+    /**
+     * Returns the maximum powerOutput (max_power) across all chargers.
+     * Used to populate the power-range filter metadata.
+     */
+    @Query(value = "SELECT MAX(c.max_power) FROM chargers c", nativeQuery = true)
+    Double findMaxPowerOutput();
+
+    /**
+     * Returns a distinct, sorted list of all connector types present in the
+     * chargers table.
+     * Returns strings (not enums) to avoid direct dependency on the charger
+     * module's enum.
+     */
+    @Query(value = "SELECT DISTINCT c.connector_type FROM chargers c ORDER BY c.connector_type", nativeQuery = true)
+    List<String> findDistinctConnectorTypes();
+
+    // ==================== DYNAMIC FILTER QUERY ====================
+
+    /**
+     * Filters stations by the optional predicates: minPower, maxPower, status.
+     * Called when no connectorTypes filter is provided.
+     * Charger-related filters use correlated EXISTS subqueries to preserve module
+     * boundaries.
+     *
+     * @param minPower optional minimum charger power (kW); null = no filter
+     * @param maxPower optional maximum charger power (kW); null = no filter
+     * @param status   optional station status string; null = show ACTIVE + INACTIVE
+     * @return List of StationProjection matching the filters
+     */
+    @Query(value = """
+            SELECT
+                s.id                    AS id,
+                s.owner_id              AS ownerId,
+                s.name                  AS name,
+                s.description           AS description,
+                s.address               AS address,
+                s.latitude              AS latitude,
+                s.longitude             AS longitude,
+                s.rate                  AS rate,
+                s.status                AS status,
+                s.is_flagged_low_quality AS isFlaggedLowQuality,
+                s.created_at            AS createdAt,
+                s.updated_at            AS updatedAt,
+                CASE
+                    WHEN CAST(:userLat AS float8) IS NOT NULL AND CAST(:userLng AS float8) IS NOT NULL
+                    THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(CAST(:userLng AS float8), CAST(:userLat AS float8)), 4326)::geography
+                    ELSE NULL::double precision
+                END  AS distance,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id)                             AS totalChargersCount,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id AND c.status = 'AVAILABLE') AS availableChargersCount
+            FROM stations s
+            WHERE s.deleted_at IS NULL
+              AND (CAST(:status AS TEXT) IS NULL OR s.status = CAST(:status AS TEXT))
+              AND (CAST(:status AS TEXT) IS NOT NULL OR s.status != 'PENDING')
+              AND (:minPower IS NULL OR EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id AND c.max_power >= :minPower
+                  ))
+              AND (:maxPower IS NULL OR EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id AND c.max_power <= :maxPower
+                  ))
+              AND (:query IS NULL OR
+                   LOWER(s.name) LIKE LOWER(CONCAT('%', CAST(:query AS TEXT), '%')) OR
+                   LOWER(s.address) LIKE LOWER(CONCAT('%', CAST(:query AS TEXT), '%')))
+            ORDER BY
+                CASE
+                    WHEN CAST(:userLat AS float8) IS NOT NULL AND CAST(:userLng AS float8) IS NOT NULL
+                    THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(CAST(:userLng AS float8), CAST(:userLat AS float8)), 4326)::geography
+                    ELSE NULL
+                END NULLS LAST,
+                s.created_at DESC
+            """, countQuery = """
+            SELECT COUNT(s.id)
+            FROM stations s
+            WHERE s.deleted_at IS NULL
+              AND (CAST(:status AS TEXT) IS NULL OR s.status = CAST(:status AS TEXT))
+              AND (CAST(:status AS TEXT) IS NOT NULL OR s.status != 'PENDING')
+              AND (:minPower IS NULL OR EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id AND c.max_power >= :minPower
+                  ))
+              AND (:maxPower IS NULL OR EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id AND c.max_power <= :maxPower
+                  ))
+              AND (:query IS NULL OR
+                   LOWER(s.name) LIKE LOWER(CONCAT('%', CAST(:query AS TEXT), '%')) OR
+                   LOWER(s.address) LIKE LOWER(CONCAT('%', CAST(:query AS TEXT), '%')))
+            """, nativeQuery = true)
+    Page<StationProjection> findFilteredStations(
+            @Param("minPower") Double minPower,
+            @Param("maxPower") Double maxPower,
+            @Param("status") String status,
+            @Param("query") String query,
+            @Param("userLat") Double userLat,
+            @Param("userLng") Double userLng,
+            Pageable pageable);
+
+    /**
+     * Filters stations by the optional predicates: minPower, maxPower, status, AND
+     * connectorTypes.
+     * Called only when connectorTypes is non-null and non-empty.
+     * Splits from the simpler variant to avoid SpEL null-collection issues in
+     * native SQL.
+     *
+     * @param minPower       optional minimum charger power (kW); null = no filter
+     * @param maxPower       optional maximum charger power (kW); null = no filter
+     * @param connectorTypes required non-empty list of connector type strings
+     * @param status         optional station status string; null = show ACTIVE +
+     *                       INACTIVE
+     * @return List of StationProjection matching the filters
+     */
+    @Query(value = """
+            SELECT
+                s.id                    AS id,
+                s.owner_id              AS ownerId,
+                s.name                  AS name,
+                s.description           AS description,
+                s.address               AS address,
+                s.latitude              AS latitude,
+                s.longitude             AS longitude,
+                s.rate                  AS rate,
+                s.status                AS status,
+                s.is_flagged_low_quality AS isFlaggedLowQuality,
+                s.created_at            AS createdAt,
+                s.updated_at            AS updatedAt,
+                CASE
+                    WHEN CAST(:userLat AS float8) IS NOT NULL AND CAST(:userLng AS float8) IS NOT NULL
+                    THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(CAST(:userLng AS float8), CAST(:userLat AS float8)), 4326)::geography
+                    ELSE NULL::double precision
+                END  AS distance,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id)                             AS totalChargersCount,
+                (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id AND c.status = 'AVAILABLE') AS availableChargersCount
+            FROM stations s
+            WHERE s.deleted_at IS NULL
+              AND (CAST(:status AS TEXT) IS NULL OR s.status = CAST(:status AS TEXT))
+              AND (CAST(:status AS TEXT) IS NOT NULL OR s.status != 'PENDING')
+              AND (:minPower IS NULL OR EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id AND c.max_power >= :minPower
+                  ))
+              AND (:maxPower IS NULL OR EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id AND c.max_power <= :maxPower
+                  ))
+              AND (:query IS NULL OR
+                   LOWER(s.name) LIKE LOWER(CONCAT('%', CAST(:query AS TEXT), '%')) OR
+                   LOWER(s.address) LIKE LOWER(CONCAT('%', CAST(:query AS TEXT), '%')))
+              AND EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id
+                        AND c.connector_type IN (:connectorTypes)
+                  )
+            ORDER BY
+                CASE
+                    WHEN CAST(:userLat AS float8) IS NOT NULL AND CAST(:userLng AS float8) IS NOT NULL
+                    THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(CAST(:userLng AS float8), CAST(:userLat AS float8)), 4326)::geography
+                    ELSE NULL
+                END NULLS LAST,
+                s.created_at DESC
+            """, countQuery = """
+            SELECT COUNT(s.id)
+            FROM stations s
+            WHERE s.deleted_at IS NULL
+              AND (CAST(:status AS TEXT) IS NULL OR s.status = CAST(:status AS TEXT))
+              AND (CAST(:status AS TEXT) IS NOT NULL OR s.status != 'PENDING')
+              AND (:minPower IS NULL OR EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id AND c.max_power >= :minPower
+                  ))
+              AND (:maxPower IS NULL OR EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id AND c.max_power <= :maxPower
+                  ))
+              AND (:query IS NULL OR
+                   LOWER(s.name) LIKE LOWER(CONCAT('%', CAST(:query AS TEXT), '%')) OR
+                   LOWER(s.address) LIKE LOWER(CONCAT('%', CAST(:query AS TEXT), '%')))
+              AND EXISTS (
+                      SELECT 1 FROM chargers c
+                      WHERE c.station_id = s.id
+                        AND c.connector_type IN (:connectorTypes)
+                  )
+            """, nativeQuery = true)
+    Page<StationProjection> findFilteredStationsWithConnectors(
+            @Param("minPower") Double minPower,
+            @Param("maxPower") Double maxPower,
+            @Param("connectorTypes") List<String> connectorTypes,
+            @Param("status") String status,
+            @Param("query") String query,
+            @Param("userLat") Double userLat,
+            @Param("userLng") Double userLng,
+            Pageable pageable);
+
     List<Station> findByOwnerIdAndDeletedAtIsNull(Long ownerId);
 
     boolean existsByNameAndOwnerIdAndDeletedAtIsNull(String name, Long ownerId);
@@ -61,7 +264,7 @@ public interface StationRepository extends JpaRepository<Station, Long> {
                 (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id AND c.status = 'AVAILABLE') AS availableChargersCount
             FROM stations s
             WHERE s.deleted_at IS NULL
-              AND s.status IN ('ACTIVE', 'INACTIVE')
+              AND s.status != 'PENDING'
               AND ST_DWithin(
                   s.location::geography,
                   ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
@@ -109,7 +312,7 @@ public interface StationRepository extends JpaRepository<Station, Long> {
                 (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id AND c.status = 'AVAILABLE') AS availableChargersCount
             FROM stations s
             WHERE s.deleted_at IS NULL
-              AND s.status IN ('ACTIVE', 'INACTIVE')
+              AND s.status != 'PENDING'
               AND (
                   LOWER(s.name) LIKE LOWER(CONCAT('%', :query, '%'))
                   OR LOWER(s.address) LIKE LOWER(CONCAT('%', :query, '%'))
@@ -160,15 +363,15 @@ public interface StationRepository extends JpaRepository<Station, Long> {
                 s.created_at AS createdAt,
                 s.updated_at AS updatedAt,
                 CASE
-                    WHEN :userLat IS NOT NULL AND :userLng IS NOT NULL
-                    THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(:userLng, :userLat), 4326)::geography
-                    ELSE NULL
+                    WHEN CAST(:userLat AS float8) IS NOT NULL AND CAST(:userLng AS float8) IS NOT NULL
+                    THEN s.location::geography <-> ST_SetSRID(ST_MakePoint(CAST(:userLng AS float8), CAST(:userLat AS float8)), 4326)::geography
+                    ELSE NULL::double precision
                 END AS distance,
                 (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id) AS totalChargersCount,
                 (SELECT COUNT(*) FROM chargers c WHERE c.station_id = s.id AND c.status = 'AVAILABLE') AS availableChargersCount
             FROM stations s
             WHERE s.deleted_at IS NULL
-              AND s.status IN ('ACTIVE', 'INACTIVE')
+              AND s.status != 'PENDING'
               AND ST_Within(
                   s.location,
                   ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)

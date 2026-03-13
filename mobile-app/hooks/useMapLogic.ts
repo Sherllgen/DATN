@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import * as Location from "expo-location";
 import MapView, { Region } from "react-native-maps";
 import { router } from "expo-router";
-import { searchStationsInBound } from "@/apis/stationApi/stationApi";
-import { StationSearchResult } from "@/types/station.types";
+import { searchStationsInBound, filterStations, getStationMetadata } from "@/apis/stationApi/stationApi";
+import { StationSearchResult, StationFilterParams, FilterMetadata } from "@/types/station.types";
 import { getRoute } from "@/apis/stationApi/directionApi";
 import mapboxPolyline from "@mapbox/polyline";
 import { haversineDistance, simplifyPolyline } from "@/utils/location";
@@ -26,6 +26,17 @@ export interface UseMapLogicReturn {
     viewMode: "map" | "list";
     searchQuery: string;
     mapKey: number;
+
+    // List View State
+    listStations: StationSearchResult[];
+    listPage: number;
+    hasMoreList: boolean;
+    isListLoading: boolean;
+    fetchListStations: (page: number, filters?: StationFilterParams) => Promise<void>;
+    loadMoreListStations: () => void;
+
+    // Metadata
+    filterMeta: FilterMetadata | null;
 
     // Modals
     showPermissionModal: boolean;
@@ -95,6 +106,18 @@ export const useMapLogic = (): UseMapLogicReturn => {
     const [searchQuery, setSearchQuery] = useState("");
     const [mapKey, setMapKey] = useState(0);
 
+    // ==================== LIST VIEW STATE ====================
+    const [listStations, setListStations] = useState<StationSearchResult[]>([]);
+    const [listPage, setListPage] = useState(0);
+    const [hasMoreList, setHasMoreList] = useState(true);
+    const [isListLoading, setIsListLoading] = useState(false);
+    
+    // Track active filters for the list to pass when loading more
+    const activeFiltersRef = useRef<StationFilterParams>({});
+
+    // ==================== METADATA STATE ====================
+    const [filterMeta, setFilterMeta] = useState<FilterMetadata | null>(null);
+
     // ==================== REFS ====================
     const mapRef = useRef<MapView>(null);
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -102,14 +125,30 @@ export const useMapLogic = (): UseMapLogicReturn => {
     const abortControllerRef = useRef<AbortController | null>(null);
     const initialRegionRef = useRef<Region>(INITIAL_REGION);
     const locationWatcherRef = useRef<Location.LocationSubscription | null>(null);
+    const listAbortControllerRef = useRef<AbortController | null>(null);
 
     // ==================== INITIALIZATION ====================
     useEffect(() => {
         checkLocationPermission();
         // Load stations immediately with default region
         fetchStationsInBound(initialRegionRef.current);
+        
+        // Fetch metadata
+        getStationMetadata()
+            .then((data) => setFilterMeta(data))
+            .catch((error) => console.error("Error fetching station metadata:", error));
+            
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // ==================== INITIAL LIST FETCH ====================
+    // We wait for location to be available (or default to null) before fetching
+    // the initial list so that distance can be calculated correctly on the backend.
+    useEffect(() => {
+        // Fetch list as long as it's not already loading
+        fetchListStations(0);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location]);
 
     // ==================== SYNC LOCATION TO GLOBAL STORE ====================
     // Whenever location changes in map, sync it to global store for home screen
@@ -456,6 +495,86 @@ export const useMapLogic = (): UseMapLogicReturn => {
         }
     };
 
+    // ==================== LIST STATION FETCHING ====================
+    /**
+     * Fetch stations using the paginated `/filter` API. 
+     * Independent of the map region. Only relies on applied filters and search query.
+     */
+    const fetchListStations = async (page: number, filters?: StationFilterParams) => {
+        // Cancel previous request to prevent race conditions
+        if (listAbortControllerRef.current) {
+            console.log(`[fetchListStations] Cancelling previous list request for new page ${page}`);
+            listAbortControllerRef.current.abort();
+        }
+
+        // Only block if we're NOT fetching Page 0 (which might be a refetch with location)
+        if (isListLoading && page !== 0) return;
+        
+        setIsListLoading(true);
+        
+        // Create new controller for this request
+        const controller = new AbortController();
+        listAbortControllerRef.current = controller;
+        
+        try {
+            // Update active filters if provided
+            if (filters) {
+                activeFiltersRef.current = filters;
+            }
+
+            // Always merge searchQuery with active filters
+            const params: StationFilterParams = {
+                page,
+                size: 10,
+                query: searchQuery || undefined,
+                ...activeFiltersRef.current,
+                ...(location?.coords && {
+                    userLat: location.coords.latitude,
+                    userLng: location.coords.longitude
+                })
+            };
+            
+            console.log(`[fetchListStations] passing params:`, JSON.stringify(params));
+            
+            const paginatedResponse = await filterStations(params, controller.signal);
+            
+            console.log(`[fetchListStations] page ${page} returned ${paginatedResponse.content?.length} stations`);
+
+            if (page === 0) {
+                setListStations(paginatedResponse.content || []);
+            } else {
+                setListStations(prev => {
+                    const existingIds = new Set(prev.map(s => s.id));
+                    const newUniqueItems = (paginatedResponse.content || []).filter(
+                        s => !existingIds.has(s.id)
+                    );
+                    return [...prev, ...newUniqueItems];
+                });
+            }
+
+            setListPage(page);
+            setHasMoreList(!paginatedResponse.last);
+            
+        } catch (error: any) {
+            if (error.name === 'CanceledError' || error.name === 'AbortError') {
+                console.log(`[fetchListStations] Request for page ${page} was cancelled`);
+                return; // Don't reset loading state if we're already starting another one
+            }
+            console.error("Error fetching list stations:", error);
+        } finally {
+            // Only reset loading if this is still the active controller
+            if (listAbortControllerRef.current === controller) {
+                setIsListLoading(false);
+            }
+        }
+    };
+
+    const loadMoreListStations = () => {
+        if (!isListLoading && hasMoreList) {
+            fetchListStations(listPage + 1);
+        }
+    };
+
     /**
      * Debounced region change handler to prevent API spam
      */
@@ -693,6 +812,13 @@ export const useMapLogic = (): UseMapLogicReturn => {
         viewMode,
         searchQuery,
         mapKey,
+        
+        listStations,
+        listPage,
+        hasMoreList,
+        isListLoading,
+        fetchListStations,
+        loadMoreListStations,
 
         // Modals
         showPermissionModal,
@@ -713,6 +839,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
         handleBook,
         setViewMode,
         setSearchQuery,
+        filterMeta,
 
         // Refs
         mapRef,
