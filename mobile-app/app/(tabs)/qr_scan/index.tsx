@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function QrScanPage() {
     const [facing, setFacing] = useState<CameraType>("back");
@@ -44,69 +45,77 @@ export default function QrScanPage() {
     return (
         <View style={{ flex: 1, backgroundColor: "black" }}>
             {isFocused && (
-                <CameraView
-                    style={styles.camera}
-                    facing={facing}
-                    enableTorch={flashMode === "on"}
-                    barcodeScannerSettings={{
-                        barcodeTypes: ["qr"],
-                    }}
-                    onBarcodeScanned={handleBarCodeScanned}
-                >
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity
-                            style={styles.headerButton}
-                            onPress={() => router.back()}
-                        >
-                            <Ionicons name="close" size={22} color="#333" />
-                        </TouchableOpacity>
-                        <View style={styles.headerRight}>
-                            <TouchableOpacity onPress={toggleFlash}>
-                                <Ionicons
-                                    name={
-                                        flashMode === "on" ? "flash" : "flash-outline"
-                                    }
-                                    size={22}
-                                    color="white"
-                                />
-                            </TouchableOpacity>
-                            <TouchableOpacity>
-                                <Feather
-                                    name="more-horizontal"
-                                    size={24}
-                                    color="white"
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {/* Scan Area */}
-                    <View style={styles.overlay}>
-                        <View style={styles.scanFrame}>
-                            <View style={[styles.corner, styles.cornerTopLeft]} />
-                            <View style={[styles.corner, styles.cornerTopRight]} />
-                            <View style={[styles.corner, styles.cornerBottomLeft]} />
-                            <View style={[styles.corner, styles.cornerBottomRight]} />
-                        </View>
-                    </View>
-
-                    {/* Bottom Section */}
-                    <View style={styles.bottomSection}>
-                        <Text style={styles.scanText}>Recognize QR code</Text>
-                        <View style={styles.bottomButtons}>
-                            <TouchableOpacity style={styles.bottomButton}>
-                                <View style={styles.iconCircle}>
-                                    <Ionicons
-                                        name="image-outline"
-                                        size={28}
-                                        color="white"
-                                    />
+                <View style={{ flex: 1 }}>
+                    <CameraView
+                        style={StyleSheet.absoluteFill}
+                        facing={facing}
+                        enableTorch={flashMode === "on"}
+                        barcodeScannerSettings={{
+                            barcodeTypes: ["qr"],
+                        }}
+                        onBarcodeScanned={handleBarCodeScanned}
+                    />
+                    <View style={StyleSheet.absoluteFill}>
+                        {/* Header */}
+                        <SafeAreaView edges={["top", "left", "right"]}>
+                            <View style={styles.header}>
+                                <TouchableOpacity
+                                    style={styles.headerButton}
+                                    onPress={() => router.back()}
+                                >
+                                    <Ionicons name="close" size={22} color="#333" />
+                                </TouchableOpacity>
+                                <View style={styles.headerRight}>
+                                    <TouchableOpacity onPress={toggleFlash}>
+                                        <Ionicons
+                                            name={
+                                                flashMode === "on" ? "flash" : "flash-outline"
+                                            }
+                                            size={22}
+                                            color="white"
+                                        />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        // @ts-ignore - Dynamic route
+                                        onPress={() => router.push("/charging")}
+                                    >
+                                        <Feather
+                                            name="more-horizontal"
+                                            size={24}
+                                            color="white"
+                                        />
+                                    </TouchableOpacity>
                                 </View>
-                            </TouchableOpacity>
+                            </View>
+                        </SafeAreaView>
+
+                        {/* Scan Area */}
+                        <View style={styles.overlay}>
+                            <View style={styles.scanFrame}>
+                                <View style={[styles.corner, styles.cornerTopLeft]} />
+                                <View style={[styles.corner, styles.cornerTopRight]} />
+                                <View style={[styles.corner, styles.cornerBottomLeft]} />
+                                <View style={[styles.corner, styles.cornerBottomRight]} />
+                            </View>
+                        </View>
+
+                        {/* Bottom Section */}
+                        <View style={styles.bottomSection}>
+                            <Text style={styles.scanText}>Recognize QR code</Text>
+                            <View style={styles.bottomButtons}>
+                                <TouchableOpacity style={styles.bottomButton}>
+                                    <View style={styles.iconCircle}>
+                                        <Ionicons
+                                            name="image-outline"
+                                            size={28}
+                                            color="white"
+                                        />
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </CameraView>
+                </View>
             )}
         </View>
     );
@@ -121,8 +130,6 @@ const styles = StyleSheet.create({
     },
     camera: {
         flex: 1,
-        paddingTop: 30,
-        paddingBottom: 40,
     },
     header: {
         flexDirection: "row",

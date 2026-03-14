@@ -70,6 +70,10 @@ export default function RootLayout() {
                         name="booking"
                         options={{ headerShown: false }}
                     />
+                    <Stack.Screen
+                        name="charging"
+                        options={{ headerShown: false }}
+                    />
                 </Stack>
             </ThemeProvider>
             <ToastManager duration={1500} />

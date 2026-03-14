@@ -17,7 +17,7 @@ export default function SelectTimePage() {
         portId: string;
     }>();
 
-    const [selectedDate, setSelectedDate] = useState("2024-12-17");
+    const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
     const [arrivalTime, setArrivalTime] = useState(arrivalTimes[4]); // 10:00
     const [duration, setDuration] = useState(bookingDurations[1].value); // 1 Hour
 

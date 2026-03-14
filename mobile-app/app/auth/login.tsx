@@ -170,7 +170,7 @@ export default function LoginScreen() {
                     </Text>
                     <View className="flex-row items-center bg-primary/90 mb-6 px-4 h-14 rounded-full">
                         <TextInput
-                            className="flex-1 ml-3 text-white text-base py-0 h-full"
+                            className="flex-1 ml-3 mb-2 text-white text-base py-0 h-full"
                             textAlignVertical="center"
                             placeholder="abc@example.com"
                             placeholderTextColor="#999"

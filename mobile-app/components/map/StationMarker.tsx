@@ -4,6 +4,7 @@ import { StationSearchResult, StationStatus } from "@/types/station.types";
 
 const PIN_ACTIVE = require("@/assets/images/pin-active.png");
 const PIN_INACTIVE = require("@/assets/images/pin-inactive.png");
+const PIN_SUSPENDED = require("@/assets/images/pin-suspended.png");
 const PIN_NAVIGATE = require("@/assets/images/pin-navigate.png");
 
 export interface StationMarkerProps {
@@ -33,6 +34,9 @@ const StationMarker: React.FC<StationMarkerProps> = React.memo(
         const getMarkerImage = () => {
             if (isNavigating && isDestination) {
                 return PIN_NAVIGATE;
+            }
+            if (station.status === StationStatus.SUSPENDED) {
+                return PIN_SUSPENDED;
             }
             return station.status === StationStatus.ACTIVE ? PIN_ACTIVE : PIN_INACTIVE;
         };

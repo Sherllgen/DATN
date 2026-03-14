@@ -22,9 +22,18 @@ export default function StationCard({
 }: StationCardProps) {
     // Determine status based on backend status value
     const statusVariant: StatusBadgeVariant =
-        station.status === StationStatus.ACTIVE ? "available" : "occupied";
+        station.status === StationStatus.ACTIVE
+            ? "available"
+            : station.status === StationStatus.SUSPENDED
+                ? "suspended"
+                : "occupied";
+
     const iconBgColor =
-        station.status === StationStatus.ACTIVE ? "bg-success" : "bg-error";
+        station.status === StationStatus.ACTIVE
+            ? "bg-success"
+            : station.status === StationStatus.SUSPENDED
+                ? "bg-warning"
+                : "bg-error";
 
     const imageUrl = station.imageUrls && station.imageUrls.length > 0
         ? station.imageUrls[0]

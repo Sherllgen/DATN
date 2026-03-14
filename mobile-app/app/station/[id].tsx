@@ -134,16 +134,24 @@ export default function StationDetailScreen() {
 
     // Calculate status variant based on backend status  
     const statusVariant: StatusBadgeVariant =
-        station.status === StationStatus.ACTIVE ? "available" : "occupied";
+        station.status === StationStatus.ACTIVE
+            ? "available"
+            : station.status === StationStatus.SUSPENDED
+                ? "suspended"
+                : "occupied";
 
     const imageUrl = station.imageUrls && station.imageUrls.length > 0
         ? station.imageUrls[0]
         : null;
 
     return (
-        <GradientBackground preset="main" className="flex-1">
-            <View className="flex-1">
-                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <GradientBackground preset="main" dismissKeyboard={false}>
+            <View style={{ flex: 1 }}>
+                <ScrollView
+                    style={{ flex: 1 }}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
                     {/* Station Image - Full bleed to top including status bar */}
                     <View className="relative">
                         {imageUrl ? (
@@ -375,7 +383,13 @@ export default function StationDetailScreen() {
                                             latitude: station.latitude,
                                             longitude: station.longitude,
                                         }}
-                                        pinColor="#4CAF50"
+                                        pinColor={
+                                            station.status === StationStatus.ACTIVE
+                                                ? "#4CAF50" // success/secondary
+                                                : station.status === StationStatus.SUSPENDED
+                                                    ? "#F59E0B" // warning
+                                                    : "#EF4444" // error
+                                        }
                                     />
                                 </MapView>
                             </View>

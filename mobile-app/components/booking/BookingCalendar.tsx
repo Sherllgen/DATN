@@ -9,7 +9,7 @@ export interface BookingCalendarProps {
 }
 
 export default function BookingCalendar({
-    selectedDate = "2024-12-17",
+    selectedDate = new Date().toLocaleDateString('en-CA'),
     onDateSelect,
 }: BookingCalendarProps) {
     return (

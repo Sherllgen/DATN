@@ -92,9 +92,20 @@ export default function FilterBottomSheet({
     };
 
     const handleClear = () => {
-        setPowerRange([meta?.minPower || 0, meta?.maxPower || 150]);
+        const defaultMin = meta?.minPower || 0;
+        const defaultMax = meta?.maxPower || 150;
+
+        setPowerRange([defaultMin, defaultMax]);
         setSelectedConnectors([]);
         setSelectedStatuses([]);
+
+        onApply({
+            minPower: defaultMin,
+            maxPower: defaultMax,
+            connectorTypes: [],
+            status: undefined,
+        });
+        onClose();
     };
 
     // UI Helpers

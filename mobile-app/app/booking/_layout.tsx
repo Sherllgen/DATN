@@ -6,6 +6,7 @@ export default function BookingLayout() {
             <Stack.Screen name="selectVehicle" options={{ headerShown: false }} />
             <Stack.Screen name="selectCharger" options={{ headerShown: false }} />
             <Stack.Screen name="selectTime" options={{ headerShown: false }} />
+            <Stack.Screen name="[id]" options={{ headerShown: false }} />
         </Stack>
     );
 }

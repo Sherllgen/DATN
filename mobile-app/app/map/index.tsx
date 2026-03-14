@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { View, Text, TouchableOpacity, TextInput, FlatList, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Keyboard } from "react-native";
 import MapView, { Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -132,6 +132,7 @@ export default function MapScreen() {
                             initialRegion={mapLogic.initialRegion}
                             onRegionChangeComplete={mapLogic.handleRegionChangeComplete}
                             showsUserLocation={true}
+                            onPress={Keyboard.dismiss}
                         >
                             {/* Station Markers - Smart State */}
                             {markers}

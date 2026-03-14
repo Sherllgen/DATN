@@ -15,7 +15,7 @@ export default function BillingGroupSection({
 
     const handleItemPress = (item: any) => {
         router.push({
-            pathname: "/(tabs)/notifice/detail",
+            pathname: "/(tabs)/payment/detail",
             params: {
                 title: item.title,
                 date: item.date,

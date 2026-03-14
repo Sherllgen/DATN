@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Href, useRouter } from "expo-router";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import GradientBackground from "@/components/ui/GradientBackground";
 
 export default function SettingPage() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -23,13 +24,8 @@ export default function SettingPage() {
     const user = useUserStore((state) => state.user);
 
     return (
-        <LinearGradient
-            colors={["#33404F", "#000000"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            className="flex-1 px-6 pt-8"
-        >
-            <SafeAreaView>
+        <GradientBackground className="flex-1 px-6">
+            <SafeAreaView className="flex-1" edges={["top", "left", "right"]}>
                 <ScrollView>
                     {/* Profile Section */}
                     {user ? (
@@ -207,6 +203,6 @@ export default function SettingPage() {
                     </View>
                 </TouchableOpacity>
             </Modal>
-        </LinearGradient>
+        </GradientBackground>
     );
 }
