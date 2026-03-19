@@ -12,8 +12,8 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateBookingRequest {
-    
+public class CheckAvailabilityRequest {
+
     @NotNull(message = "Station ID is required")
     private Long stationId;
 
@@ -24,12 +24,6 @@ public class CreateBookingRequest {
     @Positive
     private Integer portNumber;
 
-    @NotNull(message = "Vehicle ID is required")
-    private Long vehicleId;
-
-    @NotNull(message = "User ID is required")
-    private Long userId;
-
     @NotNull(message = "Start time is required")
     @Future(message = "Start time must be in the future")
     private LocalDateTime startTime;
@@ -37,4 +31,7 @@ public class CreateBookingRequest {
     @NotNull(message = "End time is required")
     @Future(message = "End time must be in the future")
     private LocalDateTime endTime;
+
+    @NotNull(message = "User ID is required")
+    private Long userId;
 }

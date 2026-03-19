@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.context.ApplicationEventPublisher;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.Mac;
@@ -60,6 +61,9 @@ class ZaloPayServiceTest {
     private WebClient webClient;
 
     @Mock
+    private ApplicationEventPublisher eventPublisher;
+
+    @Mock
     private WebClient.RequestBodyUriSpec requestBodyUriSpec;
 
     @Mock
@@ -92,7 +96,7 @@ class ZaloPayServiceTest {
         config.setCallbackUrl("https://example.ngrok-free.app/api/v1/zalopay/callback");
 
         zaloPayService = new ZaloPayServiceImpl(config, invoiceRepository, transactionRepository,
-                objectMapper, webClient);
+                objectMapper, webClient, eventPublisher);
     }
 
     // ===========================
@@ -229,6 +233,8 @@ class ZaloPayServiceTest {
             assertThat(invoice.getStatus()).isEqualTo(InvoiceStatus.PAID);
             assertThat(tx.getStatus()).isEqualTo(TransactionStatus.SUCCESS);
             assertThat(tx.getGatewayTransactionId()).isEqualTo("zp_99999");
+            
+            verify(eventPublisher).publishEvent(any(PaymentSuccessEvent.class));
         }
 
         @Test

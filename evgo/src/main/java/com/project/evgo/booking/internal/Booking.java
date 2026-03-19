@@ -31,8 +31,14 @@ public class Booking {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "port_id", nullable = false)
-    private Long portId;
+    @Column(name = "station_id", nullable = false)
+    private Long stationId;
+
+    @Column(name = "charger_id", nullable = false)
+    private Long chargerId;
+
+    @Column(name = "port_number", nullable = false)
+    private Integer portNumber;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;

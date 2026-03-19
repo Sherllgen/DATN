@@ -285,17 +285,6 @@ station → charger      (ChargerService.findStatisticsByStationId — for Charg
 
 charger → station      (StationService.verifyOwnership — for ownership check)
 ```
-
-> [!WARNING]
-> **Circular Dependency (⚠️ Known Issue):**
-> `station` ↔ `charger` có quan hệ vòng:
-> - `station` gọi `ChargerService.findStatisticsByStationId()` để tính `ChargerSummary`
-> - `charger` gọi `StationService.verifyOwnership()` để kiểm tra quyền
->
-> Hiện tại dùng `@Lazy` tại `StationDtoConverter` để tránh lỗi circular bean. `ModularityTests.verifyModularity()` đang FAIL vì vòng phụ thuộc này.
->
-> **Giải pháp tương lai:** Tách `ChargerStatisticProjection` ra shared API hoặc dùng Spring Events để station lắng nghe thay đổi charger.
-
 ---
 
 ## Lưu ý quan trọng

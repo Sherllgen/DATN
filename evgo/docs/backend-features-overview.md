@@ -9,14 +9,15 @@ Tài liệu này cung cấp cái nhìn tổng quan về các module backend đã
 | Module | Status | Mô tả | Tài liệu chi tiết |
 |--------|--------|-------|-------------------|
 | **User** | ✅ Implemented | Xác thực, quản lý người dùng, tài khoản, phương tiện | [walkthrough-user-module.md](walkthrough-user-module.md) |
-| **Station** | ✅ Implemented | Quản lý trạm sạc | [walkthrough-station-module.md](walkthrough-station-module.md) |
-| **Charger** | ✅ Implemented | Quản lý bộ sạc và cổng sạc | [walkthrough-charger-module.md](walkthrough-charger-module.md) |
+| **Station** | ✅ Implemented | Quản lý trạm sạc, ảnh, giá, phê duyệt | [walkthrough-station-module.md](walkthrough-station-module.md) |
+| **Charger** | ✅ Implemented | Quản lý trụ sạc và cổng sạc (Có thông tin OCPP) | [walkthrough-charger-module.md](walkthrough-charger-module.md) |
+| **OCPP** | ✅ Implemented | Xử lý giao thức OCPP 1.6J (WebSocket) cho trạm sạc | [walkthrough-ocpp-module.md](walkthrough-ocpp-module.md) |
 | **Notification** | ✅ Implemented | Email, SMS, thông báo | [walkthrough-notification-module.md](walkthrough-notification-module.md) |
-| **Shared Kernel** | ✅ Implemented | DTOs, Enums, Exceptions | [walkthrough-sharedkernel-module.md](walkthrough-sharedkernel-module.md) |
-| **Booking** | 🔲 Skeleton | Đặt lịch sạc | *Coming soon* |
-| **Charging** | 🔲 Skeleton | Phiên sạc | *Coming soon* |
-| **Payment** | 🔲 Skeleton | Thanh toán | *Coming soon* |
-| **Review** | 🔲 Skeleton | Đánh giá | *Coming soon* |
+| **Payment** | ✅ Implemented | Thanh toán ZaloPay (App-to-App, Webhooks) | [walkthrough-payment-module.md](walkthrough-payment-module.md) |
+| **Shared Kernel** | ✅ Implemented | DTOs, Enums, Exceptions, Infra | [walkthrough-sharedkernel-module.md](walkthrough-sharedkernel-module.md) |
+| **Booking** | ✅ Implemented | Đặt lịch sạc, lấy config và metadata | [walkthrough-booking-module.md](walkthrough-booking-module.md) |
+| **Charging** | 🔲 Skeleton | Quản lý phiên sạc | *Coming soon* |
+| **Review** | 🔲 Skeleton | Đánh giá trạm sạc | *Coming soon* |
 | **Complaint** | 🔲 Skeleton | Khiếu nại | *Coming soon* |
 
 ---
@@ -38,10 +39,11 @@ flowchart TB
         User["User Module"]
         Station["Station Module"]
         Charger["Charger Module"]
+        OCPP["OCPP Module"]
         Notification["Notification Module"]
-        Booking["Booking Module 🔲"]
+        Payment["Payment Module"]
+        Booking["Booking Module"]
         Charging["Charging Module 🔲"]
-        Payment["Payment Module 🔲"]
     end
 
     subgraph Shared["Shared"]
@@ -54,6 +56,7 @@ flowchart TB
         Redis[(Redis)]
         Cloudinary["Cloudinary"]
         Email["SMTP Server"]
+        ZaloPay["ZaloPay Gateway"]
     end
 
     Mobile --> Controller
@@ -61,24 +64,32 @@ flowchart TB
     Controller --> User
     Controller --> Station
     Controller --> Charger
+    Controller --> OCPP
     Controller --> Notification
+    Controller --> Payment
 
     User --> SK
     Station --> SK
     Charger --> SK
+    OCPP --> SK
     Notification --> SK
+    Payment --> SK
 
     User --> DB
     Station --> DB
     Charger --> DB
     Notification --> DB
+    Payment --> DB
 
     User --> Redis
+    OCPP --> Redis
     User --> Cloudinary
     Notification --> Email
+    Payment --> ZaloPay
 
     Charger -.->|verifyOwnership| Station
     User -.->|sendEmail| Notification
+    OCPP -.->|updateChargerStatus| Charger
 ```
 
 ---
@@ -92,16 +103,21 @@ flowchart LR
     User --> SK
     Station --> SK
     Charger --> SK
+    OCPP --> SK
     Notification --> SK
+    Payment --> SK
 
     User -->|sendEmail| Notification
     Charger -->|verifyOwnership| Station
+    OCPP -->|processBoot| Charger
 
     style SK fill:#f9f,stroke:#333
     style User fill:#90EE90
     style Station fill:#90EE90
     style Charger fill:#90EE90
+    style OCPP fill:#90EE90
     style Notification fill:#90EE90
+    style Payment fill:#90EE90
 ```
 
 ---
@@ -192,6 +208,20 @@ flowchart LR
 | PUT | `/{id}` | Cập nhật trạng thái port |
 | DELETE | `/{id}` | Xóa port |
 
+### Payment (`/api/v1/zalopay`)
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| POST | `/orders` | Tạo link thanh toán đơn hàng |
+| POST | `/callback` | Webhook IPN nhận kết quả |
+| GET | `/orders/{appTransId}/status` | Kiểm tra trạng thái đơn hàng |
+
+### OCPP (`/ocpp`)
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| WS | `/{chargePointId}` | Giao tiếp WebSocket với trụ sạc vật lý |
+
 ### Notifications (`/api/v1/notifications`)
 
 | Method | Endpoint | Mô tả |
@@ -207,9 +237,9 @@ flowchart LR
 
 | Role | Mô tả | Quyền hạn chính |
 |------|-------|-----------------|
-| **USER** | Người dùng thường | Tìm trạm, đặt lịch, sạc xe |
-| **STATION_OWNER** | Chủ trạm sạc | Quản lý trạm, charger, xem thống kê |
-| **SUPER_ADMIN** | Quản trị viên | Quản lý tài khoản, duyệt đơn đăng ký |
+| **USER** | Người dùng thường | Tìm trạm, đặt lịch, sạc xe, thanh toán |
+| **STATION_OWNER** | Chủ trạm sạc | Quản lý trạm, trụ sạc, xem thống kê |
+| **SUPER_ADMIN** | Quản trị viên | Quản lý tài khoản, duyệt đơn, thống kê |
 
 ---
 
@@ -223,9 +253,10 @@ flowchart LR
 | Cache | Redis |
 | Security | JWT, Spring Security |
 | File Storage | Cloudinary |
+| Protocol | HTTP/REST, WebSocket (OCPP 1.6J) |
 | Email | SMTP (Gmail) |
 | API Docs | OpenAPI 3.0 (Swagger) |
-| Build Tool | Gradle |
+| Build Tool | Maven |
 
 ---
 
@@ -234,33 +265,67 @@ flowchart LR
 ### Environment Variables
 
 ```properties
-# Database
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/evgo
-SPRING_DATASOURCE_USERNAME=postgres
-SPRING_DATASOURCE_PASSWORD=postgres
+# Database Configuration
+DB_URL=jdbc:postgresql://localhost:5432/evgo_db
+DB_NAME=evgo_db
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+DB_PORT=5432
+#chay local thi de la localhost, chay trong docker thi de postgres
+DB_HOST=postgres
 
-# Redis
-SPRING_DATA_REDIS_HOST=localhost
-SPRING_DATA_REDIS_PORT=6379
+#Cloudinary Configuration
+CLOUD_NAME=my_cloud_name
+CLOUD_API_KEY=my_api_key
+CLOUD_API_SECRET=my_api_secret
 
-# JWT
-JWT_SECRET=your-256-bit-secret
-JWT_ACCESS_EXPIRATION=3600000
-JWT_REFRESH_EXPIRATION=604800000
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
+# JWT Configuration
+JWT_SECRET=your-secret-key-min-256-bits-long-base64-encoded
+JWT_ACCESS_TOKEN_EXPIRATION=3600000
+JWT_REFRESH_TOKEN_EXPIRATION=604800000
 
-# Email
+# Cookie Configuration
+COOKIE_ACCESS_TOKEN_NAME=access_token
+COOKIE_ACCESS_TOKEN_MAX_AGE=3600
+COOKIE_REFRESH_TOKEN_NAME=refresh_token
+COOKIE_REFRESH_TOKEN_MAX_AGE=604800
+COOKIE_HTTP_ONLY=true
+COOKIE_SECURE=false
+COOKIE_SAME_SITE=Lax
+COOKIE_PATH=/
+
+# Email Configuration
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
-MAIL_USERNAME=your-email
-MAIL_PASSWORD=your-app-password
+MAIL_USERNAME=mail_dung_de_support@gmail.com
+MAIL_PASSWORD=your_app_password_here
 
-# Frontend URL (for email links)
-FRONTEND_URL=http://localhost:8081
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+
+# File Upload Configuration
+APP_UPLOAD_MAX_SIZE=10485760
+
+# Activation Token Configuration
+APP_ACTIVATION_TOKEN_EXPIRY_HOURS=24
+
+# Server Configuration
+SERVER_PORT=8081
+
+# ZaloPay Sandbox Config
+ZALOPAY_APP_ID=2553
+ZALOPAY_KEY1=sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn
+ZALOPAY_KEY2=trMrHtvjo6myautxDUiAcYsVtaeQ8nhf
+ZALOPAY_ENDPOINT=https://sb-openapi.zalopay.vn/v2
+
+# App Callback (dev: use ngrok)
+ZALOPAY_CALLBACK_URL=https://abcd-123.ngrok-free.app/api/v1/zalopay/callback
+ZALOPAY_REDIRECT_URL=
 ```
 
 ---
@@ -272,7 +337,7 @@ FRONTEND_URL=http://localhost:8081
 - Java 21+
 - PostgreSQL 15+
 - Redis 7+
-- Gradle 8+
+- Maven 3.9+
 
 ### Run locally
 
@@ -285,14 +350,14 @@ cd lvtn-251-evgo/evgo
 cp .env.example .env
 # Edit .env with your values
 
-# Run with Gradle
-./gradlew bootRun
+# Run with Maven
+mvn spring-boot:run
 ```
 
 ### API Documentation
 
 Sau khi chạy server, truy cập Swagger UI:
-- http://localhost:8080/swagger-ui.html
+- http://localhost:8081/swagger-ui/index.html
 
 ---
 
@@ -302,6 +367,5 @@ Các module sau đang ở trạng thái skeleton và sẽ được implement:
 
 1. **Booking Module** - Đặt lịch sạc xe
 2. **Charging Module** - Quản lý phiên sạc
-3. **Payment Module** - Thanh toán (MoMo, VNPay)
-4. **Review Module** - Đánh giá trạm sạc
-5. **Complaint Module** - Xử lý khiếu nại
+3. **Review Module** - Đánh giá trạm sạc
+4. **Complaint Module** - Xử lý khiếu nại

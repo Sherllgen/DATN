@@ -61,6 +61,11 @@ public class ChargerServiceImpl implements ChargerService {
         return converter.toPortResponse(portRepository.findById(id));
     }
 
+    @Override
+    public Optional<PortResponse> findPortByChargerIdAndPortNumber(Long chargerId, Integer portNumber) {
+        return converter.toPortResponse(portRepository.findByChargerIdAndPortNumber(chargerId, portNumber));
+    }
+
     // ==================== CHARGER MANAGEMENT ====================
 
     @Override
@@ -220,5 +225,15 @@ public class ChargerServiceImpl implements ChargerService {
                     chargerRepository.save(charger);
                     log.debug("Heartbeat updated for charge point ID: {}", chargerId);
                 });
+    }
+
+    @Override
+    @Transactional
+    public void internalUpdatePortStatus(Long portId, PortStatus status) {
+        portRepository.findById(portId).ifPresent(port -> {
+            port.setStatus(status);
+            portRepository.save(port);
+            log.debug("Internal port status update for port ID: {} to {}", portId, status);
+        });
     }
 }

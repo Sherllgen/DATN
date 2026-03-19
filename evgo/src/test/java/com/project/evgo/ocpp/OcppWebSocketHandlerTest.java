@@ -37,6 +37,7 @@ class OcppWebSocketHandlerTest {
     private OcppSessionManager sessionManager;
     private OcppMessageParser messageParser;
     private OcppActionRouter actionRouter;
+    private PendingCommandManager pendingCommandManager;
 
     @Mock
     private ChargerService chargerService;
@@ -49,12 +50,13 @@ class OcppWebSocketHandlerTest {
     void setUp() {
         sessionManager = new OcppSessionManager();
         messageParser = new OcppMessageParser();
+        pendingCommandManager = new PendingCommandManager();
 
         BootNotificationHandler bootHandler = new BootNotificationHandler(chargerService);
         HeartbeatHandler heartbeatHandler = new HeartbeatHandler(chargerService);
         actionRouter = new OcppActionRouter(List.of(bootHandler, heartbeatHandler));
 
-        handler = new OcppWebSocketHandler(sessionManager, messageParser, actionRouter);
+        handler = new OcppWebSocketHandler(sessionManager, messageParser, actionRouter, pendingCommandManager, chargerService);
     }
 
     private WebSocketSession createMockSession(String chargePointId) throws Exception {
