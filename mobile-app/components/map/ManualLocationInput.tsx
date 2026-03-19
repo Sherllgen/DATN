@@ -89,7 +89,7 @@ export default function ManualLocationInput({
                 {/* Bottom Sheet */}
                 <View className="bg-[#1E293B] rounded-t-3xl p-6 pb-8">
                     {/* Swipe Indicator */}
-                    <View className="w-12 h-1 bg-[#4A5568] rounded-full self-center mb-6" />
+                    <View className="w-12 h-1 bg-border-gray rounded-full self-center mb-6" />
 
                     {/* Header */}
                     <View className="flex-row items-center justify-between mb-6">
@@ -119,7 +119,7 @@ export default function ManualLocationInput({
                             onChangeText={setAddress}
                             placeholder="e.g. District 1, Ho Chi Minh City"
                             placeholderTextColor="#4A5568"
-                            className="bg-[#0F172A] border border-[#4A5568] rounded-xl px-4 py-3 text-white"
+                            className="bg-[#0F172A] border border-border-gray rounded-xl px-4 py-3 text-white"
                             multiline
                         />
                     </View>
@@ -139,7 +139,7 @@ export default function ManualLocationInput({
                         <View className="gap-2">
                             <TouchableOpacity
                                 onPress={() => handleQuickSelect("District 1, Ho Chi Minh City")}
-                                className="bg-[#0F172A] border border-[#4A5568] rounded-xl px-4 py-3"
+                                className="bg-[#0F172A] border border-border-gray rounded-xl px-4 py-3"
                                 activeOpacity={0.7}
                             >
                                 <Text className="text-white font-medium">
@@ -149,7 +149,7 @@ export default function ManualLocationInput({
 
                             <TouchableOpacity
                                 onPress={() => handleQuickSelect("Hanoi, Vietnam")}
-                                className="bg-[#0F172A] border border-[#4A5568] rounded-xl px-4 py-3"
+                                className="bg-[#0F172A] border border-border-gray rounded-xl px-4 py-3"
                                 activeOpacity={0.7}
                             >
                                 <Text className="text-white font-medium">

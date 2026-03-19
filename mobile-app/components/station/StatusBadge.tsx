@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 
-export type StatusBadgeVariant = "available" | "occupied";
+export type StatusBadgeVariant = "available" | "occupied" | "suspended";
 
 export interface StatusBadgeProps {
     /** Status variant */
@@ -28,11 +28,17 @@ export default function StatusBadge({
             text: "text-error",
             dot: "bg-error",
         },
+        suspended: {
+            container: "bg-warning/20",
+            text: "text-warning",
+            dot: "bg-warning",
+        },
     };
 
     const labels = {
         available: "Available",
         occupied: "Occupied",
+        suspended: "Suspended",
     };
 
     const styles = variantStyles[variant];

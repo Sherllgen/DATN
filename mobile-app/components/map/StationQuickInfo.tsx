@@ -33,7 +33,11 @@ export default function StationQuickInfo({
 
     // Determine status variant based on backend status
     const statusVariant: StatusBadgeVariant =
-        station.status === StationStatus.ACTIVE ? "available" : "occupied";
+        station.status === StationStatus.ACTIVE
+            ? "available"
+            : station.status === StationStatus.SUSPENDED
+                ? "suspended"
+                : "occupied";
 
     return (
         <Modal visible={visible} onClose={onClose}>

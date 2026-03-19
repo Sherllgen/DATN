@@ -134,16 +134,24 @@ export default function StationDetailScreen() {
 
     // Calculate status variant based on backend status  
     const statusVariant: StatusBadgeVariant =
-        station.status === StationStatus.ACTIVE ? "available" : "occupied";
+        station.status === StationStatus.ACTIVE
+            ? "available"
+            : station.status === StationStatus.SUSPENDED
+                ? "suspended"
+                : "occupied";
 
     const imageUrl = station.imageUrls && station.imageUrls.length > 0
         ? station.imageUrls[0]
         : null;
 
     return (
-        <GradientBackground preset="main" className="flex-1">
-            <View className="flex-1">
-                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <GradientBackground preset="main" dismissKeyboard={false}>
+            <View style={{ flex: 1 }}>
+                <ScrollView
+                    style={{ flex: 1 }}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
                     {/* Station Image - Full bleed to top including status bar */}
                     <View className="relative">
                         {imageUrl ? (
@@ -153,7 +161,7 @@ export default function StationDetailScreen() {
                                 resizeMode="cover"
                             />
                         ) : (
-                            <View className="w-full h-80 bg-[#4A5568]/20 items-center justify-center">
+                            <View className="w-full h-80 bg-border-gray/20 items-center justify-center">
                                 <Ionicons
                                     name="business"
                                     size={64}
@@ -276,7 +284,7 @@ export default function StationDetailScreen() {
                             <Text className="text-lg font-semibold text-white mb-3">
                                 Cost
                             </Text>
-                            <View className="bg-[#4A5568]/20 rounded-lg p-4 border border-[#4A5568]">
+                            <View className="bg-border-gray/20 rounded-lg p-4 border border-border-gray">
                                 <View className="flex-row items-center">
                                     <Ionicons
                                         name="card"
@@ -307,7 +315,7 @@ export default function StationDetailScreen() {
                                     </View> */}
                                 </View>
 
-                                <View className="bg-[#4A5568]/20 rounded-lg p-4 border border-[#4A5568]">
+                                <View className="bg-border-gray/20 rounded-lg p-4 border border-border-gray">
                                     {station.openingHours.map((hours, index) => (
                                         <View
                                             key={hours.id || index}
@@ -375,7 +383,13 @@ export default function StationDetailScreen() {
                                             latitude: station.latitude,
                                             longitude: station.longitude,
                                         }}
-                                        pinColor="#4CAF50"
+                                        pinColor={
+                                            station.status === StationStatus.ACTIVE
+                                                ? "#4CAF50" // success/secondary
+                                                : station.status === StationStatus.SUSPENDED
+                                                    ? "#F59E0B" // warning
+                                                    : "#EF4444" // error
+                                        }
                                     />
                                 </MapView>
                             </View>
@@ -386,8 +400,7 @@ export default function StationDetailScreen() {
                             variant="primary"
                             fullWidth
                             onPress={() => {
-                                // Navigate to QR scan or charging flow
-                                router.push("/qr_scan");
+                                router.push(`/booking/selectVehicle?stationId=${id}`);
                             }}
                             className="mb-6"
                         >

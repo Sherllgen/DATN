@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Avatar from "@/components/ui/Avatar";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -12,8 +12,9 @@ import Input from "@/components/ui/Input";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Modal from "@/components/ui/Modal";
 
+import GradientBackground from "@/components/ui/GradientBackground";
+
 export default function ComponentGallery() {
-    const TAB_HEIGHT = 80;
     const insets = useSafeAreaInsets();
 
     const [modalVisible, setModalVisible] = useState(false);
@@ -38,10 +39,11 @@ export default function ComponentGallery() {
     );
 
     return (
-        <ScrollView
-            className="flex-1 bg-surface-dark p-4"
-            contentContainerStyle={{ paddingBottom: TAB_HEIGHT + insets.bottom }}
-        >
+        <GradientBackground className="flex-1">
+            <SafeAreaView className="flex-1" edges={["top", "left", "right"]}>
+                <ScrollView
+                    className="flex-1 p-4"
+                >
             {/* Header */}
             <Text className="mb-6 font-bold text-white text-3xl text-center">
                 Component Gallery 🎨
@@ -403,6 +405,8 @@ export default function ComponentGallery() {
                     Close Modal
                 </Button>
             </Modal>
-        </ScrollView>
+                </ScrollView>
+            </SafeAreaView>
+        </GradientBackground>
     );
 }

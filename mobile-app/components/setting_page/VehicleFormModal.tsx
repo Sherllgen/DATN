@@ -1,6 +1,7 @@
 import Dropdown from "@/components/ui/Dropdown";
+import Button from "@/components/ui/Button";
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from "react-native";
 
 export type VehicleBrand =
     | "VINFAST"
@@ -74,122 +75,115 @@ export default function VehicleFormModal({
             transparent={true}
             onRequestClose={onClose}
         >
-            <TouchableOpacity
-                className="flex-1 justify-end bg-black/60"
-                onPress={onClose}
-                activeOpacity={1}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                className="flex-1"
             >
-                <TouchableOpacity activeOpacity={1}>
-                    <View className="bg-[#333739] pb-8 rounded-t-3xl">
-                        <View className="flex-row justify-between items-center px-6 py-4 border-[#4A5568] border-b">
-                            <Text className="font-semibold text-white text-lg">
-                                {editingVehicle
-                                    ? "Chỉnh sửa phương tiện"
-                                    : "Thêm phương tiện"}
-                            </Text>
-                            <TouchableOpacity onPress={onClose}>
-                                <Ionicons
-                                    name="close"
-                                    size={28}
-                                    color="#9BA1A6"
-                                />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View className="px-6 pt-4">
-                            {/* Error Message */}
-                            {errorMessage ? (
-                                <View className="bg-red-500/20 mb-4 p-3 border border-red-500/50 rounded-lg">
-                                    <Text className="text-red-400 text-sm">
-                                        {errorMessage}
-                                    </Text>
-                                </View>
-                            ) : null}
-
-                            {/* Brand Dropdown */}
-                            <Dropdown
-                                label="Hãng xe"
-                                value={selectedBrand}
-                                items={listVehicleBrand}
-                                onValueChange={(value) =>
-                                    onBrandChange(value as VehicleBrand)
-                                }
-                            />
-
-                            {/* Model Name Input */}
-                            <View className="mt-4">
-                                <Text className="mb-1 text-[#9BA1A6] text-sm">
-                                    Tên xe
-                                </Text>
-                                <TextInput
-                                    value={modelName}
-                                    onChangeText={onModelNameChange}
-                                    placeholder="Nhập tên xe"
-                                    className="pb-3 border-[#4A5568] border-b text-[#4CAF50] text-base"
-                                    placeholderTextColor="#9BA1A6"
-                                />
+                <TouchableOpacity
+                    className="flex-1 justify-end bg-black/60"
+                    onPress={onClose}
+                    activeOpacity={1}
+                >
+                    <TouchableOpacity activeOpacity={1}>
+                        <View className="bg-surface pb-8 rounded-t-3xl">
+                            {/* Swipe Indicator */}
+                            <View className="items-center mt-2 mb-2">
+                                <View className="bg-border-gray rounded-full w-12 h-1" />
                             </View>
 
-                            {/* Connector Types */}
-                            <View className="mt-4">
-                                <Text className="mb-3 text-[#9BA1A6] text-sm">
-                                    Connector Types
+                            <View className="flex-row justify-center items-center px-6 pb-4 border-border-gray border-b">
+                                <Text className="font-semibold text-white text-lg text-center">
+                                    {editingVehicle
+                                        ? "Edit vehicle"
+                                        : "Add new vehicle"}
                                 </Text>
-                                <View className="flex-row flex-wrap gap-2">
-                                    {availableConnectors.map((connector) => (
-                                        <TouchableOpacity
-                                            key={connector.id}
-                                            onPress={() =>
-                                                toggleConnector(connector.id)
-                                            }
-                                            className={`px-4 py-2 rounded-lg border ${
-                                                connectorTypes.includes(
+                            </View>
+
+                            <View className="px-6 pt-4">
+                                {/* Error Message */}
+                                {errorMessage ? (
+                                    <View className="bg-red-500/20 mb-4 p-3 border border-red-500/50 rounded-lg">
+                                        <Text className="text-red-400 text-sm">
+                                            {errorMessage}
+                                        </Text>
+                                    </View>
+                                ) : null}
+
+                                {/* Brand Dropdown */}
+                                <Dropdown
+                                    label="Brand name"
+                                    value={selectedBrand}
+                                    items={listVehicleBrand}
+                                    onValueChange={(value) =>
+                                        onBrandChange(value as VehicleBrand)
+                                    }
+                                />
+
+                                {/* Model Name Input */}
+                                <View className="mt-4">
+                                    <Text className="mb-1 text-[#9BA1A6] text-sm">
+                                        Vehicle name*
+                                    </Text>
+                                    <TextInput
+                                        value={modelName}
+                                        onChangeText={onModelNameChange}
+                                        placeholder="EVO 200"
+                                        className="pb-3 border-border-gray border-b text-[#4CAF50] text-base"
+                                        placeholderTextColor="#9BA1A6"
+                                    />
+                                </View>
+
+                                {/* Connector Types */}
+                                <View className="mt-4">
+                                    <Text className="mb-3 text-[#9BA1A6] text-sm">
+                                        Connector Types*
+                                    </Text>
+                                    <View className="flex-row flex-wrap gap-2">
+                                        {availableConnectors.map((connector) => (
+                                            <TouchableOpacity
+                                                key={connector.id}
+                                                onPress={() =>
+                                                    toggleConnector(connector.id)
+                                                }
+                                                className={`px-4 py-2 rounded-lg border ${connectorTypes.includes(
                                                     connector.id
                                                 )
                                                     ? "bg-[#4CAF50] border-[#4CAF50]"
-                                                    : "bg-transparent border-[#4A5568]"
-                                            }`}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Text
-                                                className={
-                                                    connectorTypes.includes(
-                                                        connector.id
-                                                    )
-                                                        ? "text-white"
-                                                        : "text-[#9BA1A6]"
-                                                }
+                                                    : "bg-transparent border-border-gray"
+                                                    }`}
+                                                activeOpacity={0.7}
                                             >
-                                                {connector.name}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
+                                                <Text
+                                                    className={
+                                                        connectorTypes.includes(
+                                                            connector.id
+                                                        )
+                                                            ? "text-white"
+                                                            : "text-[#9BA1A6]"
+                                                    }
+                                                >
+                                                    {connector.name}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
                                 </View>
-                            </View>
 
-                            {/* Save Button */}
-                            <TouchableOpacity
-                                className={`mt-6 py-4 rounded-lg ${
-                                    isSaving
-                                        ? "bg-[#4CAF50]/50"
-                                        : "bg-[#4CAF50]"
-                                }`}
-                                activeOpacity={0.7}
-                                onPress={onSave}
-                                disabled={isSaving}
-                            >
-                                <Text className="font-semibold text-white text-base text-center">
-                                    {isSaving
-                                        ? "Saving..."
-                                        : editingVehicle
-                                          ? "Save changes"
-                                          : "Add vehicle"}
-                                </Text>
-                            </TouchableOpacity>
+                                {/* Save Button */}
+                                <Button
+                                    className="mt-6"
+                                    variant="primary"
+                                    fullWidth
+                                    onPress={onSave}
+                                    loading={isSaving}
+                                >
+                                    {editingVehicle ? "Save changes" : "Add vehicle"}
+                                </Button>
+                            </View>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 </TouchableOpacity>
-            </TouchableOpacity>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }

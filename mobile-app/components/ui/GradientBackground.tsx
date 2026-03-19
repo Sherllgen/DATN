@@ -1,6 +1,6 @@
 import React from "react";
 import { LinearGradient, LinearGradientProps } from "expo-linear-gradient";
-import { ColorValue } from "react-native";
+import { ColorValue, TouchableWithoutFeedback, Keyboard, View } from "react-native";
 import { cssInterop } from "nativewind";
 import { GRADIENTS, GradientKey, DEFAULT_GRADIENT } from "@/constants/gradients";
 
@@ -15,6 +15,8 @@ interface GradientBackgroundProps extends Omit<LinearGradientProps, "colors" | "
     colors?: readonly [ColorValue, ColorValue, ...ColorValue[]];
     /** Custom className */
     className?: string;
+    /** Whether to dismiss keyboard on tap (defaults to true) */
+    dismissKeyboard?: boolean;
     /** Children components */
     children: React.ReactNode;
 }
@@ -45,6 +47,7 @@ export default function GradientBackground({
     preset,
     colors,
     className = "",
+    dismissKeyboard = true,
     children,
     ...props
 }: GradientBackgroundProps) {
@@ -52,15 +55,29 @@ export default function GradientBackground({
     const gradientConfig = preset ? GRADIENTS[preset] : DEFAULT_GRADIENT;
     const finalColors = colors || gradientConfig.colors;
 
+    const Content = (
+        <View style={{ flex: 1 }}>
+            {children}
+        </View>
+    );
+
     return (
         <LinearGradient
             colors={finalColors as any}
             start={gradientConfig.start}
             end={gradientConfig.end}
+            style={[{ flex: 1 }, props.style]}
             className={className}
             {...props}
         >
-            {children}
+            {dismissKeyboard ? (
+                <TouchableWithoutFeedback
+                    onPress={Keyboard.dismiss}
+                    accessible={false}
+                >
+                    {Content}
+                </TouchableWithoutFeedback>
+            ) : Content}
         </LinearGradient>
     );
 }

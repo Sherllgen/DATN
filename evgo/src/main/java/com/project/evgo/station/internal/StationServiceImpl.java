@@ -7,17 +7,26 @@ import com.project.evgo.station.StationService;
 import com.project.evgo.station.request.CreateStationRequest;
 import com.project.evgo.station.request.SearchNearbyRequest;
 import com.project.evgo.station.request.SearchTextRequest;
+import com.project.evgo.station.request.StationFilterRequest;
 import com.project.evgo.station.request.UpdateStationRequest;
+import com.project.evgo.station.response.StationMetadataResponse;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
+import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.user.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of StationService.
@@ -239,5 +248,71 @@ public class StationServiceImpl implements StationService {
 
         // Convert to DTOs with charger counts
         return stationDtoConverter.convertToSearchResults(projections);
+    }
+
+    // ==================== METADATA & FILTER ====================
+
+    @Override
+    public StationMetadataResponse getMetadata() {
+        Double minPower = stationRepository.findMinPowerOutput();
+        Double maxPower = stationRepository.findMaxPowerOutput();
+        List<String> connectorTypes = stationRepository.findDistinctConnectorTypes();
+
+        // Collect all StationStatus enum values as strings for the frontend, excluding PENDING
+        List<String> statuses = Arrays.stream(StationStatus.values())
+                .filter(status -> status != StationStatus.PENDING)
+                .map(Enum::name)
+                .collect(Collectors.toList());
+
+        return new StationMetadataResponse(
+                minPower != null ? minPower : 0.0,
+                maxPower != null ? maxPower : 0.0,
+                connectorTypes,
+                statuses
+        );
+    }
+
+    @Override
+    public PageResponse<StationSearchResult> filterStations(StationFilterRequest request) {
+        // Normalise empty connectorTypes list to null — means "no filter"
+        List<String> connectorTypes = (request.connectorTypes() != null && !request.connectorTypes().isEmpty())
+                ? request.connectorTypes()
+                : null;
+
+        String statusStr = request.status() != null ? request.status().name() : null;
+        
+        int page = request.page() != null ? Math.max(0, request.page()) : 0;
+        int size = request.size() != null ? Math.max(1, request.size()) : 10;
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<StationProjection> projectionPage;
+        if (connectorTypes != null) {
+            // Use the variant with connector type filter (avoids SpEL null-collection issues)
+            projectionPage = stationRepository.findFilteredStationsWithConnectors(
+                    request.minPower(),
+                    request.maxPower(),
+                    connectorTypes,
+                    statusStr,
+                    request.query(),
+                    request.userLat(),
+                    request.userLng(),
+                    pageable
+            );
+        } else {
+            projectionPage = stationRepository.findFilteredStations(
+                    request.minPower(),
+                    request.maxPower(),
+                    statusStr,
+                    request.query(),
+                    request.userLat(),
+                    request.userLng(),
+                    pageable
+            );
+        }
+
+        List<StationSearchResult> results = stationDtoConverter.convertToSearchResults(projectionPage.getContent());
+        Page<StationSearchResult> resultPage = new PageImpl<>(results, pageable, projectionPage.getTotalElements());
+
+        return PageResponse.of(resultPage);
     }
 }

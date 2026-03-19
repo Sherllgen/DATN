@@ -24,6 +24,12 @@ export const GRADIENTS = {
         start: { x: 0, y: 0 },
         end: { x: 0, y: 1 },
     },
+
+    fullDark: {
+        colors: ["#131315", "#000000"] as const,
+        start: { x: 0, y: 0 },
+        end: { x: 0, y: 1 },
+    },
 } as const;
 
 /** Type for gradient keys */

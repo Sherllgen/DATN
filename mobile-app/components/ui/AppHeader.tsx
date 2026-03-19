@@ -65,7 +65,7 @@ export default function AppHeader({
             <View className="flex-1 justify-center items-center">
                 <Text
                     numberOfLines={1}
-                    className={["text-white ", titleClassName].join(" ")}
+                    className={["text-white text-2xl font-semibold", titleClassName].join(" ")}
                 >
                     {title}
                 </Text>

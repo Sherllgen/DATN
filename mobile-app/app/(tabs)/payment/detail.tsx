@@ -5,7 +5,7 @@ import React from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function NotificationDetailPage() {
+export default function PaymentDetailPage() {
     const params = useLocalSearchParams();
 
     return (
@@ -16,7 +16,7 @@ export default function NotificationDetailPage() {
             className="flex-1"
         >
             <SafeAreaView className="flex-1">
-                <AppHeader title="Notification Detail" />
+                <AppHeader title="Payment Detail" />
 
                 <ScrollView className="flex-1 px-4">
                     {/* Transaction Info Section */}

@@ -168,9 +168,10 @@ export default function LoginScreen() {
                     <Text className="mb-2 font-medium text-white text-sm">
                         Email
                     </Text>
-                    <View className="flex-row items-center bg-primary/90 mb-6 px-2 py-[2px] rounded-full">
+                    <View className="flex-row items-center bg-primary/90 mb-6 px-4 h-14 rounded-full">
                         <TextInput
-                            className="flex-1 ml-3 text-white text-base"
+                            className="flex-1 ml-3 mb-2 text-white text-base py-0 h-full"
+                            textAlignVertical="center"
                             placeholder="abc@example.com"
                             placeholderTextColor="#999"
                             value={username}
@@ -188,10 +189,11 @@ export default function LoginScreen() {
                     <Text className="mb-2 font-medium text-white text-sm">
                         Password
                     </Text>
-                    <View className="flex-row items-center bg-primary/90 mb-4 px-2 py-[2px] rounded-full">
+                    <View className="flex-row items-center bg-primary/90 mb-4 px-4 h-14 rounded-full">
                         <TextInput
                             ref={passwordInputRef}
-                            className="flex-1 ml-3 text-white text-base"
+                            className="flex-1 ml-3 text-white text-base py-0 h-full"
+                            textAlignVertical="center"
                             placeholder="••••••••"
                             placeholderTextColor="#999"
                             value={password}
