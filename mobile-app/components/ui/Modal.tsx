@@ -4,6 +4,8 @@ import {
     View,
     Text,
     TouchableOpacity,
+    KeyboardAvoidingView,
+    Platform,
     ModalProps as RNModalProps,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -61,21 +63,26 @@ export default function Modal({
             transparent={variant !== "full-screen"}
             animationType={animationType}
             onRequestClose={onClose}
+            statusBarTranslucent
             {...props}
         >
-            <TouchableOpacity
-                className={[
-                    containerVariantStyles[variant],
-                    variant !== "full-screen" ? "bg-black/60" : "",
-                    containerClassName,
-                ].join(" ")}
-                activeOpacity={1}
-                onPress={variant !== "full-screen" ? onClose : undefined}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "padding"}
+                style={{ flex: 1 }}
             >
                 <TouchableOpacity
+                    className={[
+                        containerVariantStyles[variant],
+                        variant !== "full-screen" ? "bg-black/60" : "",
+                        containerClassName,
+                    ].join(" ")}
                     activeOpacity={1}
-                    onPress={(e) => e.stopPropagation()}
+                    onPress={variant !== "full-screen" ? onClose : undefined}
                 >
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        onPress={(e) => e.stopPropagation()}
+                    >
                     <View
                         className={[
                             contentVariantStyles[variant],
@@ -123,8 +130,9 @@ export default function Modal({
                             {children}
                         </View>
                     </View>
+                    </TouchableOpacity>
                 </TouchableOpacity>
-            </TouchableOpacity>
+            </KeyboardAvoidingView>
         </RNModal>
     );
 }
