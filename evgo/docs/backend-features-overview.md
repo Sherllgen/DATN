@@ -17,7 +17,7 @@ Tài liệu này cung cấp cái nhìn tổng quan về các module backend đã
 | **Shared Kernel** | ✅ Implemented | DTOs, Enums, Exceptions, Infra | [walkthrough-sharedkernel-module.md](walkthrough-sharedkernel-module.md) |
 | **Booking** | ✅ Implemented | Đặt lịch sạc, lấy config và metadata | [walkthrough-booking-module.md](walkthrough-booking-module.md) |
 | **Charging** | 🔲 Skeleton | Quản lý phiên sạc | *Coming soon* |
-| **Review** | 🔲 Skeleton | Đánh giá trạm sạc | *Coming soon* |
+| **Review** | ✅ Implemented | Đánh giá trạm sạc | [walkthrough-review-module.md](walkthrough-review-module.md) |
 | **Complaint** | 🔲 Skeleton | Khiếu nại | *Coming soon* |
 
 ---
@@ -43,6 +43,7 @@ flowchart TB
         Notification["Notification Module"]
         Payment["Payment Module"]
         Booking["Booking Module"]
+        Review["Review Module"]
         Charging["Charging Module 🔲"]
     end
 
@@ -67,6 +68,7 @@ flowchart TB
     Controller --> OCPP
     Controller --> Notification
     Controller --> Payment
+    Controller --> Review
 
     User --> SK
     Station --> SK
@@ -74,12 +76,14 @@ flowchart TB
     OCPP --> SK
     Notification --> SK
     Payment --> SK
+    Review --> SK
 
     User --> DB
     Station --> DB
     Charger --> DB
     Notification --> DB
     Payment --> DB
+    Review --> DB
 
     User --> Redis
     OCPP --> Redis
@@ -106,6 +110,7 @@ flowchart LR
     OCPP --> SK
     Notification --> SK
     Payment --> SK
+    Review --> SK
 
     User -->|sendEmail| Notification
     Charger -->|verifyOwnership| Station
@@ -118,6 +123,7 @@ flowchart LR
     style OCPP fill:#90EE90
     style Notification fill:#90EE90
     style Payment fill:#90EE90
+    style Review fill:#90EE90
 ```
 
 ---
@@ -230,6 +236,16 @@ flowchart LR
 | GET | `/user/{userId}` | Thông báo của user |
 | GET | `/user/{userId}/unread` | Thông báo chưa đọc |
 | GET | `/user/{userId}/unread/count` | Đếm chưa đọc |
+
+### Reviews (`/api/v1/reviews`)
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| GET | `/station/{id}/summary` | Thống kê đánh giá trạm sạc |
+| GET | `/station/{id}` | Danh sách đánh giá (phân trang) |
+| POST | `/station/{id}` | Gửi đánh giá mới |
+| PUT | `/{id}` | Cập nhật đánh giá (Owner) |
+| DELETE | `/{id}` | Xóa đánh giá (Owner/Admin) |
 
 ---
 
@@ -367,5 +383,3 @@ Các module sau đang ở trạng thái skeleton và sẽ được implement:
 
 1. **Booking Module** - Đặt lịch sạc xe
 2. **Charging Module** - Quản lý phiên sạc
-3. **Review Module** - Đánh giá trạm sạc
-4. **Complaint Module** - Xử lý khiếu nại

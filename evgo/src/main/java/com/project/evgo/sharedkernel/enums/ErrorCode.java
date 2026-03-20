@@ -94,7 +94,13 @@ public enum ErrorCode {
     // OCPP errors (11xxx)
     OCPP_INVALID_MESSAGE(11001, HttpStatus.BAD_REQUEST, "Invalid OCPP message format"),
     OCPP_CHARGE_POINT_NOT_CONNECTED(11002, HttpStatus.NOT_FOUND, "Charge point is not connected"),
+
+    // Review errors (12xxx)
+    REVIEW_NOT_FOUND(12001, HttpStatus.NOT_FOUND, "Review not found"),
+    REVIEW_ALREADY_EXISTS(12002, HttpStatus.CONFLICT, "You have already reviewed this station"),
+    REVIEW_NOT_OWNED(12003, HttpStatus.FORBIDDEN, "You are not the owner of this review"),
     ;
+
 
     private final int code;
     private final HttpStatus status;
