@@ -81,20 +81,17 @@ public interface NotificationService {
 
 ```java
 public interface EmailService {
-    // Gửi email xác minh tài khoản
-    void sendVerificationEmail(String to, String fullName, String verificationToken);
+    // Gửi email xác minh tài khoản (OTP)
+    void sendVerificationEmail(String email, String otp);
 
-    // Gửi email đặt lại mật khẩu
-    void sendPasswordResetEmail(String to, String fullName, String resetToken);
+    // Gửi email đặt lại mật khẩu (OTP)
+    void sendPasswordResetEmail(String email, String otp);
 
-    // Gửi email chào mừng
-    void sendWelcomeEmail(String to, String fullName);
-
-    // Gửi email thông báo duyệt Station Owner
-    void sendApprovalEmail(String to, String businessName, String trackingId);
+    // Gửi email thông báo duyệt Station Owner kèm mật khẩu tạm
+    void sendApprovalEmailWithPassword(String email, String fullName, String password);
 
     // Gửi email thông báo từ chối Station Owner
-    void sendRejectionEmail(String to, String businessName, String reason);
+    void sendRejectionEmail(String email, String rejectionReason);
 }
 ```
 
@@ -102,8 +99,11 @@ public interface EmailService {
 
 ```java
 public interface SmsService {
-    void sendVerificationSms(String phoneNumber, String otpCode);
-    void sendPasswordResetSms(String phoneNumber, String otpCode);
+    // Gửi OTP xác minh số điện thoại
+    void sendVerificationOtp(String phoneNumber, String otp);
+    
+    // Gửi OTP đặt lại mật khẩu
+    void sendPasswordResetOtp(String phoneNumber, String otp);
 }
 ```
 
@@ -111,63 +111,32 @@ public interface SmsService {
 
 ## Email Templates
 
-### Verification Email
+Hệ thống sử dụng các template HTML được xây dựng trực tiếp trong `SmtpEmailServiceImpl` với thiết kế giao diện hiện đại (chứa logo, màu sắc thương hiệu, cảnh báo bảo mật).
 
-```html
-Subject: Xác minh tài khoản EV-Go
+### Verification Email (Xác minh OTP)
 
-Xin chào {fullName},
+- **Tiêu đề:** `{appName} - Verify Your Email`
+- **Nội dung chính:** Cung cấp mã OTP có hiệu lực trong 30 phút. Nền OTP nổi bật:
+  > "Please use the following OTP code to verify your email address: **[ 1 2 3 4 5 6 ]**"
 
-Cảm ơn bạn đã đăng ký tài khoản tại EV-Go.
-Vui lòng click vào link bên dưới để xác minh email:
+### Password Reset Email (Khôi phục mật khẩu OTP)
 
-{verificationLink}
-
-Link này sẽ hết hạn sau 24 giờ.
-```
-
-### Password Reset Email
-
-```html
-Subject: Đặt lại mật khẩu EV-Go
-
-Xin chào {fullName},
-
-Bạn đã yêu cầu đặt lại mật khẩu.
-Vui lòng click vào link bên dưới:
-
-{resetLink}
-
-Link này sẽ hết hạn sau 1 giờ.
-```
+- **Tiêu đề:** `{appName} - Reset Your Password`
+- **Nội dung chính:** Cung cấp mã OTP để đặt lại mật khẩu. Hiệu lực 30 phút.
+  > "We received a request to reset your password. Use the following OTP code: **[ 6 5 4 3 2 1 ]**"
 
 ### Station Owner Approval Email
 
-```html
-Subject: Chúc mừng! Hồ sơ đăng ký của bạn đã được duyệt
-
-Xin chào,
-
-Hồ sơ đăng ký Station Owner cho "{businessName}" đã được duyệt.
-
-Mã theo dõi: {trackingId}
-
-Bạn có thể đăng nhập và bắt đầu thêm trạm sạc.
-```
+- **Tiêu đề:** `{appName} - Registration Approved`
+- **Nội dung chính:** Thông báo hồ sơ duyệt kèm theo mật khẩu tạm thời.
+  > "Hello, {fullName}! We are pleased to inform you that your Station Owner profile has been reviewed and approved... **Temporary Password: [ password123 ]**"
+- **Lưu ý:** Có dặn dò người dùng đổi mật khẩu ở lần đăng nhập đầu tiên.
 
 ### Station Owner Rejection Email
 
-```html
-Subject: Thông báo về hồ sơ đăng ký
-
-Xin chào,
-
-Hồ sơ đăng ký Station Owner cho "{businessName}" không được chấp thuận.
-
-Lý do: {reason}
-
-Vui lòng liên hệ support nếu cần hỗ trợ thêm.
-```
+- **Tiêu đề:** `{appName} - Registration Rejected`
+- **Nội dung chính:** Thông báo hồ sơ bị từ chối kèm lý do.
+  > "Unfortunately, your station owner registration has been rejected. **Reason for Rejection:** {rejectionReason}"
 
 ---
 
@@ -183,12 +152,12 @@ Vui lòng liên hệ support nếu cần hỗ trợ thêm.
 ### EmailService (SMTP)
 
 - ✅ Gửi email qua SMTP (Gmail, custom SMTP)
-- ✅ Email xác minh tài khoản với link
-- ✅ Email đặt lại mật khẩu với link
-- ✅ Email chào mừng sau khi xác minh
-- ✅ Email thông báo duyệt/từ chối Station Owner
+- ✅ Email xác minh tài khoản với mã OTP
+- ✅ Email đặt lại mật khẩu với mã OTP
+- ✅ Email thông báo duyệt Station Owner kèm mật khẩu tạm
+- ✅ Email thông báo từ chối Station Owner
 - ✅ Async email sending (non-blocking)
-- ✅ HTML email templates
+- ✅ Cấu trúc email HTML với giao diện đẹp, thân thiện
 
 ### SmsService (Mock)
 
@@ -347,7 +316,7 @@ public class SmtpEmailServiceImpl implements EmailService {
 
 1. **Mock SMS**: Hiện tại SMS service là mock, OTP được log ra console. Cần tích hợp Twilio/Nexmo cho production.
 
-2. **Email Links**: Link trong email sử dụng `app.frontend.url` để trỏ về mobile app hoặc web app.
+2. **Mã OTP**: Hệ thống sử dụng mã OTP gồm 6 chữ số để xác minh thay vì dùng đường link, giúp dễ dàng nhập trên mobile app.
 
 3. **Async Processing**: Email gửi async nên không ảnh hưởng đến response time của API chính.
 

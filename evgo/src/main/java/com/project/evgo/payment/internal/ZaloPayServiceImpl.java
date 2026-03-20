@@ -22,6 +22,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.context.ApplicationEventPublisher;
+import com.project.evgo.payment.PaymentSuccessEvent;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -52,6 +54,7 @@ public class ZaloPayServiceImpl implements ZaloPayService {
     private final TransactionRepository transactionRepository;
     private final ObjectMapper objectMapper;
     private final WebClient webClient;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -189,6 +192,10 @@ public class ZaloPayServiceImpl implements ZaloPayService {
         transaction.setGatewayTransactionId(zpTransId);
         transaction.setReturnCode(returnCode);
         transactionRepository.save(transaction);
+
+        if (returnCode == ZALOPAY_SUCCESS_CODE) {
+            eventPublisher.publishEvent(new PaymentSuccessEvent(invoice.getId(), appTransId, zpTransId, invoice.getBookingId(), invoice.getChargingSessionId()));
+        }
 
         log.info("ZaloPay callback processed: appTransId={}, invoiceStatus={}", appTransId, newInvoiceStatus);
     }

@@ -23,6 +23,8 @@ public interface ChargerService {
 
     List<PortResponse> findPortsByChargerId(Long chargerId);
 
+    Optional<PortResponse> findPortByChargerIdAndPortNumber(Long chargerId, Integer portNumber);
+
     Optional<PortResponse> findPortById(Long id);
 
     // Charger management (Owner only)
@@ -62,4 +64,6 @@ public interface ChargerService {
      * @param chargerId the database ID of the charger
      */
     void updateHeartbeat(Long chargerId);
+
+    void internalUpdatePortStatus(Long portId, PortStatus status);
 }

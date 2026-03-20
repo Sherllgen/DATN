@@ -20,7 +20,9 @@ public class BookingResponse {
 
     private Long id;
     private Long userId;
-    private Long portId;
+    private Long stationId;
+    private Long chargerId;
+    private Integer portNumber;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private BookingStatus status;

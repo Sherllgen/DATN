@@ -3,7 +3,7 @@ package com.project.evgo;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
 
-class ModularitiesTest {
+class ModularityTests {
 
     @Test
     void verifyModularity() {

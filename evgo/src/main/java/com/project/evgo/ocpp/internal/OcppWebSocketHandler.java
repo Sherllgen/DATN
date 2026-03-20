@@ -13,6 +13,9 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import com.project.evgo.charger.ChargerService;
+import com.project.evgo.sharedkernel.enums.PortStatus;
+
 import java.net.URI;
 import java.util.Optional;
 
@@ -30,6 +33,8 @@ public class OcppWebSocketHandler extends TextWebSocketHandler {
     private final OcppSessionManager sessionManager;
     private final OcppMessageParser messageParser;
     private final OcppActionRouter actionRouter;
+    private final PendingCommandManager pendingCommandManager;
+    private final ChargerService chargerService;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -46,7 +51,7 @@ public class OcppWebSocketHandler extends TextWebSocketHandler {
 
         try {
             OcppMessage ocppMessage = messageParser.parse(rawPayload);
-
+            // handle call from charger point
             if (ocppMessage instanceof OcppCall call) {
                 log.info("Received CALL from {}: action={}, messageId={}", chargePointId, call.action(),
                         call.messageId());
@@ -64,6 +69,26 @@ public class OcppWebSocketHandler extends TextWebSocketHandler {
                     String errorJson = messageParser.serialize(error);
                     session.sendMessage(new TextMessage(errorJson));
                     log.warn("No handler for action '{}' from {}", call.action(), chargePointId);
+                }
+            } 
+            // handle call result from charger point
+            else if (ocppMessage instanceof OcppCallResult callResult) {
+                log.info("Received CALLRESULT from {}: messageId={}", chargePointId, callResult.messageId());
+                PendingCommandManager.PendingCommand cmd = pendingCommandManager.pop(callResult.messageId());
+                if (cmd != null && "ReserveNow".equals(cmd.action())) {
+                    String status = callResult.payload().path("status").asText();
+                    if ("Accepted".equals(status)) {
+                        log.info("ReserveNow Accepted for chargePointId={}, connectorId={}. Updating DB status to RESERVED", 
+                            cmd.chargePointId(), cmd.connectorId());
+                        Long chargerId = Long.parseLong(cmd.chargePointId());
+                        chargerService.findPortByChargerIdAndPortNumber(chargerId, cmd.connectorId())
+                             .ifPresent(port -> {
+                                 chargerService.internalUpdatePortStatus(port.getId(), PortStatus.RESERVED);
+                             });
+                    } else {
+                        log.warn("ReserveNow was {} for chargePointId={}, connectorId={}", 
+                            status, cmd.chargePointId(), cmd.connectorId());
+                    }
                 }
             } else {
                 log.info("Received non-CALL message from {}: type={}", chargePointId,

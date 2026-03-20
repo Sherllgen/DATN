@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for Port entity.
@@ -12,6 +13,8 @@ import java.util.List;
 public interface PortRepository extends JpaRepository<Port, Long> {
 
     List<Port> findByChargerId(Long chargerId);
+
+    Optional<Port> findByChargerIdAndPortNumber(Long chargerId, Integer portNumber);
 
     long countByChargerStationId(Long stationId);
 

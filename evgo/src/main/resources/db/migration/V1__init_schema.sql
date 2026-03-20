@@ -1,4 +1,4 @@
-﻿--
+--
 -- PostgreSQL database dump
 --
 
@@ -26,16 +26,18 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.bookings (
     id bigint NOT NULL,
-    created_at timestamp(6) without time zone,
-    end_time timestamp(6) without time zone NOT NULL,
-    fee numeric(12,2),
-    port_id bigint NOT NULL,
-    start_time timestamp(6) without time zone NOT NULL,
-    status character varying(255) NOT NULL,
-    total_price numeric(12,2),
-    updated_at timestamp(6) without time zone,
     user_id bigint NOT NULL,
-    CONSTRAINT bookings_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'CONFIRMED'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying, 'CANCELLED'::character varying])::text[])))
+    station_id bigint NOT NULL,
+    charger_id bigint NOT NULL,
+    port_number integer NOT NULL,
+    start_time timestamp(6) without time zone NOT NULL,
+    end_time timestamp(6) without time zone NOT NULL,
+    status character varying(255) NOT NULL,
+    fee numeric(12,2),
+    total_price numeric(12,2),
+    created_at timestamp(6) without time zone,
+    updated_at timestamp(6) without time zone,
+    CONSTRAINT bookings_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'CONFIRMED'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying, 'CANCELLED'::character varying, 'EXPIRED'::character varying])::text[])))
 );
 
 
