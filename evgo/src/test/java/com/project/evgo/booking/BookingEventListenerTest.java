@@ -52,6 +52,7 @@ class BookingEventListenerTest {
         booking.setStatus(BookingStatus.PENDING);
         // Far in the future to not trigger immediate ReserveNow
         booking.setStartTime(LocalDateTime.now().plusHours(5));
+        booking.setEndTime(LocalDateTime.now().plusHours(6));
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
@@ -61,7 +62,7 @@ class BookingEventListenerTest {
         // Then
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
         verify(bookingRepository).save(booking);
-        verify(redisTemplate).delete(anyString());
+        verify(redisTemplate, times(2)).delete(anyString());
         verify(eventPublisher, never()).publishEvent(any());
     }
 

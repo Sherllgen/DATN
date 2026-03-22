@@ -73,10 +73,14 @@ public class BookingEventListener {
                 booking.setStatus(BookingStatus.CONFIRMED);
                 bookingRepository.save(booking);
 
-                String lockKey = LOCK_PREFIX + booking.getStationId() + ":" + booking.getPortNumber() + ":" + booking.getStartTime();
-                redisTemplate.delete(lockKey);
+                LocalDateTime current = booking.getStartTime();
+                while (current.isBefore(booking.getEndTime())) {
+                    String lockKey = LOCK_PREFIX + booking.getStationId() + ":" + booking.getPortNumber() + ":" + current.toString();
+                    redisTemplate.delete(lockKey);
+                    current = current.plusMinutes(30);
+                }
                 
-                log.info("Booking {} confirmed and Redis lock deleted.", booking.getId());
+                log.info("Booking {} confirmed and Redis locks deleted.", booking.getId());
 
                 // Immediate Hardware Reserve if booking starts within 10 minutes
                 LocalDateTime now = LocalDateTime.now();

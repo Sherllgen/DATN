@@ -84,6 +84,7 @@ The `booking` module handles the reservation of charging ports at stations.
 
 ```mermaid
 sequenceDiagram
+    autonumber
     participant App as Mobile App
     participant BE as EV-Go Backend
     participant Redis as Redis Cache
@@ -123,8 +124,9 @@ sequenceDiagram
         end
     end
 
-    loop Every 60 Seconds (BookingScheduler)
+    loop Every 60 Seconds (BookingScheduler: T-10 mins)
         BE->>DB: Find CONFIRMED bookings starting in 10 mins
-        BE->>Charger: Send ReserveNow.req (Lock Hardware)
+        BE->>Charger: Send RemoteStopTransaction.req (Cut power if prev car overstays)
+        BE->>Charger: Send ReserveNow.req (Lock Hardware for new user)
     end
 ```
