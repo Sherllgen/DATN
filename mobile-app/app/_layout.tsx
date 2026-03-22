@@ -9,6 +9,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import ToastManager from "toastify-react-native";
 import "../global.css";
 
+import { useAuthStore } from "@/contexts/auth.store";
+import { useUserStore } from "@/contexts/user.store";
+import { getProfileApi } from "@/apis/profileApi/profileApi";
+
 // Prevent the splash screen from auto-hiding before asset loading is complete
 // SplashScreen.preventAutoHideAsync().catch(console.warn);
 
@@ -25,11 +29,32 @@ const BlackTheme = {
 
 export default function RootLayout() {
     console.log('RootLayout rendering...');
+    const accessToken = useAuthStore((state) => state.accessToken);
+    const user = useUserStore((state) => state.user);
+    const setUser = useUserStore((state) => state.setUser);
+    const logout = useAuthStore((state) => state.logout);
 
     useEffect(() => {
         console.log('RootLayout mounted, hiding splash...');
         // Hide the splash screen after the app is ready
         SplashScreen.hideAsync().catch(console.warn);
+    }, []);
+
+    useEffect(() => {
+        const hydrateUser = async () => {
+            try {
+                // Since we use withCredentials: true, the session cookie will automatically authenticate this request if valid
+                const res = await getProfileApi();
+                if (res && res.data) {
+                    setUser(res.data);
+                }
+            } catch (error) {
+                // User is not logged in / Session expired -> clear token memory just in case
+                console.log("Not logged in or session expired.");
+                logout();
+            }
+        };
+        hydrateUser();
     }, []);
 
     console.log('About to return JSX...');

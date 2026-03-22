@@ -256,9 +256,8 @@ export default function ForgotPasswordScreen() {
                                 <TouchableOpacity
                                     onPress={handleResetPassword}
                                     disabled={loading}
-                                    className={`bg-green-600 p-4 rounded-lg items-center mb-4 ${
-                                        loading ? "opacity-50" : ""
-                                    }`}
+                                    className={`bg-green-600 p-4 rounded-lg items-center mb-4 ${loading ? "opacity-50" : ""
+                                        }`}
                                 >
                                     {loading ? (
                                         <ActivityIndicator

@@ -51,6 +51,12 @@ axiosInstance.interceptors.response.use(
                 return Promise.reject(error);
             }
 
+            // Do not show a red screen error for normal 401 Unauthorized responses
+            if (error.response?.status === 401) {
+                console.log("AXIOS 401 Unauthorized:", error.config?.url);
+                return Promise.reject(error);
+            }
+
             console.error("AXIOS ERROR DETAILS:", {
                 message: error.message,
                 code: error.code,

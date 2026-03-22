@@ -10,6 +10,7 @@ import Input from "@/components/ui/Input";
 import Avatar from "@/components/ui/Avatar";
 import { StationReview, StationReviewsSummary } from "@/types/station.types";
 import { useAuthStore } from "@/contexts/auth.store";
+import { useUserStore } from "@/contexts/user.store";
 
 interface ReviewsTabProps {
     stationId: number;
@@ -45,10 +46,10 @@ const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
             if (isInitial) setIsLoading(true);
             else setIsLoadingMore(true);
 
-            const data = await getStationReviews(stationId, { 
-                page: pageNum, 
+            const data = await getStationReviews(stationId, {
+                page: pageNum,
                 size: 10,
-                sort: `createdAt,${sortOrder}` 
+                sort: `createdAt,${sortOrder}`
             });
 
             if (isInitial) {
@@ -83,7 +84,7 @@ const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
 
         try {
             setIsSubmitting(true);
-            
+
             if (editingReviewId) {
                 await updateReview(editingReviewId, { rating, comment });
             } else {
@@ -191,8 +192,8 @@ const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
             {/* Sort by Header */}
             <View className="flex-row justify-between items-center mb-6">
                 <Text className="text-lg font-bold text-white">Sort by</Text>
-                <TouchableOpacity 
-                    className="flex-row items-center" 
+                <TouchableOpacity
+                    className="flex-row items-center"
                     activeOpacity={0.7}
                     onPress={() => setSortOrder(prev => prev === "desc" ? "asc" : "desc")}
                 >
@@ -248,12 +249,14 @@ const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
                                                     "Choose an action for your review:",
                                                     [
                                                         { text: "Cancel", style: "cancel" },
-                                                        { text: "Edit", onPress: () => {
-                                                            setEditingReviewId(review.id);
-                                                            setRating(review.rating);
-                                                            setComment(review.comment);
-                                                            setIsIdShowingReviewModal(true);
-                                                        } },
+                                                        {
+                                                            text: "Edit", onPress: () => {
+                                                                setEditingReviewId(review.id);
+                                                                setRating(review.rating);
+                                                                setComment(review.comment);
+                                                                setIsIdShowingReviewModal(true);
+                                                            }
+                                                        },
                                                         { text: "Delete", style: "destructive", onPress: () => handleDeleteReview(review.id) }
                                                     ]
                                                 );
@@ -296,8 +299,8 @@ const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
                 // style={{ height: 52 }}
                 size="lg"
                 onPress={() => {
-                    const token = useAuthStore.getState().accessToken;
-                    if (!token) {
+                    const currentUser = useUserStore.getState().user;
+                    if (!currentUser) {
                         Alert.alert(
                             "Authentication Required",
                             "Please login to write a review.",
