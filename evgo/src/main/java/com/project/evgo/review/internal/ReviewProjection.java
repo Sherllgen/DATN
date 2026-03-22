@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
  */
 public interface ReviewProjection {
     Long getId();
+    Long getUserId();
     String getUserName();
     String getUserAvatar();
     Integer getRating();

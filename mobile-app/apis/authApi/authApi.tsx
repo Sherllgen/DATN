@@ -1,4 +1,5 @@
 import axios from "axios";
+import axiosInstance from "@/utils/axiosInstance";
 
 const API_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -93,5 +94,10 @@ export async function resendEmailOtpApi(email: string) {
             email,
         }
     );
+    return res.data;
+}
+
+export async function logoutApi() {
+    const res = await axiosInstance.post(`${API_BACKEND_URL}/api/v1/auth/logout`);
     return res.data;
 }

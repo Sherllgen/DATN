@@ -153,17 +153,20 @@ class ReviewServiceTest {
             Page<ReviewProjection> projectionPage = new PageImpl<>(List.of(mockProjection), pageable, 1);
 
             when(reviewRepository.findByStationIdWithUser(STATION_ID, pageable)).thenReturn(projectionPage);
-            when(converter.toResponse(mockProjection)).thenReturn(testReviewResponse);
+            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
+                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(USER_ID);
+                when(converter.toResponse(eq(mockProjection), any())).thenReturn(testReviewResponse);
 
-            // When
-            PageResponse<ReviewResponse> result = reviewService.getStationReviews(STATION_ID, pageable);
+                // When
+                PageResponse<ReviewResponse> result = reviewService.getStationReviews(STATION_ID, pageable);
 
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.content()).hasSize(1);
-            assertThat(result.content().get(0).getUserName()).isEqualTo("Test User");
-            assertThat(result.totalElements()).isEqualTo(1L);
-            verify(reviewRepository).findByStationIdWithUser(STATION_ID, pageable);
+                // Then
+                assertThat(result).isNotNull();
+                assertThat(result.content()).hasSize(1);
+                assertThat(result.content().get(0).getUserName()).isEqualTo("Test User");
+                assertThat(result.totalElements()).isEqualTo(1L);
+                verify(reviewRepository).findByStationIdWithUser(STATION_ID, pageable);
+            }
         }
 
         @Test
@@ -182,36 +185,64 @@ class ReviewServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.content()).isEmpty();
             assertThat(result.totalElements()).isEqualTo(0L);
-            verify(converter, never()).toResponse(any(ReviewProjection.class));
+            verify(converter, never()).toResponse(any(ReviewProjection.class), any());
         }
     }
 
-    // ==================== CREATE REVIEW ====================
-
+    // ==================== CREATE REVIEW (UPSERT) ====================
     @Nested
-    @DisplayName("Create Review Tests")
+    @DisplayName("Create Review (Upsert) Tests")
     class CreateReviewTests {
 
         @Test
-        @DisplayName("Should save review and return response when request is valid")
-        void createReview_ValidRequest_SavesAndReturns() {
+        @DisplayName("Should save a NEW review and return response when no existing review found")
+        void createReview_NewReview_SavesAndReturns() {
             // Given
             CreateReviewRequest request = new CreateReviewRequest(5, "Great station!");
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(USER_ID);
+                when(reviewRepository.findByUserIdAndStationId(USER_ID, STATION_ID)).thenReturn(Optional.empty());
                 when(reviewRepository.save(any(Review.class))).thenReturn(testReview);
-                when(converter.toResponse(testReview)).thenReturn(testReviewResponse);
+                when(converter.toResponse(testReview, USER_ID)).thenReturn(testReviewResponse);
 
                 // When
                 ReviewResponse result = reviewService.createReview(STATION_ID, request);
 
                 // Then
                 assertThat(result).isNotNull();
-                assertThat(result.getRating()).isEqualTo(5);
-                verify(reviewRepository).save(argThat(r -> r.getStationId().equals(STATION_ID) &&
+                verify(reviewRepository).save(argThat(r -> r.getId() == null &&
+                        r.getStationId().equals(STATION_ID) &&
                         r.getUserId().equals(USER_ID) &&
                         r.getRating() == 5));
+            }
+        }
+
+        @Test
+        @DisplayName("Should UPDATE existing review and return response when one already exists")
+        void createReview_ExistingReview_UpdatesAndReturns() {
+            // Given
+            CreateReviewRequest request = new CreateReviewRequest(4, "Updated comment");
+            Review existingReview = new Review();
+            existingReview.setId(100L);
+            existingReview.setUserId(USER_ID);
+            existingReview.setStationId(STATION_ID);
+            existingReview.setRating(3);
+            existingReview.setComment("Old comment");
+
+            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
+                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(USER_ID);
+                when(reviewRepository.findByUserIdAndStationId(USER_ID, STATION_ID)).thenReturn(Optional.of(existingReview));
+                when(reviewRepository.save(existingReview)).thenReturn(existingReview);
+                when(converter.toResponse(existingReview, USER_ID)).thenReturn(testReviewResponse);
+
+                // When
+                reviewService.createReview(STATION_ID, request);
+
+                // Then
+                verify(reviewRepository).save(argThat(r -> r.getId().equals(100L) &&
+                        r.getRating() == 4 &&
+                        r.getComment().equals("Updated comment")));
             }
         }
 
@@ -240,7 +271,7 @@ class ReviewServiceTest {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(USER_ID);
                 when(reviewRepository.findById(1L)).thenReturn(Optional.of(testReview));
                 when(reviewRepository.save(any(Review.class))).thenReturn(testReview);
-                when(converter.toResponse(any(Review.class))).thenReturn(testReviewResponse);
+                when(converter.toResponse(any(Review.class), eq(USER_ID))).thenReturn(testReviewResponse);
 
                 // When
                 ReviewResponse result = reviewService.updateReview(1L, request);

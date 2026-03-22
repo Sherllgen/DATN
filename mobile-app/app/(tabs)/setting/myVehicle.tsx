@@ -4,7 +4,6 @@ import {
     getAllVehicleApi,
     updateVehicleApi,
 } from "@/apis/vehicleApi/vehicleApi";
-import DeleteConfirmModal from "@/components/setting_page/DeleteConfirmModal";
 import EmptyVehicleState from "@/components/setting_page/EmptyVehicleState";
 import VehicleCard, {
     Vehicle,
@@ -20,6 +19,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 
 import {
+    Alert,
     RefreshControl,
     ScrollView,
     Text,
@@ -27,7 +27,6 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Toast } from "toastify-react-native";
 
 export default function MyVehiclePage() {
     const [vehicles, setVehicles] = useState<Vehicle[]>([
@@ -38,11 +37,7 @@ export default function MyVehiclePage() {
     const [refreshing, setRefreshing] = useState(false);
 
     const [showModal, setShowModal] = useState(false);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-    const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(
-        null
-    );
     const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
 
     const [selectedBrand, setSelectedBrand] = useState<VehicleBrand>("VINFAST");
@@ -51,7 +46,6 @@ export default function MyVehiclePage() {
 
     const [errorMessage, setErrorMessage] = useState("");
     const [isSaving, setIsSaving] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
 
     const [listVehicleBrand] = useState<VehicleBrandItem[]>([
         { label: "VINFAST", value: "VINFAST" },
@@ -85,26 +79,30 @@ export default function MyVehiclePage() {
     };
 
     const openDeleteVehicleModal = (vehicleId: string) => {
-        setDeletingVehicleId(vehicleId);
-        setShowDeleteModal(true);
-    };
-
-    const deleteSelectedVehicle = async () => {
-        if (!deletingVehicleId) return;
-
-        setIsDeleting(true);
-        try {
-            await deleteVehicleApi(deletingVehicleId);
-            await loadVehicles();
-            Toast.success("Vehicle deleted successfully");
-            setShowDeleteModal(false);
-            setDeletingVehicleId(null);
-        } catch (error) {
-            logAxiosError(error);
-            Toast.error("Failed to delete vehicle");
-        } finally {
-            setIsDeleting(false);
-        }
+        Alert.alert(
+            "Delete Vehicle",
+            "Are you sure you want to delete this vehicle?",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await deleteVehicleApi(vehicleId);
+                            await loadVehicles();
+                            Alert.alert("Success", "Vehicle deleted successfully");
+                        } catch (error) {
+                            logAxiosError(error);
+                            Alert.alert("Error", "Failed to delete vehicle");
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const validateVehicleForm = () => {
@@ -134,7 +132,7 @@ export default function MyVehiclePage() {
             );
 
             if (res.status === 200 || res.status === 201) {
-                Toast.success("Vehicle added successfully");
+                Alert.alert("Success", "Vehicle added successfully");
                 await loadVehicles();
                 setShowModal(false);
             }
@@ -159,7 +157,7 @@ export default function MyVehiclePage() {
             );
 
             if (res.status === 200 || res.status === 201) {
-                Toast.success("Vehicle updated successfully");
+                Alert.alert("Success", "Vehicle updated successfully");
                 await loadVehicles();
                 setShowModal(false);
             }
@@ -272,13 +270,6 @@ export default function MyVehiclePage() {
                 onConnectorTypesChange={setConnectorTypes}
                 onSave={submitVehicleForm}
                 isSaving={isSaving}
-            />
-
-            <DeleteConfirmModal
-                visible={showDeleteModal}
-                onCancel={() => setShowDeleteModal(false)}
-                onConfirm={deleteSelectedVehicle}
-                isDeleting={isDeleting}
             />
         </LinearGradient>
     );

@@ -159,8 +159,8 @@ const InfoTab = ({ station }: InfoTabProps) => {
             </View>
             {/* Book Button (Fixed at bottom) */}
             <Button
-                size="lg"
                 variant="primary"
+                size="lg"
                 fullWidth
                 style={{ height: 52 }}
                 onPress={() => {

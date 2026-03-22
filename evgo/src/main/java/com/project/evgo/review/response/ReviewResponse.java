@@ -22,6 +22,5 @@ public class ReviewResponse {
     private String comment;
     private String createdAt;
     private String updatedAt;
+    private Boolean isOwner;
 }
-
-

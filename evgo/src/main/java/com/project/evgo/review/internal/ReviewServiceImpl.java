@@ -31,17 +31,20 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public Optional<ReviewResponse> findById(Long id) {
-        return converter.toResponse(reviewRepository.findById(id));
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        return converter.toResponse(reviewRepository.findById(id), currentUserId);
     }
 
     @Override
     public List<ReviewResponse> findByStationId(Long stationId) {
-        return converter.toResponseList(reviewRepository.findByStationId(stationId));
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        return converter.toResponseList(reviewRepository.findByStationId(stationId), currentUserId);
     }
 
     @Override
     public List<ReviewResponse> findByUserId(Long userId) {
-        return converter.toResponseList(reviewRepository.findByUserId(userId));
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        return converter.toResponseList(reviewRepository.findByUserId(userId), currentUserId);
     }
 
     @Override
@@ -59,9 +62,9 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public PageResponse<ReviewResponse> getStationReviews(Long stationId, Pageable pageable) {
-        Page<ReviewProjection> projectionPage =
-                reviewRepository.findByStationIdWithUser(stationId, pageable);
-        Page<ReviewResponse> responsePage = projectionPage.map(converter::toResponse);
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        Page<ReviewProjection> projectionPage = reviewRepository.findByStationIdWithUser(stationId, pageable);
+        Page<ReviewResponse> responsePage = projectionPage.map(proj -> converter.toResponse(proj, currentUserId));
         return PageResponse.of(responsePage);
     }
 
@@ -69,14 +72,25 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewResponse createReview(Long stationId, CreateReviewRequest request) {
         Long userId = SecurityUtil.getCurrentUserId();
-        Review review = new Review();
-        review.setStationId(stationId);
-        review.setUserId(userId);
-        review.setRating(request.rating());
-        review.setComment(request.comment());
-        review.setUpdatedAt(java.time.LocalDateTime.now());
-        Review saved = reviewRepository.save(review);
-        return converter.toResponse(saved);
+
+        // Upsert Logic: Check if user already reviewed this station
+        Optional<Review> existingReview = reviewRepository.findByUserIdAndStationId(userId, stationId);
+
+        Review reviewToSave;
+        if (existingReview.isPresent()) {
+            reviewToSave = existingReview.get();
+        } else {
+            reviewToSave = new Review();
+            reviewToSave.setStationId(stationId);
+            reviewToSave.setUserId(userId);
+        }
+
+        reviewToSave.setRating(request.rating());
+        reviewToSave.setComment(request.comment());
+        reviewToSave.setUpdatedAt(java.time.LocalDateTime.now());
+
+        Review saved = reviewRepository.save(reviewToSave);
+        return converter.toResponse(saved, userId);
     }
 
     @Override
@@ -92,7 +106,7 @@ public class ReviewServiceImpl implements ReviewService {
         review.setUpdatedAt(java.time.LocalDateTime.now());
 
         Review saved = reviewRepository.save(review);
-        return converter.toResponse(saved);
+        return converter.toResponse(saved, SecurityUtil.getCurrentUserId());
     }
 
     @Override
@@ -113,5 +127,3 @@ public class ReviewServiceImpl implements ReviewService {
         }
     }
 }
-
-

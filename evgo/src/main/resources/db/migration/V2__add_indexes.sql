@@ -133,3 +133,13 @@ EXECUTE FUNCTION sync_station_location();
 -- UPDATE stations SET latitude = NULL WHERE id = 1;
 -- -- Verify location is also NULL
 -- SELECT id, name, latitude, longitude, location FROM stations WHERE id = 1;
+
+-- ====================
+-- 7. REVIEWS CONSTRAINTS
+-- ====================
+
+-- 7.1: Unique constraint for one user - one review per station
+-- This prevents a user from posting multiple reviews for the same station.
+-- If they post again, the service layer will handle the update (Upsert logic).
+ALTER TABLE reviews 
+ADD CONSTRAINT uk_user_station_review UNIQUE (user_id, station_id);

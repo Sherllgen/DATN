@@ -118,16 +118,12 @@ export interface StationReview {
     rating: number;
     comment: string;
     createdAt: string;
+    updatedAt?: string;
+    isOwner: boolean;
 }
 
 export interface StationReviewsSummary {
     averageRating: number;
     totalReviews: number;
-    ratingDistribution: {
-        5: number;
-        4: number;
-        3: number;
-        2: number;
-        1: number;
-    };
+    ratingDistribution: Record<number, number>;
 }

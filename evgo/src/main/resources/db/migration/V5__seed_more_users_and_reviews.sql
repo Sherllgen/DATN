@@ -1,10 +1,10 @@
 -- 1. Create 5 more User accounts
 INSERT INTO "users" (id, email, password, full_name, status, email_verified, phone_verified, auth_provider, created_at, updated_at, avatar_url) VALUES 
-(11, 'user1@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Nguyen Van A', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://ui-avatars.com/api/?name=Nguyen+Van+A'),
-(12, 'user2@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Tran Thi B', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://ui-avatars.com/api/?name=Tran+Thi+B'),
-(13, 'user3@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Le Van C', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://ui-avatars.com/api/?name=Le+Van+C'),
-(14, 'user4@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Pham Thi D', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://ui-avatars.com/api/?name=Pham+Thi+D'),
-(15, 'user5@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Hoang Van E', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://ui-avatars.com/api/?name=Hoang+Van+E')
+(11, 'user1@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Nguyen Van A', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://tse4.mm.bing.net/th/id/OIP.ObkhpVkyROzokw2FqVdgJwHaHs?rs=1&pid=ImgDetMain&o=7&rm=3'),
+(12, 'user2@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Tran Thi B', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://tse2.mm.bing.net/th/id/OIP.Lnnry0dKhaHkvbsnug_-LgHaEK?rs=1&pid=ImgDetMain&o=7&rm=3'),
+(13, 'user3@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Le Van C', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://images.wallpapersden.com/image/download/pc-marvel-s-spider-man-remastered_bWpqameUmZqaraWkpJRmbmdlrWZlbWU.jpg'),
+(14, 'user4@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Pham Thi D', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://i.pinimg.com/originals/76/34/55/7634550e3a215d2da8dc659b174b2689.jpg'),
+(15, 'user5@example.com', '$2a$10$iZAxrdMs0Z1998XEddFEi.l0ghFUAn.mRZC9eUyYwb8u4.nY0Ik.q', 'Hoang Van E', 'ACTIVE', true, true, 'LOCAL', NOW(), NOW(), 'https://th.bing.com/th/id/R.5191c9714a8f9b0adbeb94029fe6a7dc?rik=1IbprZNfGN44lw&pid=ImgRaw&r=0')
 ON CONFLICT (email) DO NOTHING;
 
 -- 2. Assign USER role (role_id = 1)

@@ -20,22 +20,24 @@ import java.util.Optional;
 @Component
 public class ReviewDtoConverter {
 
-    private static final DateTimeFormatter ISO_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
-    public ReviewResponse toResponse(Review review) {
+    public ReviewResponse toResponse(Review review, Long currentUserId) {
         return ReviewResponse.builder()
                 .id(review.getId())
                 .rating(review.getRating())
                 .comment(sanitize(review.getComment()))
                 .createdAt(review.getCreatedAt() != null
-                        ? review.getCreatedAt().atOffset(ZoneOffset.UTC).format(ISO_FORMATTER) : null)
+                        ? review.getCreatedAt().atOffset(ZoneOffset.UTC).format(ISO_FORMATTER)
+                        : null)
                 .updatedAt(review.getUpdatedAt() != null
-                        ? review.getUpdatedAt().atOffset(ZoneOffset.UTC).format(ISO_FORMATTER) : null)
+                        ? review.getUpdatedAt().atOffset(ZoneOffset.UTC).format(ISO_FORMATTER)
+                        : null)
+                .isOwner(currentUserId != null && currentUserId.equals(review.getUserId()))
                 .build();
     }
 
-    public ReviewResponse toResponse(ReviewProjection projection) {
+    public ReviewResponse toResponse(ReviewProjection projection, Long currentUserId) {
         return ReviewResponse.builder()
                 .id(projection.getId())
                 .userName(projection.getUserName())
@@ -43,18 +45,23 @@ public class ReviewDtoConverter {
                 .rating(projection.getRating())
                 .comment(sanitize(projection.getComment()))
                 .createdAt(projection.getCreatedAt() != null
-                        ? projection.getCreatedAt().atOffset(ZoneOffset.UTC).format(ISO_FORMATTER) : null)
-                .build(); // Note: Projection might need updatedAt if we want it there
+                        ? projection.getCreatedAt().atOffset(ZoneOffset.UTC).format(ISO_FORMATTER)
+                        : null)
+                .updatedAt(projection.getUpdatedAt() != null
+                        ? projection.getUpdatedAt().atOffset(ZoneOffset.UTC).format(ISO_FORMATTER)
+                        : null)
+                .isOwner(currentUserId != null && currentUserId.equals(projection.getUserId()))
+                .build();
     }
 
-    public List<ReviewResponse> toResponseList(List<Review> reviews) {
+    public List<ReviewResponse> toResponseList(List<Review> reviews, Long currentUserId) {
         return reviews.stream()
-                .map(this::toResponse)
+                .map(review -> toResponse(review, currentUserId))
                 .toList();
     }
 
-    public Optional<ReviewResponse> toResponse(Optional<Review> review) {
-        return review.map(this::toResponse);
+    public Optional<ReviewResponse> toResponse(Optional<Review> review, Long currentUserId) {
+        return review.map(r -> toResponse(r, currentUserId));
     }
 
     public StationReviewsSummaryResponse toSummaryResponse(
@@ -68,8 +75,7 @@ public class ReviewDtoConverter {
         return new StationReviewsSummaryResponse(
                 averageRating != null ? Math.round(averageRating * 10.0) / 10.0 : 0.0,
                 totalReviews != null ? totalReviews : 0L,
-                ratingDistribution
-        );
+                ratingDistribution);
     }
 
     private String sanitize(String text) {
@@ -79,4 +85,3 @@ public class ReviewDtoConverter {
         return Jsoup.clean(text, Safelist.none());
     }
 }
-
