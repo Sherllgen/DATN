@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.List;
+
 import com.project.evgo.booking.request.CheckAvailabilityRequest;
 import com.project.evgo.booking.request.CreateBookingRequest;
 import com.project.evgo.sharedkernel.dto.PageResponse;
@@ -32,7 +33,7 @@ public class BookingController {
     @GetMapping("/{id}")
     @Operation(summary = "Get booking by ID")
     public ResponseEntity<ApiResponse<BookingResponse>> getById(@PathVariable Long id) {
-        var result = bookingService.findById(id)
+        BookingResponse result = bookingService.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
         return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
                 .status(HttpStatus.OK.value())
@@ -45,7 +46,7 @@ public class BookingController {
     @Operation(summary = "Get bookings by user ID")
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getByUserId(
             @PathVariable Long userId) {
-        var result = bookingService.findByUserId(userId);
+        List<BookingResponse> result = bookingService.findByUserId(userId);
         return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
@@ -58,7 +59,7 @@ public class BookingController {
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getByStationIdAndPortNumber(
             @PathVariable Long stationId,
             @PathVariable Integer portNumber) {
-        var result = bookingService.findByStationIdAndPortNumber(stationId, portNumber);
+        List<BookingResponse> result = bookingService.findByStationIdAndPortNumber(stationId, portNumber);
         return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
@@ -82,7 +83,7 @@ public class BookingController {
     @Operation(summary = "Create a PENDING booking")
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
             @Valid @RequestBody CreateBookingRequest request) {
-        var result = bookingService.createBooking(request);
+        BookingResponse result = bookingService.createBooking(request);
         return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
@@ -96,7 +97,7 @@ public class BookingController {
             @RequestParam String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        var result = bookingService.getBookingsByStatus(status, page, size);
+        PageResponse<BookingResponse> result = bookingService.getBookingsByStatus(status, page, size);
         return ResponseEntity.ok(ApiResponse.<PageResponse<BookingResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")

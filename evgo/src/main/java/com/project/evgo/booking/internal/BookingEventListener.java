@@ -1,5 +1,6 @@
 package com.project.evgo.booking.internal;
 
+import com.project.evgo.booking.RequireRefundEvent;
 import com.project.evgo.booking.SendReserveNowCommandEvent;
 import com.project.evgo.payment.PaymentSuccessEvent;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
@@ -35,6 +36,40 @@ public class BookingEventListener {
             log.info("Received PaymentSuccessEvent for bookingId: {}", event.bookingId());
 
             bookingRepository.findById(event.bookingId()).ifPresent(booking -> {
+                if (booking.getStatus() == BookingStatus.CANCELLED) {
+                    log.warn("Delayed IPN for cancelled booking: {}", booking.getId());
+                    eventPublisher.publishEvent(new RequireRefundEvent(
+                            booking.getId(),
+                            booking.getUserId(),
+                            booking.getTotalPrice(),
+                            "Delayed IPN for cancelled booking"
+                    ));
+                    return;
+                }
+
+                // Check for silent overlap if the scheduler hasn't cancelled the PENDING block yet
+                boolean hasOverlapDB = bookingRepository
+                        .existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                                booking.getStationId(),
+                                booking.getPortNumber(),
+                                booking.getStartTime(),
+                                booking.getEndTime(),
+                                java.util.Arrays.asList(BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS)
+                        );
+                
+                if (hasOverlapDB) {
+                    log.warn("Delayed IPN for booking {}; slot already taken by another user.", booking.getId());
+                    booking.setStatus(BookingStatus.CANCELLED);
+                    bookingRepository.save(booking);
+                    eventPublisher.publishEvent(new RequireRefundEvent(
+                            booking.getId(),
+                            booking.getUserId(),
+                            booking.getTotalPrice(),
+                            "Slot already taken by another user due to delayed payment"
+                    ));
+                    return;
+                }
+
                 booking.setStatus(BookingStatus.CONFIRMED);
                 bookingRepository.save(booking);
 

@@ -3,6 +3,7 @@ package com.project.evgo.ocpp.internal.OcppActionHandlerImpl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.evgo.charger.ChargerService;
+import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.ocpp.OcppCall;
 import com.project.evgo.ocpp.OcppCallResult;
 import com.project.evgo.ocpp.internal.OcppActionHandler;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -66,7 +68,7 @@ public class StatusNotificationHandler implements OcppActionHandler {
         try {
             // chargePointId is the charger's database ID (as string)
             Long chargerId = Long.parseLong(chargePointId);
-            var ports = chargerService.findPortsByChargerId(chargerId);
+            List<PortResponse> ports = chargerService.findPortsByChargerId(chargerId);
             ports.stream()
                     .filter(p -> p.getPortNumber() == connectorId)
                     .findFirst()

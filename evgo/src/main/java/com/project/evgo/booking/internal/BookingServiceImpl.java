@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -57,32 +58,57 @@ public class BookingServiceImpl implements BookingService {
         return converter.toResponseList(bookingRepository.findByStationIdAndPortNumber(stationId, portNumber));
     }
 
+    // check availability and create a hold on Redis
     @Override
     public void checkAvailability(CheckAvailabilityRequest request) {
-        boolean hasOverlapDB = !bookingRepository.findByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-                request.getStationId(),
-                request.getPortNumber(),
-                request.getStartTime(),
-                request.getEndTime(),
-                Arrays.asList(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS)
-        ).isEmpty();
+        boolean hasOverlapDB = bookingRepository
+                .existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                        request.getStationId(),
+                        request.getPortNumber(),
+                        request.getStartTime(),
+                        request.getEndTime(),
+                        Arrays.asList(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS));
 
         if (hasOverlapDB) {
             throw new AppException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
         }
 
-        String lockKey = generateLockKey(request.getStationId(), request.getPortNumber(), request.getStartTime().toString());
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(lockKey))) {
-            throw new AppException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
-        }
+        List<LocalDateTime> intervals = getIntervals(request.getStartTime(), request.getEndTime());
+        List<String> lockedKeys = new ArrayList<>();
 
-        redisTemplate.opsForValue().set(lockKey, request.getUserId().toString(), LOCK_TTL_MINUTES, TimeUnit.MINUTES);
+        // set lock for each 30-minute interval
+        for (LocalDateTime interval : intervals) {
+            String lockKey = generateLockKey(request.getStationId(), request.getPortNumber(), interval);
+            Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, request.getUserId().toString(),
+                    LOCK_TTL_MINUTES, TimeUnit.MINUTES);
+
+            if (Boolean.FALSE.equals(success)) {
+                if (!lockedKeys.isEmpty()) {
+                    redisTemplate.delete(lockedKeys);
+                }
+                throw new AppException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+            }
+            lockedKeys.add(lockKey);
+        }
     }
 
+    // create booking with status PENDING and wait for confirmation (payment)
     @Override
     @Transactional
     public BookingResponse createBooking(CreateBookingRequest request) {
-        BigDecimal pricePerHour = priceSettingService.getActivePriceSetting(request.getStationId()).chargingRatePerKwh();
+        List<LocalDateTime> intervals = getIntervals(request.getStartTime(), request.getEndTime());
+
+        // check if the lock is still held by the user
+        for (LocalDateTime interval : intervals) {
+            String lockKey = generateLockKey(request.getStationId(), request.getPortNumber(), interval);
+            String lockOwner = redisTemplate.opsForValue().get(lockKey);
+            if (lockOwner == null || !lockOwner.equals(request.getUserId().toString())) {
+                throw new AppException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+            }
+        }
+
+        BigDecimal pricePerHour = priceSettingService.getActivePriceSetting(request.getStationId())
+                .chargingRatePerKwh();
         long minutes = Duration.between(request.getStartTime(), request.getEndTime()).toMinutes();
         double durationHours = minutes / 60.0;
         BigDecimal estimatedCost = pricePerHour.multiply(BigDecimal.valueOf(durationHours));
@@ -102,7 +128,7 @@ public class BookingServiceImpl implements BookingService {
         Booking saved = bookingRepository.save(booking);
         return converter.toResponse(saved);
     }
-    
+
     @Override
     public PageResponse<BookingResponse> getBookingsByStatus(String statusStr, int page, int size) {
         BookingStatus status;
@@ -120,7 +146,7 @@ public class BookingServiceImpl implements BookingService {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Booking> bookingPage = bookingRepository.findByStatus(status, pageable);
-        
+
         Page<BookingResponse> responsePage = bookingPage.map(converter::toResponse);
         return PageResponse.of(responsePage);
     }
@@ -134,13 +160,13 @@ public class BookingServiceImpl implements BookingService {
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new AppException(ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED); // Already canceled
         }
-        
+
         if (booking.getStatus() != BookingStatus.CONFIRMED && booking.getStatus() != BookingStatus.PENDING) {
-             throw new AppException(ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
+            throw new AppException(ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
         }
 
-        if (LocalDateTime.now().plusHours(2).isAfter(booking.getStartTime()) || 
-            LocalDateTime.now().plusHours(2).isEqual(booking.getStartTime())) {
+        if (LocalDateTime.now().plusHours(2).isAfter(booking.getStartTime()) ||
+                LocalDateTime.now().plusHours(2).isEqual(booking.getStartTime())) {
             throw new AppException(ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
         }
 
@@ -148,7 +174,18 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
     }
 
-    private String generateLockKey(Long stationId, Integer portNumber, String startTime) {
-        return LOCK_PREFIX + stationId + ":" + portNumber + ":" + startTime;
+    // splits the duration into 30-minute blocks
+    private List<LocalDateTime> getIntervals(LocalDateTime startTime, LocalDateTime endTime) {
+        List<LocalDateTime> intervals = new ArrayList<>();
+        LocalDateTime current = startTime;
+        while (current.isBefore(endTime)) {
+            intervals.add(current);
+            current = current.plusMinutes(30);
+        }
+        return intervals;
+    }
+
+    private String generateLockKey(Long stationId, Integer portNumber, LocalDateTime intervalStart) {
+        return LOCK_PREFIX + stationId + ":" + portNumber + ":" + intervalStart.toString();
     }
 }
