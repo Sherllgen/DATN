@@ -281,6 +281,17 @@ export default function LoginScreen() {
                             </TouchableOpacity>
                         </Link>
                     </View>
+
+                    {/* Guest Login */}
+                    <TouchableOpacity 
+                        className="flex-row justify-center mt-6 mb-8"
+                        activeOpacity={0.7}
+                        onPress={() => router.replace("/(tabs)/home")}
+                    >
+                        <Text className="font-semibold text-gray-400 text-sm underline">
+                            Continue as guest
+                        </Text>
+                    </TouchableOpacity>
                 </ScrollView>
             </SafeAreaView>
         </LinearGradient>

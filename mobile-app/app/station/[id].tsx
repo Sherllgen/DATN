@@ -8,51 +8,20 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import MapView, { Marker } from "react-native-maps";
 import { LinearGradient } from "expo-linear-gradient";
 
 import GradientBackground from "@/components/ui/GradientBackground";
-import AppHeader from "@/components/ui/AppHeader";
 import Button from "@/components/ui/Button";
 import StatusBadge, {
     StatusBadgeVariant,
 } from "@/components/station/StatusBadge";
-import ChargerTypeTag from "@/components/station/ChargerTypeTag";
+import StationTabs from "@/components/station/StationTabs";
 import { getStationById } from "@/apis/stationApi/stationApi";
-import { Station, StationStatus, StationOpeningHours } from "@/types/station.types";
+import { Station, StationStatus } from "@/types/station.types";
 import { useStationCache } from "@/stores/stationCacheStore";
 
-// Helper function to format day of week
-const formatDayOfWeek = (day: string): string => {
-    const dayMap: { [key: string]: string } = {
-        MONDAY: "Monday",
-        TUESDAY: "Tuesday",
-        WEDNESDAY: "Wednesday",
-        THURSDAY: "Thursday",
-        FRIDAY: "Friday",
-        SATURDAY: "Saturday",
-        SUNDAY: "Sunday",
-    };
-    return dayMap[day] || day;
-};
-
-// Helper function to format time range
-const formatTimeRange = (openTime: string | null, closeTime: string | null): string => {
-    if (!openTime || !closeTime) {
-        return "00:00 - 00:00";
-    }
-    // Convert "HH:MM:SS" to "HH:MM"
-    const formatTime = (time: string) => time.substring(0, 5);
-    return `${formatTime(openTime)} - ${formatTime(closeTime)}`;
-};
-
-// Helper function to check if station is 24/7
-const isStation24x7 = (openingHours: StationOpeningHours[]): boolean => {
-    if (!openingHours || openingHours.length === 0) return false;
-    return openingHours.every(hours => !hours.openTime && !hours.closeTime && hours.isOpen);
-};
 
 export default function StationDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -266,146 +235,9 @@ export default function StationDetailScreen() {
                                 {"  "}Call
                             </Button>
                         </View>
+                        {/* Tabs Navigation and Content */}
+                        <StationTabs station={station} />
 
-                        {/* About Section */}
-                        {station.description && (
-                            <View className="mb-8">
-                                <Text className="text-lg font-semibold text-white mb-3">
-                                    About
-                                </Text>
-                                <Text className="text-base text-[#9BA1A6] leading-6">
-                                    {station.description}
-                                </Text>
-                            </View>
-                        )}
-
-                        {/* Pricing */}
-                        <View className="mb-8">
-                            <Text className="text-lg font-semibold text-white mb-3">
-                                Cost
-                            </Text>
-                            <View className="bg-border-gray/20 rounded-lg p-4 border border-border-gray">
-                                <View className="flex-row items-center">
-                                    <Ionicons
-                                        name="card"
-                                        size={20}
-                                        color="#4CAF50"
-                                    />
-                                    <Text className="text-base font-medium text-white ml-3">
-                                        Payment is required
-                                    </Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        {/* Operating Hours */}
-                        {station.openingHours && station.openingHours.length > 0 && (
-                            <View className="mb-8">
-                                <View className="flex-row items-center justify-between mb-3">
-                                    <Text className="text-lg font-semibold text-white">
-                                        Opening Hours
-                                    </Text>
-                                    {/* <View className="flex-row items-center">
-                                        <View className="w-2 h-2 rounded-full bg-[#4CAF50] mr-2" />
-                                        <Text className="text-sm font-medium text-[#4CAF50]">
-                                            {isStation24x7(station.openingHours)
-                                                ? "Open · 24 hours"
-                                                : "Open"}
-                                        </Text>
-                                    </View> */}
-                                </View>
-
-                                <View className="bg-border-gray/20 rounded-lg p-4 border border-border-gray">
-                                    {station.openingHours.map((hours, index) => (
-                                        <View
-                                            key={hours.id || index}
-                                            className="flex-row justify-between py-2"
-                                        >
-                                            <Text className="text-base text-white font-medium">
-                                                {formatDayOfWeek(hours.dayOfWeek)}
-                                            </Text>
-                                            <Text className="text-base text-[#9BA1A6]">
-                                                {formatTimeRange(hours.openTime, hours.closeTime)}
-                                            </Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        )}
-
-                        {/* Charger Types */}
-                        <View className="mb-8">
-                            <Text className="text-lg font-semibold text-white mb-3">
-                                Charger Types
-                            </Text>
-                            <View className="flex-row flex-wrap gap-3">
-                                {station.chargers && station.chargers.length > 0 ? (
-                                    station.chargers.map((charger, index) => (
-                                        <ChargerTypeTag
-                                            key={index}
-                                            type={charger.connectorType}
-                                            available={charger.available}
-                                            total={charger.total}
-                                        />
-                                    ))
-                                ) : (
-                                    <Text className="text-sm text-[#9BA1A6]">
-                                        No charger information available
-                                    </Text>
-                                )}
-                            </View>
-                        </View>
-
-                        {/* Location Map */}
-                        <View className="mb-8">
-                            <Text className="text-lg font-semibold text-white mb-3">
-                                Location
-                            </Text>
-                            <Text className="text-sm text-[#9BA1A6] mb-3">
-                                <Ionicons name="location" size={14} color="#00A452" />
-                                {" "}{station.address}
-                            </Text>
-                            <View className="h-48 rounded-2xl overflow-hidden">
-                                <MapView
-                                    style={{ flex: 1 }}
-                                    mapType="standard"
-                                    scrollEnabled={false}
-                                    zoomEnabled={false}
-                                    initialRegion={{
-                                        latitude: station.latitude,
-                                        longitude: station.longitude,
-                                        latitudeDelta: 0.01,
-                                        longitudeDelta: 0.01,
-                                    }}
-                                >
-                                    <Marker
-                                        coordinate={{
-                                            latitude: station.latitude,
-                                            longitude: station.longitude,
-                                        }}
-                                        pinColor={
-                                            station.status === StationStatus.ACTIVE
-                                                ? "#4CAF50" // success/secondary
-                                                : station.status === StationStatus.SUSPENDED
-                                                    ? "#F59E0B" // warning
-                                                    : "#EF4444" // error
-                                        }
-                                    />
-                                </MapView>
-                            </View>
-                        </View>
-
-                        {/* Book Button (Fixed at bottom) */}
-                        <Button
-                            variant="primary"
-                            fullWidth
-                            onPress={() => {
-                                router.push(`/booking/selectVehicle?stationId=${id}`);
-                            }}
-                            className="mb-6"
-                        >
-                            Book now
-                        </Button>
                     </View>
                 </ScrollView>
             </View>

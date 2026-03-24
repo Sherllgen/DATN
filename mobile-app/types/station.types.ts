@@ -111,3 +111,19 @@ export interface StationFilterParams {
     page?: number;
     size?: number;
 }
+export interface StationReview {
+    id: number;
+    userName: string;
+    userAvatar: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+    updatedAt?: string;
+    isOwner: boolean;
+}
+
+export interface StationReviewsSummary {
+    averageRating: number;
+    totalReviews: number;
+    ratingDistribution: Record<number, number>;
+}

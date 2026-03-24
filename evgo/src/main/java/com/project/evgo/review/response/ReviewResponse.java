@@ -5,10 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
  * Response DTO for review information.
+ * Public API - accessible by other modules.
  */
 @Data
 @Builder
@@ -17,9 +16,11 @@ import java.time.LocalDateTime;
 public class ReviewResponse {
 
     private Long id;
-    private Long userId;
-    private Long stationId;
+    private String userName;
+    private String userAvatar;
     private Integer rating;
     private String comment;
-    private LocalDateTime createdAt;
+    private String createdAt;
+    private String updatedAt;
+    private Boolean isOwner;
 }
