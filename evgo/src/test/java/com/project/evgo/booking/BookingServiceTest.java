@@ -64,7 +64,7 @@ class BookingServiceTest {
     void checkAvailability_AllBlocksFree_ReturnsSuccess() {
         // Given - 1 hour booking, should generate exactly 2x 30-min intervals
         CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1, 
-            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2), 1L);
+            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
         
         when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
             anyLong(), any(), any(), any(), any())).thenReturn(false);
@@ -85,7 +85,7 @@ class BookingServiceTest {
     void checkAvailability_LockedPort_ThrowsException() {
         // Given
         CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1, 
-            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2), 1L);
+            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
         
         when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
             anyLong(), any(), any(), any(), any())).thenReturn(false);
@@ -159,7 +159,7 @@ class BookingServiceTest {
     @Test
     @DisplayName("createBooking_WithOverlappingBlock_ThrowsAppException")
     void createBooking_WithOverlappingBlock_ThrowsAppException() {
-        CreateBookingRequest req = new CreateBookingRequest(1L, 1L, 1, 1L, 1L,
+        CreateBookingRequest req = new CreateBookingRequest(1L, 1L, 1, 1L,
             LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
 
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);

@@ -1,13 +1,13 @@
 import React from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { BookingStatus } from "@/data/bookingData";
+export type TabName = "Pending" | "Upcoming" | "Completed" | "Cancelled";
 
 interface BookingTabsProps {
-    activeTab: BookingStatus;
-    onTabChange: (tab: BookingStatus) => void;
+    activeTab: TabName;
+    onTabChange: (tab: TabName) => void;
 }
 
-const tabs: BookingStatus[] = ["Upcoming", "Completed", "Cancelled"];
+const tabs: TabName[] = ["Pending", "Upcoming", "Completed", "Cancelled"];
 
 const BookingTabs = ({ activeTab, onTabChange }: BookingTabsProps) => {
     return (

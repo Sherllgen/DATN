@@ -31,7 +31,4 @@ public class CheckAvailabilityRequest {
     @NotNull(message = "End time is required")
     @Future(message = "End time must be in the future")
     private LocalDateTime endTime;
-
-    @NotNull(message = "User ID is required")
-    private Long userId;
 }

@@ -15,11 +15,15 @@ import java.math.BigDecimal;
  */
 public record ZaloPayOrderRequest(
 
-        @NotNull(message = "Invoice ID is required") Long invoiceId,
+        @NotNull(message = "Invoice ID is required") 
+        Long invoiceId,
 
-        @NotNull(message = "User ID is required") Long userId,
+        @NotNull(message = "User ID is required") 
+        Long userId,
 
-        @NotNull(message = "Amount is required") @Positive(message = "Amount must be positive") BigDecimal amount,
+        @NotNull(message = "Amount is required") 
+        @Positive(message = "Amount must be positive") 
+        BigDecimal amount,
 
         String description) {
 }

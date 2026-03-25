@@ -26,6 +26,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.project.evgo.sharedkernel.dto.PageResponse;
+import org.springframework.context.ApplicationEventPublisher;
+import com.project.evgo.booking.BookingCreatedEvent;
+import com.project.evgo.user.security.SecurityUtil;
 
 /**
  * Implementation of BookingService.
@@ -39,6 +42,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingDtoConverter converter;
     private final PriceSettingService priceSettingService;
     private final StringRedisTemplate redisTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final long LOCK_TTL_MINUTES = 8;
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
@@ -75,11 +79,12 @@ public class BookingServiceImpl implements BookingService {
 
         List<LocalDateTime> intervals = getIntervals(request.getStartTime(), request.getEndTime());
         List<String> lockedKeys = new ArrayList<>();
+        Long currentUserId = SecurityUtil.getCurrentUserId();
 
         // set lock for each 30-minute interval
         for (LocalDateTime interval : intervals) {
             String lockKey = generateLockKey(request.getStationId(), request.getPortNumber(), interval);
-            Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, request.getUserId().toString(),
+            Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, currentUserId.toString(),
                     LOCK_TTL_MINUTES, TimeUnit.MINUTES);
 
             if (Boolean.FALSE.equals(success)) {
@@ -97,25 +102,27 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse createBooking(CreateBookingRequest request) {
         List<LocalDateTime> intervals = getIntervals(request.getStartTime(), request.getEndTime());
+        Long currentUserId = SecurityUtil.getCurrentUserId();
 
         // check if the lock is still held by the user
         for (LocalDateTime interval : intervals) {
             String lockKey = generateLockKey(request.getStationId(), request.getPortNumber(), interval);
             String lockOwner = redisTemplate.opsForValue().get(lockKey);
-            if (lockOwner == null || !lockOwner.equals(request.getUserId().toString())) {
+            if (lockOwner == null || !lockOwner.equals(currentUserId.toString())) {
                 throw new AppException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
             }
         }
 
+        // calculate booking fee
         BigDecimal pricePerHour = priceSettingService.getActivePriceSetting(request.getStationId())
-                .chargingRatePerKwh();
+                .bookingFee();
         long minutes = Duration.between(request.getStartTime(), request.getEndTime()).toMinutes();
         double durationHours = minutes / 60.0;
         BigDecimal estimatedCost = pricePerHour.multiply(BigDecimal.valueOf(durationHours));
         BigDecimal serviceFee = BigDecimal.ZERO; // Free or fixed
 
         Booking booking = new Booking();
-        booking.setUserId(request.getUserId());
+        booking.setUserId(currentUserId);
         booking.setStationId(request.getStationId());
         booking.setChargerId(request.getChargerId());
         booking.setPortNumber(request.getPortNumber());
@@ -126,6 +133,14 @@ public class BookingServiceImpl implements BookingService {
         booking.setFee(serviceFee);
 
         Booking saved = bookingRepository.save(booking);
+
+        // Publish event so Payment module can create an Invoice
+        eventPublisher.publishEvent(new BookingCreatedEvent(
+            saved.getId(),
+            saved.getUserId(),
+            saved.getTotalPrice()
+        ));
+
         return converter.toResponse(saved);
     }
 

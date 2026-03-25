@@ -18,6 +18,7 @@ import java.util.List;
 import com.project.evgo.booking.request.CheckAvailabilityRequest;
 import com.project.evgo.booking.request.CreateBookingRequest;
 import com.project.evgo.sharedkernel.dto.PageResponse;
+import com.project.evgo.user.security.SecurityUtil;
 
 /**
  * REST controller for booking management.
@@ -47,6 +48,18 @@ public class BookingController {
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getByUserId(
             @PathVariable Long userId) {
         List<BookingResponse> result = bookingService.findByUserId(userId);
+        return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(result)
+                .build());
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "Get my bookings")
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookings() {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        List<BookingResponse> result = bookingService.findByUserId(currentUserId);
         return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")

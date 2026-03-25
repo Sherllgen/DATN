@@ -18,7 +18,7 @@ RUN mvn clean package -DskipTests
 # =====================
 # Run stage
 # =====================
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 

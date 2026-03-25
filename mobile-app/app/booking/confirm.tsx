@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, Image, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Image, ActivityIndicator, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import AppHeader from "@/components/ui/AppHeader";
 import GradientBackground from "@/components/ui/GradientBackground";
@@ -9,13 +9,17 @@ import ListItemCard from "@/components/ui/ListItemCard";
 import Button from "@/components/ui/Button";
 import { AppColors } from "@/constants/theme";
 import { useStationCache } from "@/stores/stationCacheStore";
-import { mockVehicles } from "@/data/vehicles";
-import { mockChargersResponse } from "@/data/chargers";
 import { bookingDurations } from "@/data/booking";
 import { getStationById } from "@/apis/stationApi/stationApi";
+import { getChargersByStationId } from "@/apis/chargerApi";
+import { getAllVehicleApi } from "@/apis/vehicleApi/vehicleApi";
+import { checkAvailability, createBooking } from "@/apis/bookingApi";
+import { getInvoiceByBookingId, createZaloPayOrder } from "@/apis/paymentApi";
 import { Station } from "@/types/station.types";
+import { ChargerResponse, PortResponse } from "@/types/charger.types";
 
 export default function ConfirmBookingScreen() {
+    const router = useRouter();
     const { stationId, vehicleId, portId, date, time, duration } = useLocalSearchParams<{
         stationId: string;
         vehicleId: string;
@@ -29,45 +33,181 @@ export default function ConfirmBookingScreen() {
     const [station, setStation] = useState<Station | null>(() => {
         return stationId ? getCachedStation(Number(stationId)) : null;
     });
-    const [loading, setLoading] = useState(!station);
+    const [allChargers, setAllChargers] = useState<ChargerResponse[]>([]);
+    const [vehicle, setVehicle] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    // Locking Phase State
+    const [lockStatus, setLockStatus] = useState<'idle' | 'loading' | 'success' | 'failed'>('idle');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [timeLeft, setTimeLeft] = useState<number>(300); // 5 minutes (300 seconds)
+    const [isAcquiringLock, setIsAcquiringLock] = useState(false);
+    const [isProcessingBooking, setIsProcessingBooking] = useState(false);
 
     useEffect(() => {
-        if (!station && stationId) {
-            fetchStationDetails();
-        }
-    }, [stationId]);
-
-    const fetchStationDetails = async () => {
-        try {
+        const fetchInitialData = async () => {
+            if (!stationId) return;
             setLoading(true);
-            const data = await getStationById(Number(stationId));
-            setStation(data);
-            useStationCache.getState().setStation(data);
-        } catch (err) {
-            console.error("Error fetching station details:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+            try {
+                if (!station) {
+                    const st = await getStationById(Number(stationId));
+                    setStation(st);
+                    useStationCache.getState().setStation(st);
+                }
+                
+                const [chargersList, vehiclesList] = await Promise.all([
+                    getChargersByStationId(Number(stationId)),
+                    getAllVehicleApi().then(res => res.data || res)
+                ]);
+                
+                setAllChargers(chargersList);
+                
+                const matchedVehicle = vehiclesList.find((v: any) => v.id.toString() === vehicleId) || vehiclesList[0];
+                setVehicle(matchedVehicle);
+                
+            } catch (err) {
+                console.error("Failed to load initial data:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchInitialData();
+    }, [stationId, vehicleId]);
 
-    const vehicle = mockVehicles.find(v => v.id === vehicleId) || mockVehicles[0];
-    
-    // Find charger and port
-    const allChargers = mockChargersResponse.data;
-    let selectedCharger = allChargers[0];
-    let selectedPort = selectedCharger.ports[0];
+    let selectedCharger: ChargerResponse | undefined;
+    let selectedPort: PortResponse | undefined;
 
     for (const charger of allChargers) {
-        const port = charger.ports.find(p => p.id === Number(portId));
+        const port = charger.ports.find((p) => p.id === Number(portId));
         if (port) {
             selectedCharger = charger;
             selectedPort = port;
             break;
         }
     }
+    
+    if (!selectedCharger && allChargers.length > 0) {
+        selectedCharger = allChargers[0];
+        selectedPort = selectedCharger.ports[0];
+    }
 
     const durationLabel = bookingDurations.find(d => d.value === duration)?.label || "1 Hour";
     const priceEstimation = 30000 * parseFloat(duration || "1.0");
+
+    // Acquire lock once station details are ready
+    useEffect(() => {
+        const acquireLock = async () => {
+            if (!station || !selectedCharger || !selectedPort || isAcquiringLock || lockStatus !== 'idle') return;
+            
+            try {
+                setLockStatus('loading');
+                setIsAcquiringLock(true);
+                
+                // Construct Date strings in local time -> match "YYYY-MM-DDTHH:mm:ss"
+                const timeParts = time.split(':');
+                const formattedTime = timeParts.length === 2 ? `${time}:00` : time;
+                const startStr = `${date}T${formattedTime}`;
+                const startTime = new Date(startStr);
+                const durationHours = parseFloat(duration || "1.0");
+                const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
+                
+                const pad = (num: number) => num.toString().padStart(2, '0');
+                const formatISO = (d: Date) => {
+                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+                };
+
+                await checkAvailability({
+                    stationId: Number(stationId),
+                    chargerId: selectedCharger.id,
+                    portNumber: selectedPort.portNumber,
+                    startTime: formatISO(startTime),
+                    endTime: formatISO(endTime)
+                });
+
+                setLockStatus('success');
+            } catch (err: any) {
+                setLockStatus('failed');
+                setErrorMessage(err.response?.data?.message || "Slot unavailable. Please select another time.");
+            }
+        };
+
+        if (station && lockStatus === 'idle') {
+            acquireLock();
+        }
+    }, [station, selectedCharger, selectedPort, lockStatus]);
+
+    // Timer Logic
+    useEffect(() => {
+        if (lockStatus !== 'success') return;
+        
+        if (timeLeft <= 0) {
+            setLockStatus('failed');
+            setErrorMessage("Session expired. The holding lock has been released.");
+            return;
+        }
+
+        const timerId = setInterval(() => {
+            setTimeLeft(prev => prev - 1);
+        }, 1000);
+
+        return () => clearInterval(timerId);
+    }, [lockStatus, timeLeft]);
+
+    const timerMins = Math.floor(timeLeft / 60);
+    const timerSecs = timeLeft % 60;
+    const timerDisplay = `0${timerMins}:${timerSecs < 10 ? '0' : ''}${timerSecs}`;
+
+    const handleConfirmBooking = async () => {
+        if (!station || !selectedCharger || !selectedPort) return;
+        
+        try {
+            setIsProcessingBooking(true);
+            const timeParts = time.split(':');
+            const formattedTime = timeParts.length === 2 ? `${time}:00` : time;
+            const startStr = `${date}T${formattedTime}`;
+            const startTime = new Date(startStr);
+            const durationHours = parseFloat(duration || "1.0");
+            const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
+            
+            const pad = (num: number) => num.toString().padStart(2, '0');
+            const formatISO = (d: Date) => {
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+            };
+
+            // 1. Create Booking
+            const booking = await createBooking({
+                stationId: Number(stationId),
+                chargerId: selectedCharger.id,
+                portNumber: selectedPort.portNumber,
+                vehicleId: Number(vehicleId),
+                startTime: formatISO(startTime),
+                endTime: formatISO(endTime)
+            });
+
+            // 2. Fetch Invoice generated by backend
+            const invoice = await getInvoiceByBookingId(booking.id);
+
+            // 3. Create ZaloPay Order
+            const order = await createZaloPayOrder({
+                invoiceId: invoice.id,
+                userId: booking.userId,
+                amount: booking.totalPrice || priceEstimation,
+                description: `EV-Go Booking ${booking.id}`
+            });
+
+            // 4. Open ZaloPay URL
+            if (order.orderUrl) {
+                await Linking.openURL(order.orderUrl);
+                // Optionally push to a 'Waiting for payment' or 'Home' screen
+                router.replace('/');
+            }
+        } catch (err: any) {
+            setErrorMessage(err.response?.data?.message || "Failed to process booking or payment.");
+            setLockStatus('failed'); // Reuse the failed screen
+        } finally {
+            setIsProcessingBooking(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -79,13 +219,48 @@ export default function ConfirmBookingScreen() {
         );
     }
 
-    if (!station) {
+    if (!station || !selectedCharger || !selectedPort || !vehicle) {
         return (
             <GradientBackground preset="main">
                 <SafeAreaView className="flex-1 items-center justify-center">
-                    <Text className="text-white mb-4">Station data not found.</Text>
-                    <Button onPress={() => fetchStationDetails()} variant="primary">
-                        Retry
+                    <Text className="text-white mb-4">Required data missing or not found.</Text>
+                    <Button onPress={() => router.back()} variant="primary">
+                        Go Back
+                    </Button>
+                </SafeAreaView>
+            </GradientBackground>
+        );
+    }
+
+    if (lockStatus === 'loading') {
+        return (
+            <GradientBackground preset="main">
+                <SafeAreaView className="flex-1 items-center justify-center px-6">
+                    <ActivityIndicator size="large" color={AppColors.secondary} />
+                    <Text className="text-white mt-6 text-center text-lg font-semibold">
+                        Securing your time block...
+                    </Text>
+                    <Text className="text-text-secondary mt-2 text-center">
+                        Please wait while we reserve this port on the hardware.
+                    </Text>
+                </SafeAreaView>
+            </GradientBackground>
+        );
+    }
+
+    if (lockStatus === 'failed') {
+        return (
+            <GradientBackground preset="main">
+                <SafeAreaView className="flex-1 items-center justify-center px-6">
+                    <Ionicons name="alert-circle" size={64} color="#EF4444" />
+                    <Text className="text-white mt-6 text-center text-lg font-semibold">
+                        Booking Failed
+                    </Text>
+                    <Text className="text-text-secondary mt-2 text-center mb-8">
+                        {errorMessage}
+                    </Text>
+                    <Button onPress={() => router.back()} variant="primary" fullWidth>
+                        Go Back
                     </Button>
                 </SafeAreaView>
             </GradientBackground>
@@ -96,6 +271,19 @@ export default function ConfirmBookingScreen() {
         <GradientBackground preset="main" dismissKeyboard={false}>
             <SafeAreaView style={{ flex: 1 }}>
                 <AppHeader title="Review Summary" showBack />
+
+                {/* Countdown Timer Banner */}
+                {lockStatus === 'success' && (
+                    <View className="bg-[#4CAF50]/10 border-y border-[#4CAF50]/30 py-3 px-4 flex-row justify-between items-center z-10">
+                        <View className="flex-row items-center">
+                            <Ionicons name="time-outline" size={20} color="#4CAF50" />
+                            <Text className="text-white ml-2 text-sm">Please pay to secure your slot</Text>
+                        </View>
+                        <Text className="text-[#4CAF50] font-bold text-lg tracking-wider">
+                            {timerDisplay}
+                        </Text>
+                    </View>
+                )}
 
                 <ScrollView
                     style={{ flex: 1 }}
@@ -222,13 +410,14 @@ export default function ConfirmBookingScreen() {
                 {/* Bottom Fixed Action */}
                 <View className="px-6 pt-6 pb-2">
                     <Button
-                        onPress={() => console.log("Confirm Booking", { stationId, vehicleId, portId, date, time, duration })}
+                        onPress={handleConfirmBooking}
+                        disabled={isProcessingBooking || lockStatus !== 'success'}
                         className="w-full"
                         textClassName="font-semibold text-base"
                         style={{ height: 56 }}
                         variant="primary"
                     >
-                        Confirm Booking
+                        {isProcessingBooking ? "Processing..." : "Confirm Booking"}
                     </Button>
                 </View>
             </SafeAreaView>
