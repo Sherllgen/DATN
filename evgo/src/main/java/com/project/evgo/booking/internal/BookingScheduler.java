@@ -14,10 +14,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.ScanOptions;
 
 /**
  * Scheduler that bridges software bookings to physical hardware via OCPP events.
@@ -36,19 +39,52 @@ public class BookingScheduler {
     private static final String LOCK_PREFIX = "evgo:booking:lock:*";
 
     // ============================================================
-    // Job 1: Clean up stuck Redis lock keys older than 15 minutes
+    // Job 1: Clean up Redis keys that are stuck without a TTL
     // ============================================================
     @Scheduled(fixedRate = 60000)
     public void cleanStuckRedisKeys() {
-        Set<String> keys = redisTemplate.keys(LOCK_PREFIX);
-        if (keys == null || keys.isEmpty()) return;
+        redisTemplate.execute((RedisCallback<Void>) connection -> {
+            ScanOptions options = ScanOptions.scanOptions()
+                    .match(LOCK_PREFIX)
+                    .count(100)
+                    .build();
+            
+            try (Cursor<byte[]> cursor = connection.keyCommands().scan(options)) {
+                while (cursor.hasNext()) {
+                    byte[] rawKey = cursor.next();
+                    
+                    Long ttl = connection.keyCommands().ttl(rawKey);
+                    
+                    if (ttl != null && ttl == -1) {
+                        connection.keyCommands().del(rawKey);
+                        
+                        String keyStr = new String(rawKey, StandardCharsets.UTF_8);
+                        log.info("Cleaned up stuck Redis key: {}", keyStr);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error scanning and cleaning redis keys", e);
+            }
+            
+            return null;
+        });
+    }
 
-        for (String key : keys) {
-            Long ttl = redisTemplate.getExpire(key, TimeUnit.MINUTES);
-            // Keys with no TTL (ttl == -1) are stuck — original TTL is 8 min
-            if (ttl != null && ttl == -1) {
-                redisTemplate.delete(key);
-                log.info("Cleaned up stuck Redis key: {}", key);
+    // ============================================================
+    // Job 2: Cancel PENDING bookings older than 12 minutes
+    // (8 min for Redis Lock + 4 min safety buffer for payment latency)
+    // ============================================================
+    @Scheduled(fixedRate = 60000)
+    public void cleanupStalePendingBookings() {
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(12);
+        List<Booking> staleBookings = bookingRepository.findByStatusAndCreatedAtBefore(
+                BookingStatus.PENDING, threshold);
+
+        if (!staleBookings.isEmpty()) {
+            for (Booking booking : staleBookings) {
+                booking.setStatus(BookingStatus.CANCELLED);
+                bookingRepository.save(booking);
+                log.info("Cancelled stale PENDING booking: {}", booking.getId());
             }
         }
     }

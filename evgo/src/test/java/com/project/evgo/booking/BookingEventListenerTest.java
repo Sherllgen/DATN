@@ -20,7 +20,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +51,7 @@ class BookingEventListenerTest {
         booking.setStatus(BookingStatus.PENDING);
         // Far in the future to not trigger immediate ReserveNow
         booking.setStartTime(LocalDateTime.now().plusHours(5));
+        booking.setEndTime(LocalDateTime.now().plusHours(6));
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
@@ -61,7 +61,7 @@ class BookingEventListenerTest {
         // Then
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
         verify(bookingRepository).save(booking);
-        verify(redisTemplate).delete(anyString());
+        verify(redisTemplate).delete(org.mockito.ArgumentMatchers.<java.util.Collection<String>>any());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -89,6 +89,27 @@ class BookingEventListenerTest {
         // Then
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
         
+        ArgumentCaptor<BookingConfirmedAndReadyForHardwareEvent> captor = ArgumentCaptor.forClass(BookingConfirmedAndReadyForHardwareEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        
+        BookingConfirmedAndReadyForHardwareEvent publishedEvent = captor.getValue();
+        assertThat(publishedEvent.booking().getId()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("onBookingConfirmedReadyForHardware_DispatchesSendReserveNowCommandEvent")
+    void onBookingConfirmedReadyForHardware_DispatchesSendReserveNowCommandEvent() {
+        Booking booking = new Booking();
+        booking.setId(1L);
+        booking.setChargerId(10L);
+        booking.setPortNumber(2);
+        booking.setUserId(42L);
+        booking.setEndTime(LocalDateTime.now().plusHours(1));
+
+        BookingConfirmedAndReadyForHardwareEvent event = new BookingConfirmedAndReadyForHardwareEvent(booking);
+
+        eventListener.onBookingConfirmedReadyForHardware(event);
+
         ArgumentCaptor<SendReserveNowCommandEvent> captor = ArgumentCaptor.forClass(SendReserveNowCommandEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         

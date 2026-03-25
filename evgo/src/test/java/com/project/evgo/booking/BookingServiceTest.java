@@ -5,6 +5,7 @@ import com.project.evgo.booking.internal.BookingDtoConverter;
 import com.project.evgo.booking.internal.BookingRepository;
 import com.project.evgo.booking.internal.BookingServiceImpl;
 import com.project.evgo.booking.request.CheckAvailabilityRequest;
+import com.project.evgo.booking.request.CreateBookingRequest;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.PriceSettingService;
@@ -24,7 +25,6 @@ import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.booking.response.BookingResponse;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -60,23 +60,24 @@ class BookingServiceTest {
     private BookingServiceImpl bookingService;
 
     @Test
-    @DisplayName("checkAvailability_FreePort_LocksInRedis")
-    void checkAvailability_FreePort_LocksInRedis() {
-        // Given
+    @DisplayName("checkAvailability_AllBlocksFree_ReturnsSuccess")
+    void checkAvailability_AllBlocksFree_ReturnsSuccess() {
+        // Given - 1 hour booking, should generate exactly 2x 30-min intervals
         CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1, 
-            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2), 1L);
+            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
         
-        when(bookingRepository.findByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-            anyLong(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
+        when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+            anyLong(), any(), any(), any(), any())).thenReturn(false);
         
-        when(redisTemplate.hasKey(anyString())).thenReturn(false);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
+            .thenReturn(true);
 
         // When
         bookingService.checkAvailability(req);
 
         // Then
-        verify(valueOperations).set(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES));
+        verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES));
     }
 
     @Test
@@ -84,12 +85,14 @@ class BookingServiceTest {
     void checkAvailability_LockedPort_ThrowsException() {
         // Given
         CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1, 
-            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2), 1L);
+            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
         
-        when(bookingRepository.findByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-            anyLong(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
+        when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+            anyLong(), any(), any(), any(), any())).thenReturn(false);
         
-        when(redisTemplate.hasKey(anyString())).thenReturn(true);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
+            .thenReturn(false);
 
         // When / Then
         assertThatThrownBy(() -> bookingService.checkAvailability(req))
@@ -151,5 +154,19 @@ class BookingServiceTest {
         assertThatThrownBy(() -> bookingService.cancelBooking(1L))
             .isInstanceOf(AppException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
+    }
+
+    @Test
+    @DisplayName("createBooking_WithOverlappingBlock_ThrowsAppException")
+    void createBooking_WithOverlappingBlock_ThrowsAppException() {
+        CreateBookingRequest req = new CreateBookingRequest(1L, 1L, 1, 1L,
+            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(anyString())).thenReturn(null); // Simulates missing lock validation
+
+        assertThatThrownBy(() -> bookingService.createBooking(req))
+            .isInstanceOf(AppException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
     }
 }

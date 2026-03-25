@@ -74,9 +74,59 @@ The `booking` module handles the reservation of charging ports at stations.
 - `BookingSchedulerTest`: Covers all 4 scheduler jobs (8 tests) — Redis cleanup, pre-arrival lock, soft warning, and hard cut-off.
 - `ModularityTest`: Guarantees no illegal inter-module relationships.
 
-## 7. Important Notes
+## 7. Architecture & Constraints
 - Calculating available slots factors in `PortCounts` from the `station` module to ensure we never overbook ports.
-- The Redis locking mechanism uses the key format `evgo:booking:lock:{stationId}:{portNumber}:{startTime}` with an 8-minute TTL.
-- The `user`, `charger`, and `station` modules explicitly expose their `response` packages so that `booking` module can return related data in estimations.
-- Scheduler jobs use 1-minute time windows (e.g. `[now+9min, now+10min]`) to ensure each booking is caught exactly once per minute.
-- Events (`SendRemoteStopCommandEvent`, `SendReserveNowCommandEvent`, `SendPushNotificationEvent`) are defined as public records in the `booking` module and consumed by the `ocpp` module's `OcppCommandListener`.
+- The physical charger ports are locked via OCPP `ReserveNow` matching exactly the booking blocks.
+- The Redis locking mechanism uses the consecutive key format `evgo:booking:lock:{stationId}:{portNumber}:{intervalStart}` mapped exactly per 30-min block with an 8-minute TTL.
+- Scheduler jobs strictly use 1-minute time windows (e.g. `[now+9min, now+10min]`) to fire correctly and reliably.
+
+## 8. Sequence Diagram: Robust Booking Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as Mobile App
+    participant BE as EV-Go Backend
+    participant Redis as Redis Cache
+    participant DB as Postgres DB
+    participant Gateway as MoMo/ZaloPay
+    participant Charger as Hardware (OCPP)
+
+    App->>BE: POST /api/v1/bookings/check-availability
+    BE->>DB: Check any overlapping CONFIRMED/IN_PROGRESS slots
+    BE->>Redis: Acquire SETNX locks for every 30-min block (TTL: 8m)
+    Redis-->>BE: Success
+    BE-->>App: Locks Confirmed, 5 min countdown UI
+
+    App->>BE: POST /api/v1/bookings (Create)
+    BE->>Redis: Verify user owns all consecutive 30-min block locks
+    BE->>DB: Save Booking (Status: PENDING)
+    BE-->>App: Booking Created
+    
+    App->>Gateway: Complete Payment transaction
+    Gateway->>BE: POST /api/v1/zalopay/callback (IPN Webhook)
+    
+    alt IPN arrives inside 8m Window
+        BE->>DB: Update Invoice & Transaction (Idempotency Check)
+        BE->>BE: Emit PaymentSuccessEvent
+        BE->>DB: Mark Booking -> CONFIRMED
+        BE->>Redis: Delete all exactly managed 30-min locks
+    else IPN is DELAYED (e.g. at Minute 15)
+        BE->>DB: Update Invoice & Transaction
+        BE->>BE: Emit PaymentSuccessEvent
+        BE->>DB: bookingRepository.existsOverlapDB() ?
+        alt Overlapping Confirmed Booking Exists!
+            BE->>DB: Mark Original Booking -> CANCELLED
+            BE->>BE: Emit RequireRefundEvent (Start Async Refund)
+        else No Overlaps
+            BE->>DB: Mark Booking -> CONFIRMED
+            BE->>Redis: No-op (Locks expired)
+        end
+    end
+
+    loop Every 60 Seconds (BookingScheduler: T-10 mins)
+        BE->>DB: Find CONFIRMED bookings starting in 10 mins
+        BE->>Charger: Send RemoteStopTransaction.req (Cut power if prev car overstays)
+        BE->>Charger: Send ReserveNow.req (Lock Hardware for new user)
+    end
+```

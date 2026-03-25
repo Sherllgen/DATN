@@ -18,11 +18,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,14 +45,30 @@ class BookingSchedulerTest {
     private BookingScheduler bookingScheduler;
 
     @Test
-    @DisplayName("Should delete Redis keys with no TTL (stuck)")
+    @DisplayName("Should delete Redis keys with no TTL (stuck) using optimized SCAN")
+    @SuppressWarnings("unchecked")
     void cleanStuckRedisKeys_DeletesStuckKeys() {
-        when(redisTemplate.keys("evgo:booking:lock:*")).thenReturn(Set.of("stuck-key"));
-        when(redisTemplate.getExpire("stuck-key", TimeUnit.MINUTES)).thenReturn(-1L);
+        org.springframework.data.redis.connection.RedisConnection connection = mock(org.springframework.data.redis.connection.RedisConnection.class);
+        org.springframework.data.redis.connection.RedisKeyCommands keyCommands = mock(org.springframework.data.redis.connection.RedisKeyCommands.class);
+        org.springframework.data.redis.core.Cursor<byte[]> cursor = mock(org.springframework.data.redis.core.Cursor.class);
+
+        when(connection.keyCommands()).thenReturn(keyCommands);
+        when(keyCommands.scan(any(org.springframework.data.redis.core.ScanOptions.class))).thenReturn(cursor);
+
+        byte[] stuckKey = "evgo:booking:lock:1:1:TIME".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        when(cursor.hasNext()).thenReturn(true, false);
+        when(cursor.next()).thenReturn(stuckKey);
+
+        when(keyCommands.ttl(stuckKey)).thenReturn(-1L);
+
+        when(redisTemplate.execute(any(org.springframework.data.redis.core.RedisCallback.class))).thenAnswer(invocation -> {
+            org.springframework.data.redis.core.RedisCallback<Void> callback = invocation.getArgument(0);
+            return callback.doInRedis(connection);
+        });
 
         bookingScheduler.cleanStuckRedisKeys();
 
-        verify(redisTemplate).delete("stuck-key");
+        verify(keyCommands).del(stuckKey);
     }
 
     @Test
@@ -111,6 +124,22 @@ class BookingSchedulerTest {
         ArgumentCaptor<SendRemoteStopCommandEvent> captor = ArgumentCaptor.forClass(SendRemoteStopCommandEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().reason()).isEqualTo("hard-cutoff");
+    }
+
+    @Test
+    @DisplayName("cleanupStalePendingBookings: Should cancel PENDING bookings older than 12 mins")
+    void cleanupStalePendingBookings_OldPending_CancelsThem() {
+        Booking stale = new Booking();
+        stale.setId(100L);
+        stale.setStatus(BookingStatus.PENDING);
+
+        when(bookingRepository.findByStatusAndCreatedAtBefore(eq(BookingStatus.PENDING), any()))
+                .thenReturn(List.of(stale));
+
+        bookingScheduler.cleanupStalePendingBookings();
+
+        assertThat(stale.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        verify(bookingRepository).save(stale);
     }
 
     private Booking buildBooking(Long id, BookingStatus status, Long chargerId, Integer portNumber,

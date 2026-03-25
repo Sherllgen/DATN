@@ -28,7 +28,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDateTime start,
             LocalDateTime end);
 
-    List<Booking> findByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+    boolean existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
             Long stationId,
             Integer portNumber,
             LocalDateTime startTime,
@@ -39,7 +39,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByStatusAndEndTimeBetween(BookingStatus status, LocalDateTime from, LocalDateTime to);
 
-
+    List<Booking> findByStatusAndCreatedAtBefore(BookingStatus status, LocalDateTime threshold);
 
     @Query("SELECT b FROM Booking b " +
             "WHERE b.status IN :statuses " +

@@ -177,6 +177,11 @@ public class ZaloPayServiceImpl implements ZaloPayService {
         Transaction transaction = transactionRepository.findByAppTransId(appTransId)
                 .orElseThrow(() -> new AppException(ErrorCode.ZALOPAY_ORDER_NOT_FOUND));
 
+        if (transaction.getStatus() == TransactionStatus.SUCCESS) {
+            log.info("Transaction {} already processed successfully. Idempotent return.", appTransId);
+            return;
+        }
+
         Invoice invoice = transaction.getInvoice();
         InvoiceStatus newInvoiceStatus = (returnCode == ZALOPAY_SUCCESS_CODE)
                 ? InvoiceStatus.PAID
