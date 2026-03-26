@@ -1,6 +1,5 @@
 @org.springframework.modulith.ApplicationModule(
-        displayName = "Booking Management",
-        allowedDependencies = {"sharedkernel", "station::response", "charger::response", "user::response", "station", "charger", "user", "payment"}
+        displayName = "Booking Management"
 )
 package com.project.evgo.booking;
 
