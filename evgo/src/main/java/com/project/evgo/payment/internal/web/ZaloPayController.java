@@ -64,10 +64,20 @@ public class ZaloPayController {
     @PostMapping("/callback")
     @Operation(summary = "ZaloPay IPN webhook", description = "Receives ZaloPay payment result callback. Must be publicly accessible (MAC-verified internally).")
     public ResponseEntity<Map<String, Object>> handleCallback(
-            @RequestBody ZaloPayCallbackRequest callbackRequest) {
+            @RequestBody String rawCallbackBody) {
 
         try {
+            log.info("RAW ZaloPay callback payload: {}", rawCallbackBody);
+            
+            // Use ObjectMapper directly on the raw string to extract exact string values
+            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(rawCallbackBody);
+            String data = root.has("data") ? root.get("data").asText() : "";
+            String mac = root.has("mac") ? root.get("mac").asText() : "";
+            Integer type = root.has("type") ? root.get("type").asInt() : 1;
+            
+            ZaloPayCallbackRequest callbackRequest = new ZaloPayCallbackRequest(data, mac, type);
             zaloPayService.handleCallback(callbackRequest);
+            
             return ResponseEntity.ok(Map.of(
                     "return_code", 1,
                     "return_message", "success"));
