@@ -71,7 +71,7 @@ export default function BookingPage() {
 
     return (
         <GradientBackground preset="main" dismissKeyboard={false}>
-            <SafeAreaView className="flex-1" edges={["top", "left", "right"]}>
+            <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
                 <AppHeader title="My Bookings" showBack />
 
                 <BookingTabs
@@ -80,9 +80,10 @@ export default function BookingPage() {
                 />
 
                 <ScrollView
-                    className="flex-1 px-4"
+                    style={{ flex: 1 }}
+                    className="px-4"
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 20 }}
+                    contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
                     refreshControl={
                         <RefreshControl refreshing={isLoading && bookings.length > 0} onRefresh={fetchBookings} tintColor="#00A452" />
                     }
