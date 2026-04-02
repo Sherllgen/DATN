@@ -254,7 +254,7 @@ class ZaloPayServiceTest {
             when(invoiceRepository.save(any(Invoice.class))).thenReturn(invoice);
             when(transactionRepository.save(any(Transaction.class))).thenReturn(tx);
 
-            zaloPayService.handleCallback(new ZaloPayCallbackRequest(dataJson, mac, 1));
+            zaloPayService.handleCallback(new ZaloPayCallbackRequest(dataJson, mac, 0));
 
             assertThat(invoice.getStatus()).isEqualTo(InvoiceStatus.CANCELLED);
             assertThat(tx.getStatus()).isEqualTo(TransactionStatus.FAILED);

@@ -2,6 +2,9 @@ package com.project.evgo.booking.internal;
 
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.payment.request.InvoiceCreatedRequest;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +15,8 @@ import com.project.evgo.sharedkernel.enums.BookingStatus;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.PriceSettingService;
+import com.project.evgo.user.security.SecurityUtil;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -26,9 +31,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.project.evgo.sharedkernel.dto.PageResponse;
-import org.springframework.context.ApplicationEventPublisher;
-import com.project.evgo.booking.BookingCreatedEvent;
-import com.project.evgo.user.security.SecurityUtil;
 
 /**
  * Implementation of BookingService.
@@ -40,9 +42,9 @@ public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
     private final BookingDtoConverter converter;
+    private final InvoiceService invoiceService;
     private final PriceSettingService priceSettingService;
     private final StringRedisTemplate redisTemplate;
-    private final ApplicationEventPublisher eventPublisher;
 
     private static final long LOCK_TTL_MINUTES = 8;
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
@@ -134,12 +136,8 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
-        // Publish event so Payment module can create an Invoice
-        eventPublisher.publishEvent(new BookingCreatedEvent(
-            saved.getId(),
-            saved.getUserId(),
-            saved.getTotalPrice()
-        ));
+        InvoiceCreatedRequest req = new InvoiceCreatedRequest(saved.getId(), currentUserId, estimatedCost);
+        invoiceService.createInvoice(req);
 
         return converter.toResponse(saved);
     }
