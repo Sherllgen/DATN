@@ -70,7 +70,7 @@ export default function BookingPage() {
     };
 
     return (
-        <GradientBackground preset="main">
+        <GradientBackground preset="main" dismissKeyboard={false}>
             <SafeAreaView className="flex-1" edges={["top", "left", "right"]}>
                 <AppHeader title="My Bookings" showBack />
 
@@ -101,8 +101,8 @@ export default function BookingPage() {
                             <BookingCard
                                 key={booking.id}
                                 booking={booking}
-                                onCancel={() => {}}
-                                onView={() => {}}
+                                onCancel={() => { }}
+                                onView={() => { }}
                                 onPay={() => handlePayNow(booking)}
                             />
                         ))
