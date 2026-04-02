@@ -54,17 +54,17 @@ export default function ConfirmBookingScreen() {
                     setStation(st);
                     useStationCache.getState().setStation(st);
                 }
-                
+
                 const [chargersList, vehiclesList] = await Promise.all([
                     getChargersByStationId(Number(stationId)),
                     getAllVehicleApi().then(res => res.data || res)
                 ]);
-                
+
                 setAllChargers(chargersList);
-                
+
                 const matchedVehicle = vehiclesList.find((v: any) => v.id.toString() === vehicleId) || vehiclesList[0];
                 setVehicle(matchedVehicle);
-                
+
             } catch (err) {
                 console.error("Failed to load initial data:", err);
             } finally {
@@ -85,7 +85,7 @@ export default function ConfirmBookingScreen() {
             break;
         }
     }
-    
+
     if (!selectedCharger && allChargers.length > 0) {
         selectedCharger = allChargers[0];
         selectedPort = selectedCharger.ports[0];
@@ -98,11 +98,11 @@ export default function ConfirmBookingScreen() {
     useEffect(() => {
         const acquireLock = async () => {
             if (!station || !selectedCharger || !selectedPort || isAcquiringLock || lockStatus !== 'idle') return;
-            
+
             try {
                 setLockStatus('loading');
                 setIsAcquiringLock(true);
-                
+
                 // Construct Date strings in local time -> match "YYYY-MM-DDTHH:mm:ss"
                 const timeParts = time.split(':');
                 const formattedTime = timeParts.length === 2 ? `${time}:00` : time;
@@ -110,7 +110,7 @@ export default function ConfirmBookingScreen() {
                 const startTime = new Date(startStr);
                 const durationHours = parseFloat(duration || "1.0");
                 const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
-                
+
                 const pad = (num: number) => num.toString().padStart(2, '0');
                 const formatISO = (d: Date) => {
                     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
@@ -139,7 +139,7 @@ export default function ConfirmBookingScreen() {
     // Timer Logic
     useEffect(() => {
         if (lockStatus !== 'success') return;
-        
+
         if (timeLeft <= 0) {
             setLockStatus('failed');
             setErrorMessage("Session expired. The holding lock has been released.");
@@ -159,7 +159,7 @@ export default function ConfirmBookingScreen() {
 
     const handleConfirmBooking = async () => {
         if (!station || !selectedCharger || !selectedPort) return;
-        
+
         try {
             setIsProcessingBooking(true);
             const timeParts = time.split(':');
@@ -168,7 +168,7 @@ export default function ConfirmBookingScreen() {
             const startTime = new Date(startStr);
             const durationHours = parseFloat(duration || "1.0");
             const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
-            
+
             const pad = (num: number) => num.toString().padStart(2, '0');
             const formatISO = (d: Date) => {
                 return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
@@ -416,6 +416,7 @@ export default function ConfirmBookingScreen() {
                         textClassName="font-semibold text-base"
                         style={{ height: 56 }}
                         variant="primary"
+                        size="lg"
                     >
                         {isProcessingBooking ? "Processing..." : "Confirm Booking"}
                     </Button>

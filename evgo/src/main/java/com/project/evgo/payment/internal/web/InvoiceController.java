@@ -1,11 +1,9 @@
 package com.project.evgo.payment.internal.web;
 
-import com.project.evgo.payment.internal.Invoice;
-import com.project.evgo.payment.internal.InvoiceRepository;
+import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.payment.request.InvoiceCreatedRequest;
 import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
-import com.project.evgo.sharedkernel.enums.ErrorCode;
-import com.project.evgo.sharedkernel.exceptions.AppException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,30 +17,27 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Invoices", description = "Invoice lookup endpoints")
 public class InvoiceController {
 
-    private final InvoiceRepository invoiceRepository;
+    private final InvoiceService invoiceService;
 
     @GetMapping("/booking/{bookingId}")
     @Operation(summary = "Get invoice by booking ID", description = "Fetches the invoice associated with a specific booking")
     public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceByBookingId(@PathVariable Long bookingId) {
-        Invoice invoice = invoiceRepository.findByBookingId(bookingId)
-                .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
-
-        InvoiceResponse response = InvoiceResponse.builder()
-                .id(invoice.getId())
-                .bookingId(invoice.getBookingId())
-                .chargingSessionId(invoice.getChargingSessionId())
-                .userId(invoice.getUserId())
-                .number(invoice.getNumber())
-                .totalCost(invoice.getTotalCost())
-                .purpose(invoice.getPurpose())
-                .status(invoice.getStatus())
-                .createdAt(invoice.getCreatedAt())
-                .build();
+        InvoiceResponse response = invoiceService.findByBookingId(bookingId);
 
         return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
                 .data(response)
+                .build());
+    }
+
+    @PostMapping
+    @Operation(summary = "Create invoice", description = "Creates a new invoice")
+    public ResponseEntity<ApiResponse<Void>> createInvoice(@RequestBody InvoiceCreatedRequest request) {
+        invoiceService.createInvoice(request);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
                 .build());
     }
 }

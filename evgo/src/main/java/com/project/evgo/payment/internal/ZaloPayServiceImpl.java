@@ -168,8 +168,8 @@ public class ZaloPayServiceImpl implements ZaloPayService {
         }
 
         String appTransId = (String) dataMap.get("app_trans_id");
-        String zpTransId = (String) dataMap.get("zp_trans_id");
-        int returnCode = ((Number) dataMap.getOrDefault("return_code", 0)).intValue();
+        String zpTransId = String.valueOf(dataMap.get("zp_trans_id"));
+        int returnCode = callbackRequest.type() != null ? callbackRequest.type() : 0;
         log.info("ZaloPay callback received: appTransId={}, zpTransId={}, returnCode={}",
                 appTransId, zpTransId, returnCode);
 
@@ -199,7 +199,8 @@ public class ZaloPayServiceImpl implements ZaloPayService {
         transactionRepository.save(transaction);
 
         if (returnCode == ZALOPAY_SUCCESS_CODE) {
-            eventPublisher.publishEvent(new PaymentSuccessEvent(invoice.getId(), appTransId, zpTransId, invoice.getBookingId(), invoice.getChargingSessionId()));
+            eventPublisher.publishEvent(new PaymentSuccessEvent(invoice.getId(), appTransId, zpTransId,
+                    invoice.getBookingId(), invoice.getChargingSessionId()));
         }
 
         log.info("ZaloPay callback processed: appTransId={}, invoiceStatus={}", appTransId, newInvoiceStatus);

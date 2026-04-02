@@ -9,11 +9,16 @@ import com.project.evgo.booking.request.CreateBookingRequest;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.PriceSettingService;
+import com.project.evgo.user.security.SecurityUtil;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -35,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,48 +65,60 @@ class BookingServiceTest {
     @InjectMocks
     private BookingServiceImpl bookingService;
 
+    private MockedStatic<SecurityUtil> mockedSecurityUtil;
+
+    @BeforeEach
+    void setUp() {
+        mockedSecurityUtil = mockStatic(SecurityUtil.class);
+        mockedSecurityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(1L);
+    }
+
+    @AfterEach
+    void tearDown() {
+        mockedSecurityUtil.close();
+    }
+
     @Test
     @DisplayName("checkAvailability_AllBlocksFree_ReturnsSuccess")
     void checkAvailability_AllBlocksFree_ReturnsSuccess() {
         // Given - 1 hour booking, should generate exactly 2x 30-min intervals
-        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1, 
-            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
-        
+        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1,
+                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+
         when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-            anyLong(), any(), any(), any(), any())).thenReturn(false);
-        
+                anyLong(), any(), any(), any(), any())).thenReturn(false);
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
-            .thenReturn(true);
+                .thenReturn(true);
 
         // When
         bookingService.checkAvailability(req);
 
         // Then
-        verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES));
+        verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(8L),
+                eq(TimeUnit.MINUTES));
     }
 
     @Test
     @DisplayName("checkAvailability_LockedPort_ThrowsException")
     void checkAvailability_LockedPort_ThrowsException() {
         // Given
-        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1, 
-            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
-        
+        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1,
+                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+
         when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-            anyLong(), any(), any(), any(), any())).thenReturn(false);
-        
+                anyLong(), any(), any(), any(), any())).thenReturn(false);
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
-            .thenReturn(false);
+                .thenReturn(false);
 
         // When / Then
         assertThatThrownBy(() -> bookingService.checkAvailability(req))
-            .isInstanceOf(AppException.class)
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
     }
-
-
 
     @Test
     @DisplayName("getBookingsByStatus_ValidStatus_ReturnsPaginatedList")
@@ -109,16 +127,17 @@ class BookingServiceTest {
         booking.setId(1L);
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setPortNumber(2);
-        
+
         Page<Booking> page = new PageImpl<>(List.of(booking));
         when(bookingRepository.findByStatus(eq(BookingStatus.CONFIRMED), any(PageRequest.class)))
-            .thenReturn(page);
-            
-        BookingResponse bookingResponse = BookingResponse.builder().id(1L).portNumber(2).status(BookingStatus.CONFIRMED).build();
+                .thenReturn(page);
+
+        BookingResponse bookingResponse = BookingResponse.builder().id(1L).portNumber(2).status(BookingStatus.CONFIRMED)
+                .build();
         when(converter.toResponse(any(Booking.class))).thenReturn(bookingResponse);
-            
+
         PageResponse<BookingResponse> res = bookingService.getBookingsByStatus("UPCOMING", 0, 10);
-        
+
         assertThat(res).isNotNull();
         assertThat(res.content()).hasSize(1);
         assertThat(res.content().get(0).getPortNumber()).isEqualTo(2);
@@ -132,11 +151,11 @@ class BookingServiceTest {
         booking.setId(1L);
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setStartTime(LocalDateTime.now().plusHours(3)); // > 2 hours ahead
-        
+
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
-        
+
         bookingService.cancelBooking(1L);
-        
+
         verify(bookingRepository).save(any(Booking.class));
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
     }
@@ -148,25 +167,25 @@ class BookingServiceTest {
         booking.setId(1L);
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setStartTime(LocalDateTime.now().plusHours(1)); // < 2 hours ahead
-        
+
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
-        
+
         assertThatThrownBy(() -> bookingService.cancelBooking(1L))
-            .isInstanceOf(AppException.class)
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
     }
 
     @Test
     @DisplayName("createBooking_WithOverlappingBlock_ThrowsAppException")
     void createBooking_WithOverlappingBlock_ThrowsAppException() {
         CreateBookingRequest req = new CreateBookingRequest(1L, 1L, 1, 1L,
-            LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
 
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(anyString())).thenReturn(null); // Simulates missing lock validation
 
         assertThatThrownBy(() -> bookingService.createBooking(req))
-            .isInstanceOf(AppException.class)
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
     }
 }
