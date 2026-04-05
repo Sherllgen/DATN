@@ -1,12 +1,25 @@
 package com.project.evgo.charging.internal;
 
+import com.project.evgo.booking.BookingService;
+import com.project.evgo.booking.response.BookingResponse;
 import com.project.evgo.charging.ChargingService;
-import com.project.evgo.charging.request.CreateChargingSessionRequest;
+import com.project.evgo.charging.SendRemoteStartCommandEvent;
+import com.project.evgo.charging.SendRemoteStopCommandEvent;
+import com.project.evgo.charging.request.StartChargingRequest;
+import com.project.evgo.charging.request.StopChargingRequest;
 import com.project.evgo.charging.response.ChargingSessionResponse;
+import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
+import com.project.evgo.sharedkernel.enums.ErrorCode;
+import com.project.evgo.sharedkernel.exceptions.AppException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,24 +28,76 @@ import java.util.Optional;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class ChargingServiceImpl implements ChargingService {
 
     private final ChargingSessionRepository sessionRepository;
     private final ChargingSessionDtoConverter converter;
+    private final InvoiceService invoiceService;
+    private final BookingService bookingService;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public Optional<ChargingSessionResponse> findById(Long id) {
         return converter.convert(sessionRepository.findById(id));
     }
 
-    // @Override
-    // public Optional<ChargingSessionResponse> findByBookingId(Long bookingId) {
-    //     return converter.convert(sessionRepository.findByBookingId(bookingId));
-    // }
-
     @Override
     public List<ChargingSessionResponse> findByUserId(Long userId) {
         return converter.convert(sessionRepository.findByUserId(userId));
+    }
+
+    @Override
+    @Transactional
+    public ChargingSessionResponse startCharging(StartChargingRequest request, Long userId) {
+        String redisKey = "charging:start:" + userId + ":" + request.getPortId();
+        Boolean isAbsent = redisTemplate.opsForValue().setIfAbsent(redisKey, "LOCKED", Duration.ofSeconds(10));
+        if (Boolean.FALSE.equals(isAbsent)) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Please wait before trying again");
+        }
+
+        if (invoiceService.hasUnpaidInvoices(userId)) {
+            throw new AppException(ErrorCode.UNPAID_INVOICE_EXISTS);
+        }
+
+        if (request.getBookingId() != null) {
+            BookingResponse booking = bookingService.findById(request.getBookingId())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+            
+            if (!booking.getUserId().equals(userId)) {
+                throw new AppException(ErrorCode.FORBIDDEN);
+            }
+        }
+
+        ChargingSession session = new ChargingSession();
+        session.setUserId(userId);
+        session.setPortId(request.getPortId());
+        session.setBookingId(request.getBookingId());
+        session.setStatus(ChargingSessionStatus.PREPARING);
+
+        session = sessionRepository.save(session);
+
+        eventPublisher.publishEvent(new SendRemoteStartCommandEvent(session.getId()));
+
+        return converter.convert(session);
+    }
+
+    @Override
+    @Transactional
+    public void stopCharging(StopChargingRequest request, Long userId) {
+        ChargingSession session = sessionRepository.findById(request.getSessionId())
+                .orElseThrow(() -> new AppException(ErrorCode.SESSION_NOT_FOUND));
+
+        if (!session.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.SESSION_NOT_OWNED);
+        }
+
+        if (session.getStatus() != ChargingSessionStatus.CHARGING && session.getStatus() != ChargingSessionStatus.PREPARING) {
+            throw new AppException(ErrorCode.INVALID_SESSION_STATUS);
+        }
+
+        eventPublisher.publishEvent(new SendRemoteStopCommandEvent(session.getId()));
     }
 }

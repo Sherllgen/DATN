@@ -48,4 +48,9 @@ public class InvoiceServiceImpl implements InvoiceService {
         invoiceRepository.save(invoice);
         log.info("Invoice created for booking {}: {}", request.bookingId(), invoice.getNumber());
     }
+
+    @Override
+    public boolean hasUnpaidInvoices(Long userId) {
+        return invoiceRepository.existsByUserIdAndStatus(userId, InvoiceStatus.PENDING);
+    }
 }

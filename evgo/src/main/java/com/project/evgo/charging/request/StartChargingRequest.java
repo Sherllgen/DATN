@@ -13,6 +13,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class StartChargingRequest {
 
-    @NotNull(message = "Booking ID is required")
     private Long bookingId;
+
+    @NotNull(message = "Port ID is required")
+    private Long portId;
 }

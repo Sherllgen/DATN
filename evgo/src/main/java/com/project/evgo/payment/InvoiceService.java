@@ -7,4 +7,6 @@ public interface InvoiceService {
     InvoiceResponse findByBookingId(Long bookingId);
 
     void createInvoice(InvoiceCreatedRequest request);
+
+    boolean hasUnpaidInvoices(Long userId);
 }
