@@ -28,14 +28,20 @@ public class ChargingSession {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // @Column(name = "booking_id", nullable = false)
-    // private Long bookingId;
-
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
     @Column(name = "port_id", nullable = false)
     private Long portId;
+
+    @Column(name = "booking_id")
+    private Long bookingId;
+    
+    @Column(name = "invoice_id")
+    private Long invoiceId;
+
+    @Column(name = "transaction_id")
+    private Integer transactionId;
 
     @Column(name = "start_time")
     private LocalDateTime startTime;
@@ -43,18 +49,12 @@ public class ChargingSession {
     @Column(name = "end_time")
     private LocalDateTime endTime;
 
-    @Column(name = "energy_consumed", precision = 10, scale = 2)
-    private BigDecimal energyConsumed;
-
-    @Column(name = "percentage_start")
-    private Integer percentageStart;
-
-    @Column(name = "percentage_end")
-    private Integer percentageEnd;
+    @Column(name = "total_kwh", precision = 10, scale = 4)
+    private BigDecimal totalKwh;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ChargingSessionStatus status = ChargingSessionStatus.STARTED;
+    private ChargingSessionStatus status = ChargingSessionStatus.PREPARING;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

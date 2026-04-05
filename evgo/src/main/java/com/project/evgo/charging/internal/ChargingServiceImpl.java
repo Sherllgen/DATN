@@ -1,6 +1,7 @@
 package com.project.evgo.charging.internal;
 
 import com.project.evgo.charging.ChargingService;
+import com.project.evgo.charging.request.CreateChargingSessionRequest;
 import com.project.evgo.charging.response.ChargingSessionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,20 +19,20 @@ import java.util.Optional;
 public class ChargingServiceImpl implements ChargingService {
 
     private final ChargingSessionRepository sessionRepository;
-    private final ChargingDtoConverter converter;
+    private final ChargingSessionDtoConverter converter;
 
     @Override
     public Optional<ChargingSessionResponse> findById(Long id) {
-        return converter.toResponse(sessionRepository.findById(id));
+        return converter.convert(sessionRepository.findById(id));
     }
 
     // @Override
     // public Optional<ChargingSessionResponse> findByBookingId(Long bookingId) {
-    //     return converter.toResponse(sessionRepository.findByBookingId(bookingId));
+    //     return converter.convert(sessionRepository.findByBookingId(bookingId));
     // }
 
     @Override
     public List<ChargingSessionResponse> findByUserId(Long userId) {
-        return converter.toResponseList(sessionRepository.findByUserId(userId));
+        return converter.convert(sessionRepository.findByUserId(userId));
     }
 }
