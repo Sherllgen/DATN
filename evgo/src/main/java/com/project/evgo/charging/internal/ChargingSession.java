@@ -43,6 +43,9 @@ public class ChargingSession {
     @Column(name = "transaction_id")
     private Integer transactionId;
 
+    @Column(name = "meter_start")
+    private Integer meterStart;
+
     @Column(name = "start_time")
     private LocalDateTime startTime;
 

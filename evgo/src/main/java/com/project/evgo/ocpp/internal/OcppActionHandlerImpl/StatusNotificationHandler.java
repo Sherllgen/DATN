@@ -2,17 +2,22 @@ package com.project.evgo.ocpp.internal.OcppActionHandlerImpl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.ocpp.OcppCall;
 import com.project.evgo.ocpp.OcppCallResult;
+import com.project.evgo.ocpp.StatusNotificationReceivedEvent;
 import com.project.evgo.ocpp.internal.OcppActionHandler;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +36,7 @@ public class StatusNotificationHandler implements OcppActionHandler {
     private static final String ACTION = "StatusNotification";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ChargerService chargerService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Maps OCPP 1.6 ChargePointStatus strings to our {@link PortStatus} enum.
@@ -82,6 +88,46 @@ public class StatusNotificationHandler implements OcppActionHandler {
         }
 
         // OCPP 1.6 StatusNotification.conf is an empty object
-        return new OcppCallResult(call.messageId(), objectMapper.createObjectNode());
+        ObjectNode confPayload = objectMapper.createObjectNode();
+
+        // Publish event for downstream modules like Charging Module
+        String info = payload.path("info").asText(null);
+        String timestampStr = payload.path("timestamp").asText(null);
+        LocalDateTime timestamp = null;
+        if (timestampStr != null) {
+            try {
+                timestamp = LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_DATE_TIME);
+            } catch (Exception e) {
+                log.warn("Failed to parse timestamp in StatusNotification: {}", timestampStr);
+            }
+        }
+        String vendorErrorCode = payload.path("vendorErrorCode").asText(null);
+        String vendorId = payload.path("vendorId").asText(null);
+
+        Long resolvedPortId = null;
+        try {
+            Long chargerId = Long.parseLong(chargePointId);
+            List<PortResponse> ports = chargerService.findPortsByChargerId(chargerId);
+            resolvedPortId = ports.stream()
+                .filter(p -> p.getPortNumber().equals(connectorId))
+                .map(PortResponse::getId)
+                .findFirst()
+                .orElse(null);
+        } catch (NumberFormatException ignored) {
+        }
+        
+        eventPublisher.publishEvent(new StatusNotificationReceivedEvent(
+                chargePointId,
+                connectorId,
+                resolvedPortId,
+                errorCode,
+                status,
+                info,
+                timestamp,
+                vendorErrorCode,
+                vendorId
+        ));
+
+        return new OcppCallResult(call.messageId(), confPayload);
     }
 }
