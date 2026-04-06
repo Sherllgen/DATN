@@ -3,6 +3,7 @@ package com.project.evgo.booking;
 import com.project.evgo.booking.internal.Booking;
 import com.project.evgo.booking.internal.BookingRepository;
 import com.project.evgo.booking.internal.BookingScheduler;
+import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
@@ -15,6 +16,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisKeyCommands;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.LocalDateTime;
@@ -48,12 +53,12 @@ class BookingSchedulerTest {
     @DisplayName("Should delete Redis keys with no TTL (stuck) using optimized SCAN")
     @SuppressWarnings("unchecked")
     void cleanStuckRedisKeys_DeletesStuckKeys() {
-        org.springframework.data.redis.connection.RedisConnection connection = mock(org.springframework.data.redis.connection.RedisConnection.class);
-        org.springframework.data.redis.connection.RedisKeyCommands keyCommands = mock(org.springframework.data.redis.connection.RedisKeyCommands.class);
-        org.springframework.data.redis.core.Cursor<byte[]> cursor = mock(org.springframework.data.redis.core.Cursor.class);
+        RedisConnection connection = mock(RedisConnection.class);
+        RedisKeyCommands keyCommands = mock(RedisKeyCommands.class);
+        Cursor<byte[]> cursor = mock(Cursor.class);
 
         when(connection.keyCommands()).thenReturn(keyCommands);
-        when(keyCommands.scan(any(org.springframework.data.redis.core.ScanOptions.class))).thenReturn(cursor);
+        when(keyCommands.scan(any(ScanOptions.class))).thenReturn(cursor);
 
         byte[] stuckKey = "evgo:booking:lock:1:1:TIME".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         when(cursor.hasNext()).thenReturn(true, false);

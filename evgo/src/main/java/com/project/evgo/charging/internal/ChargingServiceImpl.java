@@ -2,9 +2,11 @@ package com.project.evgo.charging.internal;
 
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.charger.ChargerService;
+import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.charging.ChargingService;
-import com.project.evgo.charging.SendRemoteStartCommandEvent;
-import com.project.evgo.charging.SendRemoteStopCommandEvent;
+import com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent;
+import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.charging.request.StartChargingRequest;
 import com.project.evgo.charging.request.StopChargingRequest;
 import com.project.evgo.charging.response.ChargingSessionResponse;
@@ -36,6 +38,7 @@ public class ChargingServiceImpl implements ChargingService {
     private final ChargingSessionDtoConverter converter;
     private final InvoiceService invoiceService;
     private final BookingService bookingService;
+    private final ChargerService chargerService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -79,7 +82,15 @@ public class ChargingServiceImpl implements ChargingService {
 
         session = sessionRepository.save(session);
 
-        eventPublisher.publishEvent(new SendRemoteStartCommandEvent(session.getId()));
+        // Resolve portId → chargePointId (chargerId) + connectorId (portNumber)
+        PortResponse port = chargerService.findPortById(request.getPortId())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Port not found"));
+        String chargePointId = port.getChargerId().toString();
+        Integer connectorId = port.getPortNumber();
+        String idTag = userId.toString();
+
+        eventPublisher.publishEvent(new SendRemoteStartCommandEvent(
+                session.getId(), chargePointId, connectorId, idTag));
 
         return converter.convert(session);
     }
@@ -98,6 +109,12 @@ public class ChargingServiceImpl implements ChargingService {
             throw new AppException(ErrorCode.INVALID_SESSION_STATUS);
         }
 
-        eventPublisher.publishEvent(new SendRemoteStopCommandEvent(session.getId()));
+        // Resolve chargePointId from the session's portId
+        PortResponse port = chargerService.findPortById(session.getPortId())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Port not found"));
+        String chargePointId = port.getChargerId().toString();
+
+        eventPublisher.publishEvent(new SendRemoteStopCommandEvent(
+                session.getId(), chargePointId, session.getTransactionId(), "User Requested"));
     }
 }

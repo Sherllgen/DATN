@@ -7,6 +7,8 @@ import com.project.evgo.ocpp.StartTransactionReceivedEvent;
 import com.project.evgo.ocpp.StatusNotificationReceivedEvent;
 import com.project.evgo.ocpp.StopTransactionReceivedEvent;
 import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
+import com.project.evgo.sharedkernel.events.CableUnpluggedEvent;
+import com.project.evgo.sharedkernel.events.ChargingSessionCompletedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -186,6 +188,8 @@ class OcppChargingEventListenerTest {
         ChargingSession session = new ChargingSession();
         session.setId(10L);
         session.setPortId(portId);
+        session.setUserId(5L);
+        session.setEndTime(LocalDateTime.of(2026, 4, 7, 11, 30, 0));
         session.setStatus(ChargingSessionStatus.COMPLETED);
 
         when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.COMPLETED))
@@ -200,6 +204,9 @@ class OcppChargingEventListenerTest {
         CableUnpluggedEvent published = captor.getValue();
         assertThat(published.sessionId()).isEqualTo(10L);
         assertThat(published.portId()).isEqualTo(portId);
+        assertThat(published.userId()).isEqualTo(5L);
+        assertThat(published.idleStartTime()).isEqualTo(session.getEndTime());
+        assertThat(published.cableUnpluggedTime()).isNotNull();
     }
 
     @Test
@@ -213,6 +220,8 @@ class OcppChargingEventListenerTest {
         ChargingSession session = new ChargingSession();
         session.setId(10L);
         session.setPortId(portId);
+        session.setUserId(5L);
+        session.setEndTime(LocalDateTime.of(2026, 4, 7, 11, 30, 0));
         session.setStatus(ChargingSessionStatus.COMPLETED);
 
         when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.COMPLETED))

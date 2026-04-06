@@ -2,6 +2,8 @@ package com.project.evgo.charging;
 
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.charger.ChargerService;
+import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.charging.internal.ChargingSession;
 import com.project.evgo.charging.internal.ChargingSessionDtoConverter;
 import com.project.evgo.charging.internal.ChargingSessionRepository;
@@ -12,6 +14,8 @@ import com.project.evgo.charging.response.ChargingSessionResponse;
 import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
+import com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent;
+import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +49,8 @@ class ChargingServiceTest {
     @Mock
     private BookingService bookingService;
     @Mock
+    private ChargerService chargerService;
+    @Mock
     private RedisTemplate<String, Object> redisTemplate;
     @Mock
     private ValueOperations<String, Object> valueOperations;
@@ -68,6 +74,12 @@ class ChargingServiceTest {
         ChargingSession savedSession = new ChargingSession();
         savedSession.setId(10L);
         when(sessionRepository.save(any(ChargingSession.class))).thenReturn(savedSession);
+
+        PortResponse port = new PortResponse();
+        port.setId(portId);
+        port.setChargerId(5L);
+        port.setPortNumber(1);
+        when(chargerService.findPortById(portId)).thenReturn(Optional.of(port));
 
         ChargingSessionResponse response = new ChargingSessionResponse();
         response.setId(10L);
@@ -120,9 +132,16 @@ class ChargingServiceTest {
         ChargingSession session = new ChargingSession();
         session.setId(sessionId);
         session.setUserId(userId);
+        session.setPortId(100L);
         session.setStatus(ChargingSessionStatus.CHARGING);
         
         when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+
+        PortResponse port = new PortResponse();
+        port.setId(100L);
+        port.setChargerId(5L);
+        port.setPortNumber(1);
+        when(chargerService.findPortById(100L)).thenReturn(Optional.of(port));
         
         service.stopCharging(request, userId);
         

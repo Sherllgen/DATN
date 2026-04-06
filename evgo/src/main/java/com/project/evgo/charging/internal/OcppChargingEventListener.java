@@ -12,8 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import com.project.evgo.charging.CableUnpluggedEvent;
-import com.project.evgo.charging.ChargingSessionCompletedEvent;
+import com.project.evgo.sharedkernel.events.CableUnpluggedEvent;
+import com.project.evgo.sharedkernel.events.ChargingSessionCompletedEvent;
 import com.project.evgo.ocpp.StartTransactionReceivedEvent;
 import com.project.evgo.ocpp.StatusNotificationReceivedEvent;
 import com.project.evgo.ocpp.StopTransactionReceivedEvent;
@@ -168,7 +168,15 @@ public class OcppChargingEventListener {
         session.setStatus(ChargingSessionStatus.FINISHING);
         sessionRepository.save(session);
 
-        eventPublisher.publishEvent(new CableUnpluggedEvent(session.getId(), session.getPortId()));
-        log.info("Published CableUnpluggedEvent for session={}, portId={}", session.getId(), session.getPortId());
+        // idleStartTime = session's endTime (when StopTransaction was received)
+        // cableUnpluggedTime = StatusNotification timestamp, or now() if not provided
+        java.time.LocalDateTime cableUnpluggedTime = event.timestamp() != null
+                ? event.timestamp() : java.time.LocalDateTime.now();
+
+        eventPublisher.publishEvent(new CableUnpluggedEvent(
+                session.getId(), session.getPortId(), session.getUserId(),
+                session.getEndTime(), cableUnpluggedTime));
+        log.info("Published CableUnpluggedEvent for session={}, portId={}, idleStartTime={}, cableUnpluggedTime={}",
+                session.getId(), session.getPortId(), session.getEndTime(), cableUnpluggedTime);
     }
 }

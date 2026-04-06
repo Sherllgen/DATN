@@ -13,6 +13,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     Optional<Invoice> findByBookingId(Long bookingId);
 
+    Optional<Invoice> findByChargingSessionId(Long chargingSessionId);
+
     List<Invoice> findByUserId(Long userId);
 
     boolean existsByUserIdAndStatus(Long userId, InvoiceStatus status);
