@@ -38,7 +38,6 @@ public class IdleFeeListener {
     private final PriceSettingService priceSettingService;
 
     @ApplicationModuleListener
-    @Transactional
     public void onCableUnplugged(CableUnpluggedEvent event) {
         log.info("Received CableUnpluggedEvent: sessionId={}, portId={}, userId={}, " +
                         "idleStartTime={}, cableUnpluggedTime={}",

@@ -13,15 +13,17 @@ import com.project.evgo.charging.response.ChargingSessionResponse;
 import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
+import com.project.evgo.sharedkernel.enums.PortStatus;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,7 +41,7 @@ public class ChargingServiceImpl implements ChargingService {
     private final InvoiceService invoiceService;
     private final BookingService bookingService;
     private final ChargerService chargerService;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -105,8 +107,19 @@ public class ChargingServiceImpl implements ChargingService {
             throw new AppException(ErrorCode.SESSION_NOT_OWNED);
         }
 
-        if (session.getStatus() != ChargingSessionStatus.CHARGING && session.getStatus() != ChargingSessionStatus.PREPARING) {
+        if (session.getStatus() != ChargingSessionStatus.CHARGING
+                && session.getStatus() != ChargingSessionStatus.PREPARING
+                && session.getStatus() != ChargingSessionStatus.SUSPENDED_EV) {
             throw new AppException(ErrorCode.INVALID_SESSION_STATUS);
+        }
+
+        if (session.getTransactionId() == null) {
+            log.info("Cancelling PREPARING session {} as transactionId is null. User requested stop before physical transaction started.", session.getId());
+            session.setStatus(ChargingSessionStatus.INTERRUPTED);
+            session.setEndTime(LocalDateTime.now());
+            sessionRepository.save(session);
+            chargerService.internalUpdatePortStatus(session.getPortId(), PortStatus.AVAILABLE);
+            return;
         }
 
         // Resolve chargePointId from the session's portId

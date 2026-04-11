@@ -39,7 +39,6 @@ public class ChargingInvoiceListener {
      * totalCost = totalKwh × chargingRatePerKwh (from the station's active price setting)
      */
     @ApplicationModuleListener
-    @Transactional
     public void onChargingSessionCompleted(ChargingSessionCompletedEvent event) {
         log.info("Received ChargingSessionCompletedEvent: sessionId={}, userId={}, portId={}, totalKwh={}",
                 event.sessionId(), event.userId(), event.portId(), event.totalKwh());

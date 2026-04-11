@@ -1,14 +1,15 @@
 package com.project.evgo.charging;
 
-import com.project.evgo.charging.internal.ChargingSession;
-import com.project.evgo.charging.internal.ChargingSessionRepository;
-import com.project.evgo.charging.internal.OcppChargingEventListener;
-import com.project.evgo.ocpp.StartTransactionReceivedEvent;
-import com.project.evgo.ocpp.StatusNotificationReceivedEvent;
-import com.project.evgo.ocpp.StopTransactionReceivedEvent;
-import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
-import com.project.evgo.sharedkernel.events.CableUnpluggedEvent;
-import com.project.evgo.sharedkernel.events.ChargingSessionCompletedEvent;
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,11 +17,18 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Optional;
+import com.project.evgo.charging.internal.ChargingMonitorService;
+import com.project.evgo.charging.internal.ChargingSession;
+import com.project.evgo.charging.internal.ChargingSessionRepository;
+import com.project.evgo.charging.internal.OcppChargingEventListener;
+import com.project.evgo.ocpp.MeterValuesReceivedEvent;
+import com.project.evgo.ocpp.StartTransactionReceivedEvent;
+import com.project.evgo.ocpp.StatusNotificationReceivedEvent;
+import com.project.evgo.ocpp.StopTransactionReceivedEvent;
+import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
+import com.project.evgo.sharedkernel.events.CableUnpluggedEvent;
+import com.project.evgo.sharedkernel.events.ChargingSessionCompletedEvent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,8 +43,22 @@ class OcppChargingEventListenerTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
+
+    @Mock
+    private ChargingMonitorService chargingMonitorService;
+
     @InjectMocks
     private OcppChargingEventListener listener;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+    }
 
     // ===== onStartTransaction =====
 
@@ -93,8 +115,8 @@ class OcppChargingEventListenerTest {
     // ===== onStopTransaction =====
 
     @Test
-    @DisplayName("onStopTransaction: should complete session, calculate totalKwh, set endTime from OCPP timestamp, and publish event")
-    void onStopTransaction_ValidEvent_CompletesSession() {
+    @DisplayName("onStopTransaction: should set session to FINISHING, calculate totalKwh, and publish event")
+    void onStopTransaction_ValidEvent_SetsFinishing() {
         // Given
         Integer transactionId = 42;
         Integer meterStop = 5000;
@@ -115,8 +137,8 @@ class OcppChargingEventListenerTest {
         // When
         listener.onStopTransaction(event);
 
-        // Then
-        assertThat(session.getStatus()).isEqualTo(ChargingSessionStatus.COMPLETED);
+        // Then — session should be FINISHING (not COMPLETED), cable may still be connected
+        assertThat(session.getStatus()).isEqualTo(ChargingSessionStatus.FINISHING);
         assertThat(session.getEndTime()).isEqualTo(ocppTimestamp);
         // (5000 - 1000) Wh = 4.0000 kWh
         assertThat(session.getTotalKwh()).isEqualByComparingTo(new BigDecimal("4.0000"));
@@ -132,8 +154,8 @@ class OcppChargingEventListenerTest {
     }
 
     @Test
-    @DisplayName("onStopTransaction: should include OCPP reason in completed event")
-    void onStopTransaction_WithReason_SetsReason() {
+    @DisplayName("onStopTransaction: should include OCPP reason and set FINISHING status")
+    void onStopTransaction_WithReason_SetsFinishing() {
         // Given
         Integer transactionId = 42;
         LocalDateTime ocppTimestamp = LocalDateTime.now();
@@ -154,7 +176,7 @@ class OcppChargingEventListenerTest {
         listener.onStopTransaction(event);
 
         // Then
-        assertThat(session.getStatus()).isEqualTo(ChargingSessionStatus.COMPLETED);
+        assertThat(session.getStatus()).isEqualTo(ChargingSessionStatus.FINISHING);
         verify(sessionRepository).save(session);
         verify(eventPublisher).publishEvent(any(ChargingSessionCompletedEvent.class));
     }
@@ -178,8 +200,8 @@ class OcppChargingEventListenerTest {
     // ===== onStatusNotification =====
 
     @Test
-    @DisplayName("onStatusNotification: Available status should publish CableUnpluggedEvent for COMPLETED session")
-    void onStatusNotification_AvailableWithCompletedSession_PublishesCableUnplugged() {
+    @DisplayName("onStatusNotification: Available status should set FINISHING session to COMPLETED and publish CableUnpluggedEvent")
+    void onStatusNotification_AvailableWithFinishingSession_SetsCompleted() {
         // Given
         Long portId = 1L;
         StatusNotificationReceivedEvent event = new StatusNotificationReceivedEvent(
@@ -190,15 +212,18 @@ class OcppChargingEventListenerTest {
         session.setPortId(portId);
         session.setUserId(5L);
         session.setEndTime(LocalDateTime.of(2026, 4, 7, 11, 30, 0));
-        session.setStatus(ChargingSessionStatus.COMPLETED);
+        session.setStatus(ChargingSessionStatus.FINISHING);
 
-        when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.COMPLETED))
+        when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.FINISHING))
                 .thenReturn(Optional.of(session));
 
         // When
         listener.onStatusNotification(event);
 
-        // Then
+        // Then — session should now be COMPLETED (cable unplugged)
+        assertThat(session.getStatus()).isEqualTo(ChargingSessionStatus.COMPLETED);
+        verify(sessionRepository).save(session);
+
         ArgumentCaptor<CableUnpluggedEvent> captor = ArgumentCaptor.forClass(CableUnpluggedEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         CableUnpluggedEvent published = captor.getValue();
@@ -210,39 +235,64 @@ class OcppChargingEventListenerTest {
     }
 
     @Test
-    @DisplayName("onStatusNotification: Finishing status should publish CableUnpluggedEvent for COMPLETED session")
-    void onStatusNotification_FinishingWithCompletedSession_PublishesCableUnplugged() {
+    @DisplayName("onStatusNotification: SuspendedEV should set CHARGING session to SUSPENDED_EV")
+    void onStatusNotification_SuspendedEV_UpdatesSession() {
         // Given
         Long portId = 1L;
         StatusNotificationReceivedEvent event = new StatusNotificationReceivedEvent(
-                "5", 1, portId, "NoError", "Finishing", null, null, null, null);
+                "5", 1, portId, "NoError", "SuspendedEV", null, null, null, null);
 
         ChargingSession session = new ChargingSession();
         session.setId(10L);
         session.setPortId(portId);
-        session.setUserId(5L);
-        session.setEndTime(LocalDateTime.of(2026, 4, 7, 11, 30, 0));
-        session.setStatus(ChargingSessionStatus.COMPLETED);
+        session.setStatus(ChargingSessionStatus.CHARGING);
 
-        when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.COMPLETED))
+        when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.CHARGING))
                 .thenReturn(Optional.of(session));
 
         // When
         listener.onStatusNotification(event);
 
         // Then
-        verify(eventPublisher).publishEvent(any(CableUnpluggedEvent.class));
+        assertThat(session.getStatus()).isEqualTo(ChargingSessionStatus.SUSPENDED_EV);
+        verify(sessionRepository).save(session);
+        verify(eventPublisher, never()).publishEvent(any(CableUnpluggedEvent.class));
     }
 
     @Test
-    @DisplayName("onStatusNotification: Available status with no completed session should not publish")
-    void onStatusNotification_NoCompletedSession_DoesNotPublish() {
+    @DisplayName("onStatusNotification: SuspendedEVSE should set CHARGING session to SUSPENDED_EVSE")
+    void onStatusNotification_SuspendedEVSE_UpdatesSession() {
+        // Given
+        Long portId = 1L;
+        StatusNotificationReceivedEvent event = new StatusNotificationReceivedEvent(
+                "5", 1, portId, "NoError", "SuspendedEVSE", null, null, null, null);
+
+        ChargingSession session = new ChargingSession();
+        session.setId(10L);
+        session.setPortId(portId);
+        session.setStatus(ChargingSessionStatus.CHARGING);
+
+        when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.CHARGING))
+                .thenReturn(Optional.of(session));
+
+        // When
+        listener.onStatusNotification(event);
+
+        // Then
+        assertThat(session.getStatus()).isEqualTo(ChargingSessionStatus.SUSPENDED_EVSE);
+        verify(sessionRepository).save(session);
+        verify(eventPublisher, never()).publishEvent(any(CableUnpluggedEvent.class));
+    }
+
+    @Test
+    @DisplayName("onStatusNotification: Available status with no FINISHING session should not publish")
+    void onStatusNotification_NoFinishingSession_DoesNotPublish() {
         // Given
         Long portId = 1L;
         StatusNotificationReceivedEvent event = new StatusNotificationReceivedEvent(
                 "5", 1, portId, "NoError", "Available", null, null, null, null);
 
-        when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.COMPLETED))
+        when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.FINISHING))
                 .thenReturn(Optional.empty());
 
         // When
@@ -253,7 +303,7 @@ class OcppChargingEventListenerTest {
     }
 
     @Test
-    @DisplayName("onStatusNotification: Charging status should be ignored (no cable unplug)")
+    @DisplayName("onStatusNotification: Charging status should be ignored (no session tracking needed)")
     void onStatusNotification_ChargingStatus_Ignored() {
         // Given
         StatusNotificationReceivedEvent event = new StatusNotificationReceivedEvent(
@@ -280,5 +330,68 @@ class OcppChargingEventListenerTest {
         // Then
         verify(sessionRepository, never()).findByPortIdAndStatus(any(), any());
         verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    // ===== onMeterValues =====
+
+    @Test
+    @DisplayName("onMeterValues: should cache meter value in Redis and trigger SSE push")
+    void onMeterValues_ValidEvent_CachesAndPushes() {
+        // Given
+        Integer transactionId = 42;
+        Integer meterValue = 3500;
+        LocalDateTime timestamp = LocalDateTime.now();
+        MeterValuesReceivedEvent event = new MeterValuesReceivedEvent(
+                "5", 1, transactionId, meterValue, timestamp);
+
+        ChargingSession session = new ChargingSession();
+        session.setId(10L);
+        session.setPortId(1L);
+        session.setTransactionId(transactionId);
+        session.setStatus(ChargingSessionStatus.CHARGING);
+
+        when(sessionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(session));
+
+        // When
+        listener.onMeterValues(event);
+
+        // Then
+        verify(valueOperations).set(
+                "evgo:charging:meter:10",
+                "3500",
+                Duration.ofHours(24));
+        verify(chargingMonitorService).pushUpdate(10L, 3500, timestamp);
+    }
+
+    @Test
+    @DisplayName("onMeterValues: should ignore event with null transactionId")
+    void onMeterValues_NullTransactionId_Ignored() {
+        // Given
+        MeterValuesReceivedEvent event = new MeterValuesReceivedEvent(
+                "5", 1, null, 3500, LocalDateTime.now());
+
+        // When
+        listener.onMeterValues(event);
+
+        // Then
+        verifyNoInteractions(sessionRepository);
+        verifyNoInteractions(chargingMonitorService);
+    }
+
+    @Test
+    @DisplayName("onMeterValues: should ignore event when session not found")
+    void onMeterValues_SessionNotFound_Ignored() {
+        // Given
+        MeterValuesReceivedEvent event = new MeterValuesReceivedEvent(
+                "5", 1, 999, 3500, LocalDateTime.now());
+
+        when(sessionRepository.findByTransactionId(999)).thenReturn(Optional.empty());
+
+        // When
+        listener.onMeterValues(event);
+
+        // Then
+        verify(sessionRepository).findByTransactionId(999);
+        verifyNoInteractions(chargingMonitorService);
     }
 }

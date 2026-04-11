@@ -14,6 +14,7 @@ import com.project.evgo.charging.response.ChargingSessionResponse;
 import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
+import com.project.evgo.sharedkernel.enums.PortStatus;
 import com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.sharedkernel.exceptions.AppException;
@@ -24,7 +25,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.Duration;
@@ -51,9 +52,9 @@ class ChargingServiceTest {
     @Mock
     private ChargerService chargerService;
     @Mock
-    private RedisTemplate<String, Object> redisTemplate;
+    private StringRedisTemplate redisTemplate;
     @Mock
-    private ValueOperations<String, Object> valueOperations;
+    private ValueOperations<String, String> valueOperations;
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
@@ -123,7 +124,7 @@ class ChargingServiceTest {
     }
     
     @Test
-    @DisplayName("stopCharging with valid request publishes event")
+    @DisplayName("stopCharging with valid CHARGING session publishes RemoteStop event")
     void stopCharging_ValidRequest_PublishesEvent() {
         Long userId = 1L;
         Long sessionId = 10L;
@@ -134,6 +135,7 @@ class ChargingServiceTest {
         session.setUserId(userId);
         session.setPortId(100L);
         session.setStatus(ChargingSessionStatus.CHARGING);
+        session.setTransactionId(1001); // Has transactionId → should send RemoteStop
         
         when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
 
@@ -146,6 +148,34 @@ class ChargingServiceTest {
         service.stopCharging(request, userId);
         
         verify(eventPublisher).publishEvent(any(SendRemoteStopCommandEvent.class));
+    }
+
+    @Test
+    @DisplayName("stopCharging PREPARING session without transactionId interrupts locally")
+    void stopCharging_PreparingNoTransaction_InterruptsLocally() {
+        Long userId = 1L;
+        Long sessionId = 10L;
+        StopChargingRequest request = new StopChargingRequest(sessionId);
+
+        ChargingSession session = new ChargingSession();
+        session.setId(sessionId);
+        session.setUserId(userId);
+        session.setPortId(100L);
+        session.setStatus(ChargingSessionStatus.PREPARING);
+        session.setTransactionId(null); // No transactionId yet
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+
+        service.stopCharging(request, userId);
+
+        // Should NOT publish RemoteStop event
+        verify(eventPublisher, never()).publishEvent(any(SendRemoteStopCommandEvent.class));
+        // Should save session as INTERRUPTED
+        verify(sessionRepository).save(session);
+        assertThat(session.getStatus()).isEqualTo(ChargingSessionStatus.INTERRUPTED);
+        assertThat(session.getEndTime()).isNotNull();
+        // Should release the port
+        verify(chargerService).internalUpdatePortStatus(100L, PortStatus.AVAILABLE);
     }
     
     @Test
