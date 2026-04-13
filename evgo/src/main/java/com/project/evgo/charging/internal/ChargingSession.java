@@ -21,7 +21,11 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "charging_sessions")
+@Table(name = "charging_sessions", indexes = {
+        @Index(name = "idx_session_port_status", columnList = "port_id, status"),
+        @Index(name = "idx_session_transaction_id", columnList = "transaction_id"),
+        @Index(name = "idx_session_user_id", columnList = "user_id")
+})
 public class ChargingSession {
 
     @Id

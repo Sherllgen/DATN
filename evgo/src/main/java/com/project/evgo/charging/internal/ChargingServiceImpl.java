@@ -1,12 +1,23 @@
 package com.project.evgo.charging.internal;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.charging.ChargingService;
-import com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent;
-import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.charging.request.StartChargingRequest;
 import com.project.evgo.charging.request.StopChargingRequest;
 import com.project.evgo.charging.response.ChargingSessionResponse;
@@ -14,18 +25,9 @@ import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.enums.PortStatus;
+import com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent;
+import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.sharedkernel.exceptions.AppException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Implementation of ChargingService.
@@ -63,38 +65,52 @@ public class ChargingServiceImpl implements ChargingService {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Please wait before trying again");
         }
 
-        if (invoiceService.hasUnpaidInvoices(userId)) {
-            throw new AppException(ErrorCode.UNPAID_INVOICE_EXISTS);
-        }
-
-        if (request.getBookingId() != null) {
-            BookingResponse booking = bookingService.findById(request.getBookingId())
-                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
-            
-            if (!booking.getUserId().equals(userId)) {
-                throw new AppException(ErrorCode.FORBIDDEN);
+        try {
+            if (invoiceService.hasUnpaidInvoices(userId)) {
+                throw new AppException(ErrorCode.UNPAID_INVOICE_EXISTS);
             }
+
+            boolean activeSessionExists = sessionRepository.existsByPortIdAndStatusIn(
+                    request.getPortId(),
+                    List.of(ChargingSessionStatus.PREPARING, ChargingSessionStatus.CHARGING)
+            );
+
+            if (activeSessionExists) {
+                throw new AppException(ErrorCode.SESSION_ALREADY_EXISTS);
+            }
+
+            if (request.getBookingId() != null) {
+                BookingResponse booking = bookingService.findById(request.getBookingId())
+                        .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+                
+                if (!booking.getUserId().equals(userId)) {
+                    throw new AppException(ErrorCode.FORBIDDEN);
+                }
+            }
+
+            ChargingSession session = new ChargingSession();
+            session.setUserId(userId);
+            session.setPortId(request.getPortId());
+            session.setBookingId(request.getBookingId());
+            session.setStatus(ChargingSessionStatus.PREPARING);
+
+            session = sessionRepository.save(session);
+
+            // Resolve portId → chargePointId (chargerId) + connectorId (portNumber)
+            PortResponse port = chargerService.findPortById(request.getPortId())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Port not found"));
+            String chargePointId = port.getChargerId().toString();
+            Integer connectorId = port.getPortNumber();
+            String idTag = userId.toString();
+
+            eventPublisher.publishEvent(new SendRemoteStartCommandEvent(
+                    session.getId(), chargePointId, connectorId, idTag));
+
+            return converter.convert(session);
+        } catch (Exception e) {
+            redisTemplate.delete(redisKey);
+            throw e;
         }
-
-        ChargingSession session = new ChargingSession();
-        session.setUserId(userId);
-        session.setPortId(request.getPortId());
-        session.setBookingId(request.getBookingId());
-        session.setStatus(ChargingSessionStatus.PREPARING);
-
-        session = sessionRepository.save(session);
-
-        // Resolve portId → chargePointId (chargerId) + connectorId (portNumber)
-        PortResponse port = chargerService.findPortById(request.getPortId())
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Port not found"));
-        String chargePointId = port.getChargerId().toString();
-        Integer connectorId = port.getPortNumber();
-        String idTag = userId.toString();
-
-        eventPublisher.publishEvent(new SendRemoteStartCommandEvent(
-                session.getId(), chargePointId, connectorId, idTag));
-
-        return converter.convert(session);
     }
 
     @Override

@@ -29,11 +29,27 @@ import com.project.evgo.station.response.PriceSettingResponse;
  * When a MeterValues update arrives, calculates consumedKwh and estimatedCost, then pushes
  * the data to the subscribed mobile client.
  * <p>
+ * <b>Performance Optimization — Rate Caching [S-2]:</b>
+ * The charging rate per kWh is resolved ONCE when a client subscribes via {@link #subscribe(Long, Long)}
+ * and cached in a JVM-local {@link ConcurrentHashMap}. Subsequent {@link #pushUpdate} calls read the
+ * cached rate instead of performing 3–4 DB queries (port → charger → station → priceSetting) per tick.
+ * The cache entry is automatically evicted when the emitter completes, times out, or errors out.
+ * <p>
+ * <b>Architectural Limitation — Horizontal Scaling [S-3]:</b>
+ * Both the emitter registry ({@code emitters}) and the rate cache ({@code sessionRateCache}) are
+ * JVM-local {@link ConcurrentHashMap} instances. This means that SSE connections are pinned to a single
+ * application instance. In a horizontally scaled production deployment with multiple instances behind
+ * a load balancer, a MeterValues event arriving at instance A cannot push to a client connected via
+ * SSE on instance B. To support horizontal scaling, this should be refactored to use
+ * <b>Redis Pub/Sub</b>: each instance subscribes to a Redis channel for SSE events, and the instance
+ * holding the client's emitter delivers the update. Sticky sessions (e.g., via IP hash or cookie)
+ * can serve as an interim mitigation.
+ * <p>
  * Connection lifecycle:
  * <ul>
- *   <li>{@link #subscribe(Long)} — creates an emitter and registers cleanup callbacks</li>
- *   <li>{@link #pushUpdate(Long, Integer, LocalDateTime)} — calculates and sends update to emitter</li>
- *   <li>Cleanup happens automatically via onCompletion/onTimeout/onError callbacks</li>
+ *   <li>{@link #subscribe(Long, Long)} — resolves + caches rate, creates emitter, registers cleanup callbacks</li>
+ *   <li>{@link #pushUpdate(Long, Integer, LocalDateTime)} — calculates cost from cached rate and sends update</li>
+ *   <li>Cleanup happens automatically via onCompletion/onTimeout/onError callbacks, which also evict the cached rate</li>
  * </ul>
  */
 @Service
@@ -52,15 +68,32 @@ public class ChargingMonitorService {
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     /**
+     * Thread-safe cache: sessionId → resolved chargingRatePerKwh.
+     * <p>
+     * Populated once during {@link #subscribe(Long, Long)} and evicted on emitter cleanup.
+     * Avoids 3–4 DB queries per MeterValues tick.
+     */
+    private final Map<Long, BigDecimal> sessionRateCache = new ConcurrentHashMap<>();
+
+    /**
      * Subscribe to real-time updates for a charging session.
-     * Creates an {@link SseEmitter} with a 30-minute timeout and registers
-     * cleanup callbacks for completion, timeout, and error.
+     * <p>
+     * Resolves the charging rate per kWh ONCE by navigating
+     * {@code portId → chargerId → stationId → activePriceSetting}, then caches the result
+     * for the lifetime of this SSE connection. Creates an {@link SseEmitter} with a 30-minute
+     * timeout and registers cleanup callbacks that evict both the emitter and the cached rate.
      *
      * @param sessionId the charging session ID
+     * @param portId    the port ID used to resolve the charging rate
      * @return the SSE emitter for the client to consume
      */
-    public SseEmitter subscribe(Long sessionId) {
+    public SseEmitter subscribe(Long sessionId, Long portId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+
+        // Resolve and cache the charging rate once at subscription time
+        BigDecimal chargingRate = resolveChargingRate(portId);
+        sessionRateCache.put(sessionId, chargingRate);
+        log.debug("Cached chargingRate={} for sessionId={} (portId={})", chargingRate, sessionId, portId);
 
         // Remove any existing emitter for this session (reconnect scenario)
         SseEmitter previous = emitters.put(sessionId, emitter);
@@ -75,21 +108,40 @@ public class ChargingMonitorService {
 
         emitter.onCompletion(() -> {
             emitters.remove(sessionId, emitter);
-            log.debug("SSE emitter completed for sessionId={}", sessionId);
+            sessionRateCache.remove(sessionId);
+            log.debug("SSE emitter completed for sessionId={}. Rate cache evicted.", sessionId);
         });
 
         emitter.onTimeout(() -> {
             emitters.remove(sessionId, emitter);
-            log.debug("SSE emitter timed out for sessionId={}", sessionId);
+            sessionRateCache.remove(sessionId);
+            log.debug("SSE emitter timed out for sessionId={}. Rate cache evicted.", sessionId);
         });
 
         emitter.onError((Throwable throwable) -> {
             emitters.remove(sessionId, emitter);
-            log.debug("SSE emitter error for sessionId={}: {}", sessionId, throwable.getMessage());
+            sessionRateCache.remove(sessionId);
+            log.debug("SSE emitter error for sessionId={}: {}. Rate cache evicted.",
+                    sessionId, throwable.getMessage());
         });
 
         log.info("SSE client subscribed to sessionId={}", sessionId);
         return emitter;
+    }
+
+    /**
+     * Overloaded subscribe for backward compatibility and cases where portId is not known at call site.
+     * <p>
+     * Resolves the portId from the session in the database. Prefer {@link #subscribe(Long, Long)}
+     * when the portId is already available to avoid an extra DB lookup.
+     *
+     * @param sessionId the charging session ID
+     * @return the SSE emitter for the client to consume
+     */
+    public SseEmitter subscribe(Long sessionId) {
+        Optional<ChargingSession> optionalSession = sessionRepository.findById(sessionId);
+        Long portId = optionalSession.map(ChargingSession::getPortId).orElse(null);
+        return subscribe(sessionId, portId);
     }
 
     /**
@@ -98,8 +150,10 @@ public class ChargingMonitorService {
      * Calculates:
      * <ul>
      *   <li>consumedKwh = (currentMeterValue - meterStart) / 1000</li>
-     *   <li>estimatedCost = consumedKwh × chargingRatePerKwh</li>
+     *   <li>estimatedCost = consumedKwh × chargingRatePerKwh (from cache)</li>
      * </ul>
+     * The charging rate is read from the {@code sessionRateCache} (populated during subscribe),
+     * <p>
      * If no emitter is registered for the session (no client connected), silently returns.
      *
      * @param sessionId         the charging session ID
@@ -140,8 +194,8 @@ public class ChargingMonitorService {
             BigDecimal consumedWh = BigDecimal.valueOf(safeMeterValue - meterStart);
             BigDecimal consumedKwh = consumedWh.divide(BigDecimal.valueOf(1000), 4, RoundingMode.HALF_UP);
 
-            // Resolve unit price: session → port → charger → station → activePriceSetting
-            BigDecimal chargingRatePerKwh = resolveChargingRate(session.getPortId());
+            // Read cached rate (resolved once at subscribe time) — zero DB queries here
+            BigDecimal chargingRatePerKwh = getCachedRate(sessionId, session.getPortId());
             BigDecimal estimatedCost = consumedKwh.multiply(chargingRatePerKwh)
                     .setScale(0, RoundingMode.HALF_UP);
 
@@ -172,8 +226,32 @@ public class ChargingMonitorService {
     }
 
     /**
+     * Retrieve the cached charging rate for a session.
+     * Falls back to resolving from DB if the cache entry is missing (defensive).
+     *
+     * @param sessionId the charging session ID
+     * @param portId    the port ID (used for fallback resolution)
+     * @return the charging rate per kWh
+     */
+    private BigDecimal getCachedRate(Long sessionId, Long portId) {
+        BigDecimal cachedRate = sessionRateCache.get(sessionId);
+        if (cachedRate != null) {
+            return cachedRate;
+        }
+
+        // Defensive fallback: cache miss (shouldn't happen in normal flow)
+        log.warn("Rate cache miss for sessionId={}. Resolving from DB (portId={}).", sessionId, portId);
+        BigDecimal resolvedRate = resolveChargingRate(portId);
+        sessionRateCache.put(sessionId, resolvedRate);
+        return resolvedRate;
+    }
+
+    /**
      * Resolve the charging rate per kWh by navigating:
      * portId → chargerId → stationId → active PriceSetting.
+     * <p>
+     * This method performs 3 DB queries. It should only be called ONCE per session
+     * (during subscribe or on cache miss). The result is cached in {@code sessionRateCache}.
      *
      * @param portId the port ID from the charging session
      * @return charging rate per kWh, or BigDecimal.ZERO if resolution fails
@@ -205,13 +283,18 @@ public class ChargingMonitorService {
 
     /**
      * Send a final status update before completing the SSE connection.
+     * Uses the cached rate if available; falls back to DB resolution otherwise.
      */
     private void sendFinalUpdate(Long sessionId, ChargingSession session, SseEmitter emitter) {
         try {
+            BigDecimal consumedKwh = session.getTotalKwh() != null ? session.getTotalKwh() : BigDecimal.ZERO;
+            BigDecimal chargingRatePerKwh = getCachedRate(sessionId, session.getPortId());
+            BigDecimal estimatedCost = consumedKwh.multiply(chargingRatePerKwh).setScale(0, RoundingMode.HALF_UP);
+
             ChargingMonitorResponse response = ChargingMonitorResponse.builder()
                     .status(session.getStatus())
-                    .consumedKwh(session.getTotalKwh() != null ? session.getTotalKwh() : BigDecimal.ZERO)
-                    .estimatedCost(BigDecimal.ZERO)
+                    .consumedKwh(consumedKwh)
+                    .estimatedCost(estimatedCost)
                     .currentMeterValue(null)
                     .timestamp(LocalDateTime.now())
                     .build();
@@ -227,10 +310,11 @@ public class ChargingMonitorService {
     }
 
     /**
-     * Safely complete and remove an emitter from the registry.
+     * Safely complete and remove an emitter and its cached rate from the registries.
      */
     private void completeEmitter(Long sessionId, SseEmitter emitter) {
         emitters.remove(sessionId, emitter);
+        sessionRateCache.remove(sessionId);
         try {
             emitter.complete();
         } catch (Exception e) {

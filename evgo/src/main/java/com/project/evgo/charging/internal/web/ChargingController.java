@@ -90,9 +90,14 @@ public class ChargingController {
     @GetMapping(value = "/sessions/{id}/monitor-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "Subscribe to real-time charging session updates via SSE")
     public SseEmitter monitorStream(@PathVariable Long id) {
-        // Verify session exists
-        chargingService.findById(id)
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        ChargingSessionResponse session = chargingService.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SESSION_NOT_FOUND));
-        return chargingMonitorService.subscribe(id);
+        
+        if (!session.getUserId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.SESSION_NOT_OWNED);
+        }
+        
+        return chargingMonitorService.subscribe(id, session.getPortId());
     }
 }

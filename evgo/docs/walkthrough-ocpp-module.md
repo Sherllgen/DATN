@@ -14,7 +14,10 @@ Dedicated Spring Modulith module (`com.project.evgo.ocpp`) implementing OCPP 1.6
 |--------|---------|----------|
 | **BootNotification** | `BootNotificationHandler` | Validates vendor/model → looks up charger by ID → updates metadata (vendor, model, serial, firmware) & status → publishes `ChargePointBootedEvent` → returns `Accepted` with `currentTime` + `interval: 300s`. Returns `Rejected` if charger not found or missing required fields. |
 | **Heartbeat** | `HeartbeatHandler` | Updates `lastHeartbeat` timestamp → returns `currentTime` |
-| **StatusNotification** | `StatusNotificationHandler` | Logs connector status (connectorId, status, errorCode) → returns `{}` |
+| **StatusNotification** | `StatusNotificationHandler` | Persists port status to DB → publishes `StatusNotificationReceivedEvent` → returns empty `{}` |
+| **MeterValues** | `MeterValuesHandler` | Parses sampled kWh values (MeterValue) → publishes `MeterValuesReceivedEvent` → returns empty `{}` |
+| **StartTransaction** | `StartTransactionHandler` | Validates ID tag → publishes `StartTransactionReceivedEvent` → returns `Accepted` with `transactionId` |
+| **StopTransaction** | `StopTransactionHandler` | Calculates final meter value → publishes `StopTransactionReceivedEvent` → returns empty `{}` |
 
 ---
 
@@ -37,11 +40,15 @@ WebSocketSession
 
 ```
 ocpp → charger (via ChargerService public API)
+ocpp → charging (via events: Start/StopTransactionReceivedEvent, MeterValuesReceivedEvent, StatusNotificationReceivedEvent)
+charging → ocpp (via events: SendRemoteStartCommandEvent, SendRemoteStopCommandEvent)
+booking → ocpp (via events: SendReserveNowCommandEvent, SendRemoteStopCommandEvent)
 charger → * (via ChargePointBootedEvent)
 ```
 
-- `ocpp` module calls `ChargerService.processBootNotification()` and `updateHeartbeat()` directly (synchronous)
-- `charger` module publishes `ChargePointBootedEvent(Long chargerId)` for other modules to react
+- `ocpp` module calls `ChargerService.processBootNotification()` and `updateHeartbeat()` directly (synchronous).
+- `ocpp` module publishes events like `StartTransactionReceivedEvent`, `MeterValuesReceivedEvent` which are consumed by the **Charging Module** (for billing and SSE).
+- `ocpp` module listens for commands (e.g., `SendRemoteStartCommandEvent`, `SendReserveNowCommandEvent`) from the **Charging** and **Booking** modules to dispatch downstream actions to hardware limits.
 
 ---
 
@@ -112,9 +119,11 @@ ocpp → charger     (ChargerService public API)
 |------------|-------|--------|
 | `OcppMessageParserTest` | 13 | ✅ All pass |
 | `OcppWebSocketHandlerTest` | 10 | ✅ All pass |
+| `OcppActionRouterTest` | 8 | ✅ All pass |
+| `OcppCommandListenerTest` | 12| ✅ All pass |
 | `ChargerServiceTest` | 16 | ✅ All pass |
 | `ChargerControllerTest` | 13 | ✅ All pass |
-| **Total** | **52** | ✅ |
+| **Total** | **72** | ✅ |
 
 ### Key Test Scenarios
 

@@ -6,6 +6,7 @@ The **Charging Module** is responsible for managing the full lifecycle of an EV 
 ## 2. Implemented Features
 - ✅ **[NEW]** Start a charging session checking Redis limits, invalid debts, and proper booking ownership.
 - ✅ **[NEW]** Stop an active charging session via User command.
+- ✅ **[NEW]** Real-time Monitoring via Server-Sent Events (SSE) for frontend meter values and estimated cost updates.
 - ✅ **[NEW]** Send cross-domain loosely-coupled Application Events (`SendRemoteStartCommandEvent`, `SendRemoteStopCommandEvent`) that the `OCPP` module can listen to.
 - ✅ **[NEW]** `OcppChargingEventListener` — Sync charger state via OCPP callbacks:
   - Listen to `StartTransactionReceivedEvent` → update session to `CHARGING` with `transactionId` and `meterStart`.
@@ -36,6 +37,40 @@ The **Charging Module** is responsible for managing the full lifecycle of an EV 
 |--------|----------|-------------|------|------|
 | `POST` | `/api/v1/charging/start` | Start a charging session for a port | ✅ | `USER` |
 | `POST` | `/api/v1/charging/stop` | Stop charging session by ID | ✅ | `USER` |
+| `GET`  | `/api/v1/charging/sessions/{id}/monitor-stream` | Subscribe to real-time charging metrics (SSE) | ✅ | `USER` |
+
+## 4.1. SSE Real-Time Monitoring (For Frontend)
+The frontend should connect to the `monitor-stream` endpoint using an `EventSource` (or polyfill for custom auth headers) to receive real-time UI updates while the user is charging. The backend prevents unnecessary polling by pushing data only when meter values are received from hardware.
+
+### SSE Event Types
+
+#### Event: `meter-update`
+Pushed periodically while the session is active.
+```json
+{
+  "status": "CHARGING",
+  "consumedKwh": 12.4500,
+  "estimatedCost": 45000,
+  "currentMeterValue": 1012450,
+  "chargingRatePerKwh": 3614,
+  "timestamp": "2026-04-14T02:00:00"
+}
+```
+
+#### Event: `session-ended`
+Pushed exactly once when the session halts (status moves to FINISHING, COMPLETED, INTERRUPTED, etc.). The connection is automatically closed by the backend right after this event.
+```json
+{
+  "status": "FINISHING",
+  "consumedKwh": 12.4500,
+  "estimatedCost": 45000,
+  "currentMeterValue": null,
+  "timestamp": "2026-04-14T02:15:00"
+}
+```
+
+> [!TIP]
+> Standard SSE handles network drops via silent reconnects. The backend caches session pricing, so reconnecting is fast and efficient. Ensure the current `userId` matches the session owner or you'll get a 403 Forbidden.
 
 ## 5. Application Events
 

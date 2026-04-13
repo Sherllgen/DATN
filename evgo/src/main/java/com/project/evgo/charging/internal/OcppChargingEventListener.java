@@ -3,6 +3,7 @@ package com.project.evgo.charging.internal;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -122,7 +123,7 @@ public class OcppChargingEventListener {
         log.info("Session {} set to FINISHING: totalKwh={}, reason={}", session.getId(), totalKwh, event.reason());
 
         eventPublisher.publishEvent(new ChargingSessionCompletedEvent(
-                session.getId(), session.getUserId(), session.getPortId(), totalKwh));
+                session.getId(), session.getUserId(), session.getPortId(), totalKwh, event.reason()));
     }
 
     /**
@@ -164,10 +165,16 @@ public class OcppChargingEventListener {
 
         String status = event.status();
 
-        // Handle SuspendedEV / SuspendedEVSE — update CHARGING session
+        // Handle SuspendedEV / SuspendedEVSE — update CHARGING or already-suspended session.
+        // A session may transition between suspended states (e.g., SUSPENDED_EV → SUSPENDED_EVSE),
+        // so we query for all active charging-phase statuses, not just CHARGING.
         if ("SuspendedEV".equals(status) || "SuspendedEVSE".equals(status)) {
-            Optional<ChargingSession> optionalSession = sessionRepository.findByPortIdAndStatus(
-                    event.portId(), ChargingSessionStatus.CHARGING);
+            List<ChargingSessionStatus> activeStatuses = List.of(
+                    ChargingSessionStatus.CHARGING,
+                    ChargingSessionStatus.SUSPENDED_EV,
+                    ChargingSessionStatus.SUSPENDED_EVSE);
+            Optional<ChargingSession> optionalSession = sessionRepository.findFirstByPortIdAndStatusIn(
+                    event.portId(), activeStatuses);
             if (optionalSession.isPresent()) {
                 ChargingSession session = optionalSession.get();
                 ChargingSessionStatus newStatus = "SuspendedEV".equals(status)
@@ -177,7 +184,7 @@ public class OcppChargingEventListener {
                 sessionRepository.save(session);
                 log.info("Session {} updated to {} from StatusNotification.", session.getId(), newStatus);
             } else {
-                log.debug("No CHARGING session found for portId={} on status '{}'. Nothing to do.",
+                log.debug("No active session (CHARGING/SUSPENDED_EV/SUSPENDED_EVSE) found for portId={} on status '{}'. Nothing to do.",
                         event.portId(), status);
             }
             return;
@@ -226,6 +233,10 @@ public class OcppChargingEventListener {
      * </ol>
      * <p>
      * Redis key pattern: {@code evgo:charging:meter:{sessionId}}
+     * <p>
+     * NOTE: {@code @Transactional} is intentionally omitted here. This method only performs
+     * a read-only DB lookup ({@code findByTransactionId}) and writes to Redis — there is no
+     * database mutation, so wrapping it in a transaction would add unnecessary overhead.
      */
     @EventListener
     public void onMeterValues(MeterValuesReceivedEvent event) {

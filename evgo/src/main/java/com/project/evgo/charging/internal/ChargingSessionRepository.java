@@ -18,4 +18,8 @@ public interface ChargingSessionRepository extends JpaRepository<ChargingSession
     Optional<ChargingSession> findByBookingId(Long bookingId);
 
     Optional<ChargingSession> findByPortIdAndStatus(Long portId, ChargingSessionStatus status);
+
+    boolean existsByPortIdAndStatusIn(Long portId, List<ChargingSessionStatus> statuses);
+
+    Optional<ChargingSession> findFirstByPortIdAndStatusIn(Long portId, List<ChargingSessionStatus> statuses);
 }

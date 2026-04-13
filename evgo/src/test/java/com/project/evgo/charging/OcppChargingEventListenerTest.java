@@ -3,6 +3,7 @@ package com.project.evgo.charging;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -151,6 +152,7 @@ class OcppChargingEventListenerTest {
         assertThat(published.sessionId()).isEqualTo(10L);
         assertThat(published.userId()).isEqualTo(5L);
         assertThat(published.totalKwh()).isEqualByComparingTo(new BigDecimal("4.0000"));
+        assertThat(published.reason()).isEqualTo("Local");
     }
 
     @Test
@@ -247,7 +249,11 @@ class OcppChargingEventListenerTest {
         session.setPortId(portId);
         session.setStatus(ChargingSessionStatus.CHARGING);
 
-        when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.CHARGING))
+        List<ChargingSessionStatus> activeStatuses = List.of(
+                ChargingSessionStatus.CHARGING,
+                ChargingSessionStatus.SUSPENDED_EV,
+                ChargingSessionStatus.SUSPENDED_EVSE);
+        when(sessionRepository.findFirstByPortIdAndStatusIn(portId, activeStatuses))
                 .thenReturn(Optional.of(session));
 
         // When
@@ -272,7 +278,11 @@ class OcppChargingEventListenerTest {
         session.setPortId(portId);
         session.setStatus(ChargingSessionStatus.CHARGING);
 
-        when(sessionRepository.findByPortIdAndStatus(portId, ChargingSessionStatus.CHARGING))
+        List<ChargingSessionStatus> activeStatuses = List.of(
+                ChargingSessionStatus.CHARGING,
+                ChargingSessionStatus.SUSPENDED_EV,
+                ChargingSessionStatus.SUSPENDED_EVSE);
+        when(sessionRepository.findFirstByPortIdAndStatusIn(portId, activeStatuses))
                 .thenReturn(Optional.of(session));
 
         // When
@@ -303,6 +313,34 @@ class OcppChargingEventListenerTest {
     }
 
     @Test
+    @DisplayName("onStatusNotification: SuspendedEV should transition SUSPENDED_EVSE to SUSPENDED_EV (inter-suspend)")
+    void onStatusNotification_SuspendedEV_FromSuspendedEVSE_Updates() {
+        // Given — session is already SUSPENDED_EVSE, OCPP sends SuspendedEV
+        Long portId = 1L;
+        StatusNotificationReceivedEvent event = new StatusNotificationReceivedEvent(
+                "5", 1, portId, "NoError", "SuspendedEV", null, null, null, null);
+
+        ChargingSession session = new ChargingSession();
+        session.setId(10L);
+        session.setPortId(portId);
+        session.setStatus(ChargingSessionStatus.SUSPENDED_EVSE);
+
+        List<ChargingSessionStatus> activeStatuses = List.of(
+                ChargingSessionStatus.CHARGING,
+                ChargingSessionStatus.SUSPENDED_EV,
+                ChargingSessionStatus.SUSPENDED_EVSE);
+        when(sessionRepository.findFirstByPortIdAndStatusIn(portId, activeStatuses))
+                .thenReturn(Optional.of(session));
+
+        // When
+        listener.onStatusNotification(event);
+
+        // Then — session should now be SUSPENDED_EV
+        assertThat(session.getStatus()).isEqualTo(ChargingSessionStatus.SUSPENDED_EV);
+        verify(sessionRepository).save(session);
+    }
+
+    @Test
     @DisplayName("onStatusNotification: Charging status should be ignored (no session tracking needed)")
     void onStatusNotification_ChargingStatus_Ignored() {
         // Given
@@ -314,6 +352,7 @@ class OcppChargingEventListenerTest {
 
         // Then
         verify(sessionRepository, never()).findByPortIdAndStatus(any(), any());
+        verify(sessionRepository, never()).findFirstByPortIdAndStatusIn(any(), anyList());
         verify(eventPublisher, never()).publishEvent(any());
     }
 

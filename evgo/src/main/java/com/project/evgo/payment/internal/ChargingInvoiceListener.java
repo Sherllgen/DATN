@@ -40,8 +40,8 @@ public class ChargingInvoiceListener {
      */
     @ApplicationModuleListener
     public void onChargingSessionCompleted(ChargingSessionCompletedEvent event) {
-        log.info("Received ChargingSessionCompletedEvent: sessionId={}, userId={}, portId={}, totalKwh={}",
-                event.sessionId(), event.userId(), event.portId(), event.totalKwh());
+        log.info("Received ChargingSessionCompletedEvent: sessionId={}, userId={}, portId={}, totalKwh={}, reason={}",
+                event.sessionId(), event.userId(), event.portId(), event.totalKwh(), event.reason());
 
         // Check if invoice already exists for this session (idempotency)
         if (invoiceRepository.findByChargingSessionId(event.sessionId()).isPresent()) {

@@ -71,6 +71,7 @@ class ChargingServiceTest {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
+        when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
 
         ChargingSession savedSession = new ChargingSession();
         savedSession.setId(10L);
@@ -213,5 +214,139 @@ class ChargingServiceTest {
         assertThatThrownBy(() -> service.stopCharging(request, userId))
                 .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_SESSION_STATUS);
+    }
+
+    @Test
+    @DisplayName("startCharging when port is not found should throw AppException")
+    void startCharging_PortNotFound_ThrowsAppException() {
+        Long userId = 1L;
+        Long portId = 999L;
+        StartChargingRequest request = new StartChargingRequest(null, portId);
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
+        when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
+
+        ChargingSession savedSession = new ChargingSession();
+        savedSession.setId(10L);
+        when(sessionRepository.save(any(ChargingSession.class))).thenReturn(savedSession);
+
+        // Port resolution returns empty
+        when(chargerService.findPortById(portId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.startCharging(request, userId))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
+
+        // Redis lock should be cleaned up on failure
+        verify(redisTemplate).delete(eq("charging:start:" + userId + ":" + portId));
+    }
+
+    @Test
+    @DisplayName("stopCharging with SUSPENDED_EV session should publish RemoteStop event")
+    void stopCharging_SessionIsSuspendedEV_Success() {
+        Long userId = 1L;
+        Long sessionId = 10L;
+        StopChargingRequest request = new StopChargingRequest(sessionId);
+
+        ChargingSession session = new ChargingSession();
+        session.setId(sessionId);
+        session.setUserId(userId);
+        session.setPortId(100L);
+        session.setStatus(ChargingSessionStatus.SUSPENDED_EV);
+        session.setTransactionId(1001);
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+
+        PortResponse port = new PortResponse();
+        port.setId(100L);
+        port.setChargerId(5L);
+        port.setPortNumber(1);
+        when(chargerService.findPortById(100L)).thenReturn(Optional.of(port));
+
+        service.stopCharging(request, userId);
+
+        verify(eventPublisher).publishEvent(any(SendRemoteStopCommandEvent.class));
+        // Session should NOT be locally interrupted (it has a transactionId)
+        verify(sessionRepository, never()).save(any(ChargingSession.class));
+    }
+
+    @Test
+    @DisplayName("startCharging with valid booking should succeed")
+    void startCharging_ValidBooking_Success() {
+        Long userId = 1L;
+        Long portId = 100L;
+        Long bookingId = 50L;
+        StartChargingRequest request = new StartChargingRequest(bookingId, portId);
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
+        when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
+
+        BookingResponse booking = BookingResponse.builder().id(bookingId).userId(userId).build();
+        when(bookingService.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        ChargingSession savedSession = new ChargingSession();
+        savedSession.setId(10L);
+        when(sessionRepository.save(any(ChargingSession.class))).thenReturn(savedSession);
+
+        PortResponse port = PortResponse.builder().id(portId).chargerId(5L).portNumber(1).build();
+        when(chargerService.findPortById(portId)).thenReturn(Optional.of(port));
+
+        ChargingSessionResponse response = ChargingSessionResponse.builder().id(10L).build();
+        when(converter.convert(savedSession)).thenReturn(response);
+
+        ChargingSessionResponse result = service.startCharging(request, userId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(10L);
+    }
+
+    @Test
+    @DisplayName("startCharging with unowned booking should throw FORBIDDEN")
+    void startCharging_UnownedBooking_ThrowsForbidden() {
+        Long userId = 1L;
+        Long portId = 100L;
+        Long bookingId = 50L;
+        StartChargingRequest request = new StartChargingRequest(bookingId, portId);
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
+        when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
+
+        // Booking belongs to user 2
+        BookingResponse booking = BookingResponse.builder().id(bookingId).userId(2L).build();
+        when(bookingService.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> service.startCharging(request, userId))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FORBIDDEN);
+
+        verify(redisTemplate).delete(eq("charging:start:" + userId + ":" + portId));
+    }
+
+    @Test
+    @DisplayName("startCharging with non-existent booking should throw NOT_FOUND")
+    void startCharging_NonExistentBooking_ThrowsNotFound() {
+        Long userId = 1L;
+        Long portId = 100L;
+        Long bookingId = 50L;
+        StartChargingRequest request = new StartChargingRequest(bookingId, portId);
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
+        when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
+
+        when(bookingService.findById(bookingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.startCharging(request, userId))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
+
+        verify(redisTemplate).delete(eq("charging:start:" + userId + ":" + portId));
     }
 }
