@@ -2,19 +2,53 @@ import React, { useMemo } from "react";
 import { View, Text, Dimensions } from "react-native";
 import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
+import { ChargingSessionStatus } from "@/types/charging.types";
 
 const { width } = Dimensions.get("window");
 
 interface ChargingIndicatorProps {
-    kwh: number;
-    percentage: number;
+    consumedKwh: number;
+    status: ChargingSessionStatus;
 }
 
-export default function ChargingIndicator({ kwh, percentage }: ChargingIndicatorProps) {
+export default function ChargingIndicator({ consumedKwh, status }: ChargingIndicatorProps) {
     const size = width * 0.75;
     const strokeWidth = 16;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
+
+    let percentage = 0;
+    let color = "#00A452";
+
+    switch (status) {
+        case ChargingSessionStatus.PREPARING:
+            percentage = 5;
+            color = "#F59E0B";
+            break;
+        case ChargingSessionStatus.CHARGING:
+            percentage = 60;
+            color = "#00A452";
+            break;
+        case ChargingSessionStatus.FINISHING:
+        case ChargingSessionStatus.COMPLETED:
+            percentage = 100;
+            color = "#00A452";
+            break;
+        case ChargingSessionStatus.FAULTED:
+            percentage = 15;
+            color = "#EF4444";
+            break;
+        case ChargingSessionStatus.SUSPENDED_EV:
+        case ChargingSessionStatus.SUSPENDED_EVSE:
+        case ChargingSessionStatus.INTERRUPTED:
+            percentage = 40;
+            color = "#F59E0B";
+            break;
+        default:
+            percentage = 0;
+            color = "#00A452";
+    }
+
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
     // Generate random stars once
@@ -43,8 +77,8 @@ export default function ChargingIndicator({ kwh, percentage }: ChargingIndicator
                 <Svg style={{ position: 'absolute' }} width={size + 100} height={size + 100}>
                     <Defs>
                         <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
-                            <Stop offset="0%" stopColor="#00A452" stopOpacity="0.2" />
-                            <Stop offset="100%" stopColor="#00A452" stopOpacity="0" />
+                            <Stop offset="0%" stopColor={color} stopOpacity="0.2" />
+                            <Stop offset="100%" stopColor={color} stopOpacity="0" />
                         </RadialGradient>
                     </Defs>
                     <Circle cx={(size + 100) / 2} cy={(size + 100) / 2} r={(size + 100) / 2} fill="url(#glow)" />
@@ -56,7 +90,7 @@ export default function ChargingIndicator({ kwh, percentage }: ChargingIndicator
                             cx={star.x}
                             cy={star.y}
                             r={star.r}
-                            fill="#00A452"
+                            fill={color}
                             opacity={star.opacity}
                         />
                     ))}
@@ -77,7 +111,7 @@ export default function ChargingIndicator({ kwh, percentage }: ChargingIndicator
                         cx={size / 2}
                         cy={size / 2}
                         r={radius}
-                        stroke="#00A452"
+                        stroke={color}
                         strokeWidth={strokeWidth}
                         fill="none"
                         strokeDasharray={circumference}
@@ -89,9 +123,9 @@ export default function ChargingIndicator({ kwh, percentage }: ChargingIndicator
 
                 {/* Center Content */}
                 <View className="absolute items-center">
-                    <Ionicons name="flash" size={40} color="#F59E0B" style={{ marginBottom: 16 }} />
+                    <Ionicons name="flash" size={40} color={color} style={{ marginBottom: 16 }} />
                     <View className="flex-row items-baseline">
-                        <Text className="text-white text-6xl font-bold">{kwh}</Text>
+                        <Text className="text-white text-6xl font-bold">{consumedKwh.toFixed(1)}</Text>
                         <Text className="text-white text-xl ml-2">kWh</Text>
                     </View>
                     <Text className="text-text-secondary text-lg mt-2">Energy</Text>

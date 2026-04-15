@@ -56,6 +56,7 @@ erDiagram
 | `POST` | `/api/v1/zalopay/callback` | Webhook (IPN) nhận kết quả từ ZaloPay | PUBLIC |
 | `GET` | `/api/v1/zalopay/orders/{appTransId}/status` | Kiểm tra trạng thái đơn hàng thủ công | USER |
 | `GET` | `/api/v1/invoices/booking/{bookingId}` | Lấy thông tin Invoice theo ID của Booking | USER |
+| `GET` | `/api/v1/invoices/session/{sessionId}` | Lấy thông tin Invoice theo ID của Charging Session | USER |
 
 > [!NOTE]
 > IPN `/api/v1/zalopay/callback` không yêu cầu JWT Auth nhưng tính hợp lệ được xác thực bằng chữ ký số qua HMAC-SHA256 (bằng KEY2).

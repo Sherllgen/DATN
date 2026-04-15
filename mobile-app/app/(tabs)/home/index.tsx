@@ -2,7 +2,8 @@ import { StyleSheet, Text, TouchableOpacity, View, Image, ScrollView } from "rea
 import MapView, { UrlTile, Marker } from 'react-native-maps';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 
 import GradientBackground from "@/components/ui/GradientBackground";
 import LocationPermissionModal from "@/components/map/LocationPermissionModal";
@@ -11,10 +12,13 @@ import { searchNearbyStations } from "@/apis/stationApi/stationApi";
 import { StationSearchResult, StationStatus } from "@/types/station.types";
 import { useLocationPermission } from "@/hooks/useLocationPermission";
 import { useLocationStore } from "@/stores/locationStore";
+import { useUserStore } from "@/contexts/user.store";
+import { useChargingStore } from "@/stores/chargingStore";
+import { getMyChargingSessions } from "@/apis/chargingApi";
+import { ChargingSessionStatus } from "@/types/charging.types";
 import ChargingInfoCard from "@/components/home/ChargingInfoCard";
 import HistoryItem from "@/components/home/HistoryItem";
 import { mockChargingInfo, mockHistory } from "@/data/homeData";
-import { mockChargingProcessData } from "@/data/chargingData";
 import ActiveChargingNotification from "@/components/home/ActiveChargingNotification";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -24,6 +28,36 @@ export default function HomePage() {
     const setGlobalLocation = useLocationStore((state) => state.setLocation);
     const [stations, setStations] = useState<StationSearchResult[]>([]);
     const [loading, setLoading] = useState(false);
+
+    const user = useUserStore((state) => state.user);
+    const setActiveSession = useChargingStore((state) => state.setActiveSession);
+
+    // Sync charging session state on screen focus
+    useFocusEffect(
+        useCallback(() => {
+            if (user?.id) {
+                getMyChargingSessions(Number(user.id))
+                    .then((sessions) => {
+                        const active = sessions.find(
+                            (s) =>
+                                s.status === ChargingSessionStatus.PREPARING ||
+                                s.status === ChargingSessionStatus.CHARGING ||
+                                s.status === ChargingSessionStatus.SUSPENDED_EV ||
+                                s.status === ChargingSessionStatus.SUSPENDED_EVSE ||
+                                s.status === ChargingSessionStatus.FINISHING
+                        );
+                        if (active) {
+                            setActiveSession(active);
+                        } else {
+                            setActiveSession(null);
+                        }
+                    })
+                    .catch((err) => {
+                        console.log("Failed to fetch charging sessions:", err);
+                    });
+            }
+        }, [user?.id, setActiveSession])
+    );
 
     // Sync local location to global store
     useEffect(() => {
@@ -245,11 +279,9 @@ export default function HomePage() {
             </SafeAreaView>
 
             {/* Active Charging Notification */}
-            {mockChargingProcessData.status === "CHARGING" && (
-                <View className="absolute bottom-2 left-0 right-0">
-                    <ActiveChargingNotification data={mockChargingProcessData} />
-                </View>
-            )}
+            <View className="absolute bottom-2 left-0 right-0">
+                <ActiveChargingNotification />
+            </View>
 
             {/* Location Permission Modal */}
             <LocationPermissionModal

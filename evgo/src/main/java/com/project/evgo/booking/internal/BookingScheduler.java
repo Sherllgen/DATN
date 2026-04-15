@@ -1,7 +1,7 @@
 package com.project.evgo.booking.internal;
 
 import com.project.evgo.booking.SendPushNotificationEvent;
-import com.project.evgo.booking.SendRemoteStopCommandEvent;
+import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.booking.SendReserveNowCommandEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
@@ -137,7 +137,7 @@ public class BookingScheduler {
         if (portStatus == PortStatus.CHARGING) {
             log.warn("Port {}:{} is still charging (overstay). Sending RemoteStop.",
                     booking.getChargerId(), booking.getPortNumber());
-            eventPublisher.publishEvent(new SendRemoteStopCommandEvent(chargePointId, 0, "overstay"));
+            eventPublisher.publishEvent(new SendRemoteStopCommandEvent(null, chargePointId, 0, "overstay"));
         }
 
         String idTag = "user-" + booking.getUserId();
@@ -159,7 +159,7 @@ public class BookingScheduler {
 
     private void handleHardCutoff(Booking booking) {
         String chargePointId = String.valueOf(booking.getChargerId());
-        eventPublisher.publishEvent(new SendRemoteStopCommandEvent(chargePointId, 0, "hard-cutoff"));
+        eventPublisher.publishEvent(new SendRemoteStopCommandEvent(null, chargePointId, 0, "hard-cutoff"));
         
         eventPublisher.publishEvent(new SendPushNotificationEvent(
                 booking.getUserId(),

@@ -1,13 +1,14 @@
 package com.project.evgo.charging.response;
 
-import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
 
 /**
  * Response DTO for charging session information.
@@ -19,11 +20,15 @@ import java.time.LocalDateTime;
 public class ChargingSessionResponse {
 
     private Long id;
-    private Long bookingId;
     private Long userId;
+    private Long portId;
+    private Long bookingId;
+    private Long invoiceId;
+    private Integer transactionId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private BigDecimal energyConsumed;
+    private BigDecimal totalKwh;
     private ChargingSessionStatus status;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

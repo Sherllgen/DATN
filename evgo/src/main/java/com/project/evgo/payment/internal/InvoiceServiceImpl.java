@@ -31,6 +31,13 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    public InvoiceResponse findByChargingSessionId(Long chargingSessionId) {
+        Invoice invoice = invoiceRepository.findByChargingSessionId(chargingSessionId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
+        return invoiceDtoConverter.convert(invoice);
+    }
+
+    @Override
     public void createInvoice(InvoiceCreatedRequest request) {
         if (invoiceRepository.findByBookingId(request.bookingId()).isPresent()) {
             throw new AppException(ErrorCode.INVOICE_ALREADY_EXIST);
@@ -47,5 +54,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         invoiceRepository.save(invoice);
         log.info("Invoice created for booking {}: {}", request.bookingId(), invoice.getNumber());
+    }
+
+    @Override
+    public boolean hasUnpaidInvoices(Long userId) {
+        return invoiceRepository.existsByUserIdAndStatus(userId, InvoiceStatus.PENDING);
     }
 }

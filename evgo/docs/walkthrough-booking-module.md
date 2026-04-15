@@ -27,13 +27,13 @@ The `booking` module handles the reservation of charging ports at stations.
    - On SUCCESS webhook, backend saves to DB (bookings, invoices) and deletes Redis key. Slot is officially booked.
 3. **Pre-arrival & OCPP Lock (T-10 mins before start)** 
    - `BookingScheduler` finds blocks starting in 10 mins (e.g. 08:50).
-   - *Clear the station*: Checks for overstaying EV via OCPP and sends `RemoteStopTransaction.req` if another user is overstaying.
-   - *ReserveNow*: Sends `ReserveNow.req` to the charge point. Port LED turns yellow/Reserved.
+   - *Clear the station*: Checks for overstaying EV and fires `SendRemoteStopCommandEvent` (with a specific `reason: "Booking Overtake"`) if another user is overstaying.
+   - *ReserveNow*: Fires `SendReserveNowCommandEvent`. Port LED turns yellow/Reserved.
 4. **Charging & Notification**
-   - User arrives, plugs in, and charges.
+   - User arrives, plugs in, and charges (managed by the `charging` module).
    - At T-15 mins before end (e.g. 09:45), `BookingScheduler` sends a *Soft Warning* push notification: "5 mins left until power cut".
 5. **Cut-off & Grace Period (T-10 mins before end)**
-   - At T-10 mins (e.g. 09:50), `BookingScheduler` sends a *Hard Cut-off* (`RemoteStopTransaction.req`). Power is safely cut.
+   - At T-10 mins (e.g. 09:50), `BookingScheduler` fires a *Hard Cut-off* (`SendRemoteStopCommandEvent`). Power is safely cut.
    - Push notification sent: "Power cut. You have 10 mins to move your bike before idle fees apply".
 6. **Penalties & Resolution (End of Block)**
    - *Overstay*: At 10:00, if EV remains plugged in, idle fees begin.
@@ -126,7 +126,8 @@ sequenceDiagram
 
     loop Every 60 Seconds (BookingScheduler: T-10 mins)
         BE->>DB: Find CONFIRMED bookings starting in 10 mins
-        BE->>Charger: Send RemoteStopTransaction.req (Cut power if prev car overstays)
-        BE->>Charger: Send ReserveNow.req (Lock Hardware for new user)
+        BE->>BE: Fire SendRemoteStopCommandEvent (Cut power if prev car overstays)
+        BE->>BE: Fire SendReserveNowCommandEvent (Lock Hardware for new user)
+        BE->>Charger: OcppCommandListener dispatches CALL to Charge Point
     end
 ```
