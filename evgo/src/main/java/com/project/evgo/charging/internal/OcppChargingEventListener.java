@@ -115,7 +115,16 @@ public class OcppChargingEventListener {
 
         // Calculate totalKwh: (meterStop - meterStart) Wh → kWh
         Integer meterStart = session.getMeterStart() != null ? session.getMeterStart() : 0;
-        BigDecimal energyWh = BigDecimal.valueOf(event.meterStop() - meterStart);
+        
+        BigDecimal energyWh;
+        if (event.meterStop() < meterStart) {
+            log.warn("meterStop ({} Wh) is less than meterStart ({} Wh) for session {}. Assuming session-relative measurement.", 
+                    event.meterStop(), meterStart, session.getId());
+            energyWh = BigDecimal.valueOf(event.meterStop());
+        } else {
+            energyWh = BigDecimal.valueOf(event.meterStop() - meterStart);
+        }
+        
         BigDecimal totalKwh = energyWh.divide(BigDecimal.valueOf(1000), 4, RoundingMode.HALF_UP);
         session.setTotalKwh(totalKwh);
 

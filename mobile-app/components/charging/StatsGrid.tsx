@@ -20,22 +20,22 @@ const StatItem = ({ value, label, showBorderRight, showBorderBottom }: StatItemP
 );
 
 interface StatsGridProps {
-    time: string;
-    percentage: number;
-    current: number;
-    fees: number;
+    elapsedTime: string;
+    batteryPlaceholder: string;
+    chargingRatePerKwh: number;
+    estimatedCost: number;
 }
 
-export default function StatsGrid({ time, percentage, current, fees }: StatsGridProps) {
+export default function StatsGrid({ elapsedTime, batteryPlaceholder, chargingRatePerKwh, estimatedCost }: StatsGridProps) {
     return (
         <View className="bg-[#1A202C]/60 rounded-[32px] border border-white/5 overflow-hidden mx-4 mt-6">
             <View className="flex-row">
-                <StatItem value={time} label="Charging Time" showBorderRight showBorderBottom />
-                <StatItem value={`${percentage}%`} label="Battery" showBorderBottom />
+                <StatItem value={elapsedTime} label="Charging Time" showBorderRight showBorderBottom />
+                <StatItem value={batteryPlaceholder} label="Battery" showBorderBottom />
             </View>
             <View className="flex-row">
-                <StatItem value={`${current} Amp`} label="Current" showBorderRight />
-                <StatItem value={`$${fees.toFixed(2)}`} label="Total Fees" />
+                <StatItem value={`${chargingRatePerKwh.toLocaleString()} VND`} label="Rate" showBorderRight />
+                <StatItem value={`${estimatedCost.toLocaleString()} VND`} label="Total Fees" />
             </View>
         </View>
     );

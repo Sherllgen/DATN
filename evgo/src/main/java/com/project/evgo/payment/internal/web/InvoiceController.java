@@ -31,6 +31,18 @@ public class InvoiceController {
                 .build());
     }
 
+    @GetMapping("/session/{sessionId}")
+    @Operation(summary = "Get invoice by charging session ID", description = "Fetches the invoice associated with a specific charging session")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceByChargingSessionId(@PathVariable Long sessionId) {
+        InvoiceResponse response = invoiceService.findByChargingSessionId(sessionId);
+
+        return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(response)
+                .build());
+    }
+
     @PostMapping
     @Operation(summary = "Create invoice", description = "Creates a new invoice")
     public ResponseEntity<ApiResponse<Void>> createInvoice(@RequestBody InvoiceCreatedRequest request) {

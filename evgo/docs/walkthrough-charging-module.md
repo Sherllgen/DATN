@@ -10,7 +10,7 @@ The **Charging Module** is responsible for managing the full lifecycle of an EV 
 - ✅ **[NEW]** Send cross-domain loosely-coupled Application Events (`SendRemoteStartCommandEvent`, `SendRemoteStopCommandEvent`) that the `OCPP` module can listen to.
 - ✅ **[NEW]** `OcppChargingEventListener` — Sync charger state via OCPP callbacks:
   - Listen to `StartTransactionReceivedEvent` → update session to `CHARGING` with `transactionId` and `meterStart`.
-  - Listen to `StopTransactionReceivedEvent` → complete session, calculate `totalKwh`, publish `ChargingSessionCompletedEvent`.
+  - Listen to `StopTransactionReceivedEvent` → complete session, calculate `totalKwh` (defensive check for relative/absolute meter values to prevent negative metrics), publish `ChargingSessionCompletedEvent`.
   - Listen to `StatusNotificationReceivedEvent` → detect cable unplug (`Available`/`Finishing`), publish `CableUnpluggedEvent`.
 
 ## 3. Entity

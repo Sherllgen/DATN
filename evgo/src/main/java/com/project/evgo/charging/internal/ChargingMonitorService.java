@@ -191,7 +191,16 @@ public class ChargingMonitorService {
             // Calculate consumed energy
             Integer meterStart = session.getMeterStart() != null ? session.getMeterStart() : 0;
             Integer safeMeterValue = currentMeterValue != null ? currentMeterValue : meterStart;
-            BigDecimal consumedWh = BigDecimal.valueOf(safeMeterValue - meterStart);
+            
+            BigDecimal consumedWh;
+            if (safeMeterValue < meterStart) {
+                // Defensive check: If the reported meter value is less than the start meter,
+                // the charge point is likely sending session-relative measurements.
+                consumedWh = BigDecimal.valueOf(safeMeterValue);
+            } else {
+                consumedWh = BigDecimal.valueOf(safeMeterValue - meterStart);
+            }
+            
             BigDecimal consumedKwh = consumedWh.divide(BigDecimal.valueOf(1000), 4, RoundingMode.HALF_UP);
 
             // Read cached rate (resolved once at subscribe time) — zero DB queries here

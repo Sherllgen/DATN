@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, ScrollView, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import AppHeader from "@/components/ui/AppHeader";
 import GradientBackground from "@/components/ui/GradientBackground";
@@ -12,6 +12,7 @@ import { mockBookings } from "@/data/bookingData";
 
 export default function BookingDetailsScreen() {
     const { id } = useLocalSearchParams();
+    const router = useRouter();
 
     // Find booking data from mock list
     const booking = mockBookings.find(b => b.id === id) || mockBookings[0];
@@ -151,7 +152,18 @@ export default function BookingDetailsScreen() {
                 </ScrollView>
 
                 {/* Bottom Fixed Action */}
-                <View className="px-6 pt-6 pb-12">
+                <View className="px-6 pt-6 pb-12 gap-y-3">
+                    {isUpcoming && (
+                        <Button
+                            onPress={() => router.push({ pathname: '/charging', params: { portId: '1', bookingId: booking.id } })}
+                            className="w-full"
+                            textClassName="font-semibold text-base"
+                            style={{ height: 56 }}
+                            variant="primary"
+                        >
+                            Start Charging
+                        </Button>
+                    )}
                     <Button
                         onPress={() => console.log("Cancel Booking", booking.id)}
                         className="w-full"
