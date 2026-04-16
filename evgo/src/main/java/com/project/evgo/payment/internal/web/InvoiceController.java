@@ -4,6 +4,8 @@ import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
 import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
+import com.project.evgo.user.security.SecurityUtil;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +52,18 @@ public class InvoiceController {
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
+                .build());
+    }
+
+    @GetMapping("/unpaid/check")
+    @Operation(summary = "Check unpaid invoices", description = "Checks if the current user has any unpaid invoices")
+    public ResponseEntity<ApiResponse<Boolean>> checkUnpaidInvoices() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        boolean hasUnpaid = invoiceService.hasUnpaidInvoices(userId);
+        return ResponseEntity.ok(ApiResponse.<Boolean>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(hasUnpaid)
                 .build());
     }
 }
