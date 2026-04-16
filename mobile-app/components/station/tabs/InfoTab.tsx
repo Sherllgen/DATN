@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
 import { Station, StationStatus } from "@/types/station.types";
 import ChargerTypeTag from "@/components/station/ChargerTypeTag";
 import Button from "@/components/ui/Button";
+import { useUserStore } from "@/contexts/user.store";
 
 interface InfoTabProps {
     station: Station;
@@ -36,6 +37,16 @@ const formatTimeRange = (openTime: string | null, closeTime: string | null): str
 };
 
 const InfoTab = ({ station }: InfoTabProps) => {
+    const unpaidCount = useUserStore((state) => state.unpaidCount) || 0;
+
+    const handleBookPress = () => {
+        if (unpaidCount > 0) {
+            Alert.alert("Action Blocked", "Please settle your unpaid invoices before booking a slot.");
+            return;
+        }
+        router.push(`/booking/selectVehicle?stationId=${station.id}`);
+    };
+
     return (
         <View>
             {/* About Section */}
@@ -163,10 +174,9 @@ const InfoTab = ({ station }: InfoTabProps) => {
                 size="lg"
                 fullWidth
                 style={{ height: 52 }}
-                onPress={() => {
-                    router.push(`/booking/selectVehicle?stationId=${station.id}`);
-                }}
+                onPress={handleBookPress}
                 className="mb-4"
+                disabled={unpaidCount > 0}
             >
                 Book Now
             </Button>

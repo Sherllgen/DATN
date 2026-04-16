@@ -4,6 +4,8 @@ import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
 import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
+import com.project.evgo.user.security.SecurityUtil;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,18 @@ public class InvoiceController {
                 .build());
     }
 
+    @GetMapping("/session/{sessionId}")
+    @Operation(summary = "Get invoice by charging session ID", description = "Fetches the invoice associated with a specific charging session")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceByChargingSessionId(@PathVariable Long sessionId) {
+        InvoiceResponse response = invoiceService.findByChargingSessionId(sessionId);
+
+        return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(response)
+                .build());
+    }
+
     @PostMapping
     @Operation(summary = "Create invoice", description = "Creates a new invoice")
     public ResponseEntity<ApiResponse<Void>> createInvoice(@RequestBody InvoiceCreatedRequest request) {
@@ -38,6 +52,18 @@ public class InvoiceController {
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
+                .build());
+    }
+
+    @GetMapping("/unpaid/check")
+    @Operation(summary = "Check unpaid invoices", description = "Checks if the current user has any unpaid invoices")
+    public ResponseEntity<ApiResponse<Boolean>> checkUnpaidInvoices() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        boolean hasUnpaid = invoiceService.hasUnpaidInvoices(userId);
+        return ResponseEntity.ok(ApiResponse.<Boolean>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(hasUnpaid)
                 .build());
     }
 }

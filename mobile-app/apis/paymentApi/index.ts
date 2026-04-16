@@ -46,3 +46,16 @@ export const getInvoiceByBookingId = async (bookingId: number): Promise<InvoiceR
     return res.data.data;
 };
 
+export const getInvoiceByChargingSessionId = async (sessionId: number): Promise<InvoiceResponse> => {
+    const res = await axiosInstance.get<ApiResponse<InvoiceResponse>>(
+        `${API_BACKEND_URL}/api/v1/invoices/session/${sessionId}`
+    );
+    return res.data.data;
+};
+
+export const checkUnpaidInvoices = async (): Promise<boolean> => {
+    const res = await axiosInstance.get<ApiResponse<boolean>>(
+        `${API_BACKEND_URL}/api/v1/invoices/unpaid/check`
+    );
+    return res.data.data;
+};

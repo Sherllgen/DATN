@@ -16,7 +16,7 @@ Tài liệu này cung cấp cái nhìn tổng quan về các module backend đã
 | **Payment** | ✅ Implemented | Thanh toán ZaloPay (App-to-App, Webhooks) | [walkthrough-payment-module.md](walkthrough-payment-module.md) |
 | **Shared Kernel** | ✅ Implemented | DTOs, Enums, Exceptions, Infra | [walkthrough-sharedkernel-module.md](walkthrough-sharedkernel-module.md) |
 | **Booking** | ✅ Implemented | Đặt lịch sạc, lấy config và metadata | [walkthrough-booking-module.md](walkthrough-booking-module.md) |
-| **Charging** | 🔲 Skeleton | Quản lý phiên sạc | *Coming soon* |
+| **Charging** | ✅ Implemented | Quản lý phiên sạc | [walkthrough-charging-module.md](walkthrough-charging-module.md) |
 | **Review** | ✅ Implemented | Đánh giá trạm sạc | [walkthrough-review-module.md](walkthrough-review-module.md) |
 | **Complaint** | 🔲 Skeleton | Khiếu nại | *Coming soon* |
 
@@ -44,7 +44,7 @@ flowchart TB
         Payment["Payment Module"]
         Booking["Booking Module"]
         Review["Review Module"]
-        Charging["Charging Module 🔲"]
+        Charging["Charging Module"]
     end
 
     subgraph Shared["Shared"]
@@ -381,5 +381,4 @@ Sau khi chạy server, truy cập Swagger UI:
 
 Các module sau đang ở trạng thái skeleton và sẽ được implement:
 
-1. **Booking Module** - Đặt lịch sạc xe
-2. **Charging Module** - Quản lý phiên sạc
+1. **Complaint Module** - Giải quyết khiếu nại

@@ -100,15 +100,17 @@ CREATE TABLE public.charging_sessions (
     id bigint NOT NULL,
     created_at timestamp(6) without time zone,
     end_time timestamp(6) without time zone,
-    energy_consumed numeric(10,2),
-    percentage_end integer,
-    percentage_start integer,
+    total_kwh numeric(10,4),
+    booking_id bigint,
+    invoice_id bigint,
+    transaction_id integer,
+    meter_start integer,
     port_id bigint NOT NULL,
     start_time timestamp(6) without time zone,
     status character varying(255) NOT NULL,
     updated_at timestamp(6) without time zone,
     user_id bigint NOT NULL,
-    CONSTRAINT charging_sessions_status_check CHECK (((status)::text = ANY ((ARRAY['STARTED'::character varying, 'CHARGING'::character varying, 'COMPLETED'::character varying, 'INTERRUPTED'::character varying])::text[])))
+    CONSTRAINT charging_sessions_status_check CHECK (((status)::text = ANY ((ARRAY['PREPARING'::character varying, 'CHARGING'::character varying, 'SUSPENDED_EV'::character varying, 'SUSPENDED_EVSE'::character varying, 'FINISHING'::character varying, 'COMPLETED'::character varying, 'FAULTED'::character varying, 'INTERRUPTED'::character varying])::text[])))
 );
 
 

@@ -2,5 +2,6 @@ package com.project.evgo.sharedkernel.enums;
 
 public enum InvoicePurpose {
     CHARGING_SESSION,
-    BOOKING;
+    BOOKING,
+    IDLE_FEE;
 }

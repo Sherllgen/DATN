@@ -1,5 +1,7 @@
 package com.project.evgo.charging;
 
+import com.project.evgo.charging.request.StartChargingRequest;
+import com.project.evgo.charging.request.StopChargingRequest;
 import com.project.evgo.charging.response.ChargingSessionResponse;
 
 import java.util.List;
@@ -16,4 +18,8 @@ public interface ChargingService {
     // Optional<ChargingSessionResponse> findByBookingId(Long bookingId);
 
     List<ChargingSessionResponse> findByUserId(Long userId);
+
+    ChargingSessionResponse startCharging(StartChargingRequest request, Long userId);
+
+    void stopCharging(StopChargingRequest request, Long userId);
 }
