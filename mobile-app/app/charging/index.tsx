@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, ActivityIndicator } from "react-native";
+import { View, ScrollView, ActivityIndicator, Alert, BackHandler } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Toast } from "toastify-react-native";
@@ -92,23 +92,67 @@ export default function ChargingPage() {
 
     // Handle session end
     useEffect(() => {
-        if (isSessionEnded || activeSession?.status === ChargingSessionStatus.COMPLETED) {
+        if (activeSession?.status === ChargingSessionStatus.FAULTED) {
+            Alert.alert(
+                "Charging Failed",
+                "The charging session encountered an error and was terminated.",
+                [{ text: "OK", onPress: () => {
+                    clearSession();
+                    router.replace("/");
+                }}]
+            );
+        } else if (isSessionEnded || activeSession?.status === ChargingSessionStatus.COMPLETED) {
             setShowCompleteModal(true);
         }
     }, [isSessionEnded, activeSession?.status]);
 
+    // Handle hardware back button
+    useEffect(() => {
+        const onBackPress = () => {
+            if (activeSession && activeSession.status !== ChargingSessionStatus.COMPLETED && !isSessionEnded) {
+                Alert.alert(
+                    "Warning",
+                    "Please stop the charging session before leaving this page.",
+                    [{ text: "OK" }]
+                );
+                return true; // Prevent default behavior
+            }
+            return false; // Allow default behavior
+        };
+
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+        return () => {
+            subscription.remove();
+        };
+    }, [activeSession?.status, isSessionEnded]);
+
     const handleStop = async () => {
         if (!activeSession?.id) return;
-        
-        try {
-            setIsStopping(true);
-            await stopCharging({ sessionId: activeSession.id });
-            // State isStopping remains true to indicate we're waiting for the station to fully stop and invoice to be generated.
-        } catch (err: any) {
-            console.error("Failed to stop charging:", err);
-            Toast.error(err?.response?.data?.message || "Failed to stop charging");
-            setIsStopping(false);
-        }
+
+        Alert.alert(
+            "Stop Charging?",
+            "This action will terminate your current session and generate an invoice. Do you want to proceed?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Stop",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setIsStopping(true);
+                            await stopCharging({ sessionId: activeSession.id! });
+                            // State isStopping remains true to indicate we're waiting for the station to fully stop and invoice to be generated.
+                        } catch (err: unknown) {
+                            console.error("Failed to stop charging:", err);
+                            const error = err as any;
+                            Toast.error(error?.response?.data?.message || "Failed to stop charging");
+                            setIsStopping(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     // Robust Polling mechanism to detect actual stop and invoice generated

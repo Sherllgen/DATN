@@ -53,3 +53,9 @@ export const getInvoiceByChargingSessionId = async (sessionId: number): Promise<
     return res.data.data;
 };
 
+export const checkUnpaidInvoices = async (): Promise<boolean> => {
+    const res = await axiosInstance.get<ApiResponse<boolean>>(
+        `${API_BACKEND_URL}/api/v1/invoices/unpaid/check`
+    );
+    return res.data.data;
+};

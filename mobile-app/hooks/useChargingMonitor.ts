@@ -29,61 +29,93 @@ export const useChargingMonitor = (sessionId: number | null): UseChargingMonitor
         setError(null);
         setMonitorData(null);
 
-        const accessToken = useAuthStore.getState().accessToken;
-        const url = `${API_BACKEND_URL}/api/v1/charging/sessions/${sessionId}/monitor-stream`;
-
         let eventSource: EventSource<"meter-update" | "session-ended"> | null = null;
+        let retryCount = 0;
+        const MAX_RETRIES = 10;
+        const BASE_DELAY = 2000;
+        let isUnmounted = false;
 
-        try {
-            eventSource = new EventSource<"meter-update" | "session-ended">(url, {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            });
+        const connect = () => {
+            if (isUnmounted || isSessionEnded) return;
 
-            eventSource.addEventListener("open", () => {
-                setIsConnected(true);
-                setError(null);
-            });
+            const accessToken = useAuthStore.getState().accessToken;
+            const url = `${API_BACKEND_URL}/api/v1/charging/sessions/${sessionId}/monitor-stream`;
 
-            eventSource.addEventListener("meter-update", (event: any) => {
-                if (event.data) {
-                    try {
-                        const data: ChargingMonitorData = JSON.parse(event.data);
-                        setMonitorData(data);
-                    } catch (err) {
-                        console.error("Failed to parse meter-update event", err);
-                    }
-                }
-            });
-
-            eventSource.addEventListener("session-ended", (event: any) => {
-                if (event.data) {
-                    try {
-                        const data: ChargingMonitorData = JSON.parse(event.data);
-                        setMonitorData(data);
-                    } catch (err) {
-                        console.error("Failed to parse session-ended event", err);
-                    }
-                }
-                setIsSessionEnded(true);
+            try {
                 if (eventSource) {
                     eventSource.close();
                 }
-            });
 
-            eventSource.addEventListener("error", (event: any) => {
-                console.error("SSE Error:", event);
-                setError("Failed to connect to charging monitor stream.");
-                setIsConnected(false);
-            });
+                eventSource = new EventSource<"meter-update" | "session-ended">(url, {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
+                    }
+                });
 
-        } catch (err) {
-            console.error("Failed to initialize SSE", err);
-            setError("Failed to initialize charging monitor stream.");
-        }
+                eventSource.addEventListener("open", () => {
+                    setIsConnected(true);
+                    setError(null);
+                    retryCount = 0; // Reset on successful connection
+                });
+
+                eventSource.addEventListener("meter-update", (event) => {
+                    if (event.data) {
+                        try {
+                            const data: ChargingMonitorData = JSON.parse(event.data);
+                            setMonitorData(data);
+                        } catch (err) {
+                            console.error("Failed to parse meter-update event", err);
+                        }
+                    }
+                });
+
+                eventSource.addEventListener("session-ended", (event) => {
+                    if (event.data) {
+                        try {
+                            const data: ChargingMonitorData = JSON.parse(event.data);
+                            setMonitorData(data);
+                        } catch (err) {
+                            console.error("Failed to parse session-ended event", err);
+                        }
+                    }
+                    setIsSessionEnded(true);
+                    if (eventSource) {
+                        eventSource.close();
+                    }
+                });
+
+                eventSource.addEventListener("error", (event) => {
+                    console.error("SSE Error:", event);
+                    setIsConnected(false);
+
+                    // Stop built-in reconnect to avoid using a stale token
+                    if (eventSource) {
+                        eventSource.close();
+                    }
+
+                    if (retryCount < MAX_RETRIES) {
+                        const delay = BASE_DELAY * Math.pow(2, retryCount);
+                        retryCount++;
+                        setTimeout(() => {
+                            if (!isUnmounted && !isSessionEnded) {
+                                connect();
+                            }
+                        }, delay);
+                    } else {
+                        setError("Connection lost. Please go back and re-open the charging screen.");
+                    }
+                });
+
+            } catch (err) {
+                console.error("Failed to initialize SSE", err);
+                setError("Failed to initialize charging monitor stream.");
+            }
+        };
+
+        connect();
 
         return () => {
+            isUnmounted = true;
             if (eventSource) {
                 eventSource.close();
             }
