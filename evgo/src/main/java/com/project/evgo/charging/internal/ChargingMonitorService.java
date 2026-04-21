@@ -160,7 +160,8 @@ public class ChargingMonitorService {
      * @param currentMeterValue the current meter reading in Wh from the charge point
      * @param timestamp         the timestamp of the meter sample
      */
-    public void pushUpdate(Long sessionId, Integer currentMeterValue, LocalDateTime timestamp) {
+    public void pushUpdate(ChargingSession session, Integer currentMeterValue, LocalDateTime timestamp) {
+        Long sessionId = session.getId();
         SseEmitter emitter = emitters.get(sessionId);
         if (emitter == null) {
             log.debug("No SSE subscriber for sessionId={}. Skipping push.", sessionId);
@@ -168,15 +169,6 @@ public class ChargingMonitorService {
         }
 
         try {
-            // Fetch session from DB
-            Optional<ChargingSession> optionalSession = sessionRepository.findById(sessionId);
-            if (optionalSession.isEmpty()) {
-                log.warn("Session {} not found in DB. Completing SSE emitter.", sessionId);
-                completeEmitter(sessionId, emitter);
-                return;
-            }
-
-            ChargingSession session = optionalSession.get();
 
             // If session is no longer active, send final status and complete
             if (session.getStatus() != ChargingSessionStatus.CHARGING

@@ -18,7 +18,6 @@ import { getMyChargingSessions } from "@/apis/chargingApi";
 import { ChargingSessionStatus, ChargingSessionResponse } from "@/types/charging.types";
 import ChargingInfoCard from "@/components/home/ChargingInfoCard";
 import HistoryItem from "@/components/home/HistoryItem";
-import { mockChargingInfo } from "@/data/homeData"; // keeping mock data only as fallback
 import ActiveChargingNotification from "@/components/home/ActiveChargingNotification";
 import { Ionicons } from "@expo/vector-icons";
 import DebtBanner from "@/components/home/DebtBanner";
@@ -249,17 +248,26 @@ export default function HomePage() {
                             </Text>
                             <View className="flex-row gap-3 mt-4">
                                 <ChargingInfoCard
-                                    label="Percentage"
-                                    value={85} // Mock percentage as it's not stored in ChargingSessionResponse currently
-                                    subValue="%"
-                                    iconName="battery-check"
+                                    label="Duration"
+                                    value={(() => {
+                                        if (lastSession?.startTime && lastSession?.endTime) {
+                                            const diff = new Date(lastSession.endTime).getTime() - new Date(lastSession.startTime).getTime();
+                                            const totalMins = Math.floor(diff / 60000);
+                                            const h = Math.floor(totalMins / 60);
+                                            const m = totalMins % 60;
+                                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                                        }
+                                        return "--";
+                                    })()}
+                                    iconName="timer-outline"
+                                    iconType="Ionicons"
                                     iconColor="#8B5CF6"
                                     bgColor="rgba(139, 92, 246, 0.1)"
                                     iconBgColor="rgba(139, 92, 246, 0.2)"
                                 />
                                 <ChargingInfoCard
                                     label="kWh"
-                                    value={lastSession?.totalKwh ?? mockChargingInfo.kwh}
+                                    value={lastSession?.totalKwh ?? 0}
                                     iconName="flash"
                                     iconColor="#F59E0B"
                                     bgColor="rgba(245, 158, 11, 0.1)"
@@ -267,7 +275,7 @@ export default function HomePage() {
                                 />
                                 <ChargingInfoCard
                                     label="Total"
-                                    value={lastSession ? 'Paid' : `${mockChargingInfo.currency}${mockChargingInfo.total.toFixed(2).replace('.', ',')}`}
+                                    value={lastSession ? 'Paid' : `--`}
                                     iconName="currency-usd"
                                     iconColor="#10B981"
                                     bgColor="rgba(16, 185, 129, 0.1)"
@@ -280,8 +288,11 @@ export default function HomePage() {
                         <View className="mt-8 mb-10">
                             <View className="flex-row items-center justify-between mb-4">
                                 <Text style={styles.h3}>History</Text>
-                                <TouchableOpacity onPress={() => console.log("See All")}>
-                                    <Text className="text-text-secondary text-sm">See All</Text>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    onPress={() => router.push("/charging/history" as any)}
+                                >
+                                    <Text className="text-secondary text-sm font-medium">See All</Text>
                                 </TouchableOpacity>
                             </View>
 
@@ -290,7 +301,7 @@ export default function HomePage() {
                                 nestedScrollEnabled={true}
                                 showsVerticalScrollIndicator={false}
                             >
-                                {recentSessions.length > 0 ? recentSessions.slice(0, 5).map((session) => {
+                                {recentSessions.length > 0 ? recentSessions.slice(0, 3).map((session) => {
                                     const dateObj = new Date(session.startTime || session.createdAt || 0);
                                     const dateStr = `${dateObj.getDate()} ${dateObj.toLocaleString('en-us', { month: 'short' })} ${dateObj.getFullYear()}`;
                                     

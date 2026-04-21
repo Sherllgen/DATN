@@ -190,6 +190,7 @@ export default function ChargingPage() {
 
     const handleDismissModal = () => {
         setShowCompleteModal(false);
+        useChargingStore.getState().clearMonitorData();
         clearSession();
         router.replace("/");
     };
