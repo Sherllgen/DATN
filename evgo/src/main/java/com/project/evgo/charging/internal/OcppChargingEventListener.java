@@ -273,6 +273,6 @@ public class OcppChargingEventListener {
                 event.meterValue(), sessionId, redisKey);
 
         // Push SSE update to subscribed client
-        chargingMonitorService.pushUpdate(sessionId, event.meterValue(), event.timestamp());
+        chargingMonitorService.pushUpdate(session, event.meterValue(), event.timestamp());
     }
 }

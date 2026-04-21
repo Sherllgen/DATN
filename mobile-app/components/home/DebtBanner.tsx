@@ -30,7 +30,7 @@ export default function DebtBanner({ isVisible, unpaidCount }: DebtBannerProps) 
             <TouchableOpacity 
                 activeOpacity={0.7}
                 className="bg-red-500/20 py-3 px-4 flex-row justify-between items-center border-t border-red-500/10"
-                onPress={() => router.push("/(tabs)/profile" as any)} // For now, redirecting to profile or you can handle specific invoice page
+                onPress={() => router.push("/(tabs)/payment" as any)}
             >
                 <Text className="text-red-400 font-semibold text-sm">Pay Now</Text>
                 <Feather name="chevron-right" color="#F87171" size={16} />

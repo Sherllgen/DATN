@@ -33,6 +33,7 @@ import com.project.evgo.sharedkernel.events.ChargingSessionCompletedEvent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -399,7 +400,7 @@ class OcppChargingEventListenerTest {
                 "evgo:charging:meter:10",
                 "3500",
                 Duration.ofHours(24));
-        verify(chargingMonitorService).pushUpdate(10L, 3500, timestamp);
+        verify(chargingMonitorService).pushUpdate(session, 3500, timestamp);
     }
 
     @Test
