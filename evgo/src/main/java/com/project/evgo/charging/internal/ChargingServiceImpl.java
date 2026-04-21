@@ -2,10 +2,14 @@ package com.project.evgo.charging.internal;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +26,7 @@ import com.project.evgo.charging.request.StartChargingRequest;
 import com.project.evgo.charging.request.StopChargingRequest;
 import com.project.evgo.charging.response.ChargingSessionResponse;
 import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.enums.PortStatus;
@@ -52,8 +57,35 @@ public class ChargingServiceImpl implements ChargingService {
     }
 
     @Override
+    @Deprecated
     public List<ChargingSessionResponse> findByUserId(Long userId) {
         return converter.convert(sessionRepository.findByUserId(userId));
+    }
+
+    /**
+     * Active-session statuses: PREPARING, CHARGING, SUSPENDED_EV, SUSPENDED_EVSE, FINISHING.
+     */
+    private static final Collection<ChargingSessionStatus> ACTIVE_STATUSES = List.of(
+            ChargingSessionStatus.PREPARING,
+            ChargingSessionStatus.CHARGING,
+            ChargingSessionStatus.SUSPENDED_EV,
+            ChargingSessionStatus.SUSPENDED_EVSE,
+            ChargingSessionStatus.FINISHING
+    );
+
+    @Override
+    public Optional<ChargingSessionResponse> findActiveSession(Long userId) {
+        return converter.convert(
+                sessionRepository.findFirstByUserIdAndStatusIn(userId, ACTIVE_STATUSES)
+        );
+    }
+
+    @Override
+    public PageResponse<ChargingSessionResponse> findSessionHistory(Long userId, ChargingSessionStatus status, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<ChargingSession> sessionPage = sessionRepository.findByUserIdAndStatus(userId, status, pageable);
+        Page<ChargingSessionResponse> responsePage = sessionPage.map(converter::convert);
+        return PageResponse.of(responsePage);
     }
 
     @Override
