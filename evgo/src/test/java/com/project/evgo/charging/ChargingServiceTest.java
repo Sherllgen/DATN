@@ -34,9 +34,15 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import com.project.evgo.sharedkernel.dto.PageResponse;
 
 @ExtendWith(MockitoExtension.class)
 class ChargingServiceTest {
@@ -348,5 +354,97 @@ class ChargingServiceTest {
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
 
         verify(redisTemplate).delete(eq("charging:start:" + userId + ":" + portId));
+    }
+
+    // ===== Tests for findActiveSession (C-2 optimization) =====
+
+    @Test
+    @DisplayName("findActiveSession returns session when active session exists")
+    void findActiveSession_ActiveExists_ReturnsSession() {
+        Long userId = 1L;
+        ChargingSession session = new ChargingSession();
+        session.setId(10L);
+        session.setUserId(userId);
+        session.setStatus(ChargingSessionStatus.CHARGING);
+
+        when(sessionRepository.findFirstByUserIdAndStatusIn(eq(userId), anyCollection()))
+                .thenReturn(Optional.of(session));
+
+        ChargingSessionResponse response = ChargingSessionResponse.builder().id(10L).build();
+        when(converter.convert(Optional.of(session))).thenReturn(Optional.of(response));
+
+        Optional<ChargingSessionResponse> result = service.findActiveSession(userId);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(10L);
+        verify(sessionRepository).findFirstByUserIdAndStatusIn(eq(userId), anyCollection());
+    }
+
+    @Test
+    @DisplayName("findActiveSession returns empty when no active session")
+    void findActiveSession_NoActive_ReturnsEmpty() {
+        Long userId = 1L;
+
+        when(sessionRepository.findFirstByUserIdAndStatusIn(eq(userId), anyCollection()))
+                .thenReturn(Optional.empty());
+        when(converter.convert(Optional.empty())).thenReturn(Optional.empty());
+
+        Optional<ChargingSessionResponse> result = service.findActiveSession(userId);
+
+        assertThat(result).isEmpty();
+    }
+
+    // ===== Tests for findSessionHistory (C-1 optimization) =====
+
+    @Test
+    @DisplayName("findSessionHistory returns paginated completed sessions")
+    void findSessionHistory_Completed_ReturnsPaginated() {
+        Long userId = 1L;
+        ChargingSession session1 = new ChargingSession();
+        session1.setId(10L);
+        session1.setStatus(ChargingSessionStatus.COMPLETED);
+        ChargingSession session2 = new ChargingSession();
+        session2.setId(11L);
+        session2.setStatus(ChargingSessionStatus.COMPLETED);
+
+        Page<ChargingSession> page = new org.springframework.data.domain.PageImpl<>(
+                java.util.List.of(session1, session2),
+                org.springframework.data.domain.PageRequest.of(0, 10),
+                2
+        );
+
+        when(sessionRepository.findByUserIdAndStatus(eq(userId), eq(ChargingSessionStatus.COMPLETED), any(Pageable.class)))
+                .thenReturn(page);
+
+        ChargingSessionResponse resp1 = ChargingSessionResponse.builder().id(10L).build();
+        ChargingSessionResponse resp2 = ChargingSessionResponse.builder().id(11L).build();
+        when(converter.convert(session1)).thenReturn(resp1);
+        when(converter.convert(session2)).thenReturn(resp2);
+
+        PageResponse<ChargingSessionResponse> result = service.findSessionHistory(userId, ChargingSessionStatus.COMPLETED, 0, 10);
+
+        assertThat(result.content()).hasSize(2);
+        assertThat(result.page()).isEqualTo(0);
+        assertThat(result.totalElements()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("findSessionHistory returns empty page when no sessions match")
+    void findSessionHistory_NoSessions_ReturnsEmptyPage() {
+        Long userId = 1L;
+
+        Page<ChargingSession> emptyPage = new org.springframework.data.domain.PageImpl<>(
+                java.util.List.of(),
+                org.springframework.data.domain.PageRequest.of(0, 10),
+                0
+        );
+
+        when(sessionRepository.findByUserIdAndStatus(eq(userId), eq(ChargingSessionStatus.COMPLETED), any(Pageable.class)))
+                .thenReturn(emptyPage);
+
+        PageResponse<ChargingSessionResponse> result = service.findSessionHistory(userId, ChargingSessionStatus.COMPLETED, 0, 10);
+
+        assertThat(result.content()).isEmpty();
+        assertThat(result.totalElements()).isEqualTo(0);
     }
 }
