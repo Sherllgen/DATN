@@ -14,7 +14,7 @@ import { useLocationPermission } from "@/hooks/useLocationPermission";
 import { useLocationStore } from "@/stores/locationStore";
 import { useUserStore } from "@/contexts/user.store";
 import { useChargingStore } from "@/stores/chargingStore";
-import { getMyChargingSessions } from "@/apis/chargingApi";
+import { getActiveChargingSession, getChargingSessionHistory } from "@/apis/chargingApi";
 import { ChargingSessionStatus, ChargingSessionResponse } from "@/types/charging.types";
 import ChargingInfoCard from "@/components/home/ChargingInfoCard";
 import HistoryItem from "@/components/home/HistoryItem";
@@ -41,34 +41,31 @@ export default function HomePage() {
         useCallback(() => {
             if (user?.id) {
                 // Fetch active session
-                getMyChargingSessions(Number(user.id))
-                    .then((sessions) => {
-                        const active = sessions.find(
-                            (s) =>
-                                s.status === ChargingSessionStatus.PREPARING ||
-                                s.status === ChargingSessionStatus.CHARGING ||
-                                s.status === ChargingSessionStatus.SUSPENDED_EV ||
-                                s.status === ChargingSessionStatus.SUSPENDED_EVSE ||
-                                s.status === ChargingSessionStatus.FINISHING
-                        );
+                getActiveChargingSession()
+                    .then((active) => {
                         if (active) {
                             setActiveSession(active);
                         } else {
                             setActiveSession(null);
                         }
+                    })
+                    .catch((err) => {
+                        console.log("Failed to fetch active session:", err);
+                    });
 
-                        // Get completed sessions for history
-                        const completedSessions = sessions
-                            .filter(s => s.status === ChargingSessionStatus.COMPLETED)
-                            .sort((a, b) => new Date(b.startTime || 0).getTime() - new Date(a.startTime || 0).getTime());
-                        
+                // Get completed sessions for history (first page, size 3)
+                getChargingSessionHistory("COMPLETED", 0, 3)
+                    .then((pageResponse) => {
+                        const completedSessions = pageResponse.content;
                         setRecentSessions(completedSessions);
                         if (completedSessions.length > 0) {
                             setLastSession(completedSessions[0]);
+                        } else {
+                            setLastSession(null);
                         }
                     })
                     .catch((err) => {
-                        console.log("Failed to fetch charging sessions:", err);
+                        console.log("Failed to fetch charging history:", err);
                     });
 
                 // Fetch debt state
@@ -301,7 +298,7 @@ export default function HomePage() {
                                 nestedScrollEnabled={true}
                                 showsVerticalScrollIndicator={false}
                             >
-                                {recentSessions.length > 0 ? recentSessions.slice(0, 3).map((session) => {
+                                {recentSessions.length > 0 ? recentSessions.map((session) => {
                                     const dateObj = new Date(session.startTime || session.createdAt || 0);
                                     const dateStr = `${dateObj.getDate()} ${dateObj.toLocaleString('en-us', { month: 'short' })} ${dateObj.getFullYear()}`;
                                     

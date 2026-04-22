@@ -1,0 +1,17 @@
+# =============================================================================
+# Development Profile — Overrides for local development
+# =============================================================================
+# Activate with: --spring.profiles.active=dev
+# or via environment variable: SPRING_PROFILES_ACTIVE=dev
+#
+# Enables SQL logging and formatting for debugging during development.
+# These are DISABLED by default in application.yaml to prevent I/O overhead
+# during high-concurrency SSE streaming in production.
+# =============================================================================
+
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
