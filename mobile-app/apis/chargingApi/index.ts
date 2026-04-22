@@ -1,5 +1,5 @@
 import axiosInstance from "@/utils/axiosInstance";
-import { ApiResponse } from "@/types/booking.types";
+import { ApiResponse, PageResponse } from "@/types/booking.types";
 import {
     StartChargingRequest,
     StopChargingRequest,
@@ -30,9 +30,26 @@ export const getChargingSession = async (id: number): Promise<ChargingSessionRes
     return res.data.data;
 };
 
-export const getMyChargingSessions = async (userId: number): Promise<ChargingSessionResponse[]> => {
-    const res = await axiosInstance.get<ApiResponse<ChargingSessionResponse[]>>(
-        `${API_BACKEND_URL}/api/v1/charging/user/${userId}`
+/**
+ * Get the currently active charging session (if any)
+ */
+export const getActiveChargingSession = async (): Promise<ChargingSessionResponse | null> => {
+    const res = await axiosInstance.get<ApiResponse<ChargingSessionResponse>>(
+        `${API_BACKEND_URL}/api/v1/charging/me/active`
+    );
+    return res.data.data;
+};
+
+/**
+ * Get paginated charging session history
+ */
+export const getChargingSessionHistory = async (
+    status: string = "COMPLETED",
+    page: number = 0,
+    size: number = 10
+): Promise<PageResponse<ChargingSessionResponse>> => {
+    const res = await axiosInstance.get<ApiResponse<PageResponse<ChargingSessionResponse>>>(
+        `${API_BACKEND_URL}/api/v1/charging/me/history?status=${status}&page=${page}&size=${size}`
     );
     return res.data.data;
 };

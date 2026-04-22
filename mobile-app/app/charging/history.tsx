@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import GradientBackground from "@/components/ui/GradientBackground";
 import AppHeader from "@/components/ui/AppHeader";
 import HistoryItem from "@/components/home/HistoryItem";
-import { getMyChargingSessions } from "@/apis/chargingApi";
+import { getChargingSessionHistory } from "@/apis/chargingApi";
 import { useUserStore } from "@/contexts/user.store";
 import { ChargingSessionStatus, ChargingSessionResponse } from "@/types/charging.types";
 
@@ -13,43 +13,49 @@ const PAGE_SIZE = 10;
 
 export default function ChargingHistoryPage() {
     const user = useUserStore((state) => state.user);
-    const [allSessions, setAllSessions] = useState<ChargingSessionResponse[]>([]);
     const [displayedSessions, setDisplayedSessions] = useState<ChargingSessionResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+
+    const fetchSessions = async (pageNumber: number, isLoadMore = false) => {
+        if (!user?.id) return;
+        try {
+            if (isLoadMore) {
+                setLoadingMore(true);
+            } else {
+                setLoading(true);
+            }
+            
+            const response = await getChargingSessionHistory("COMPLETED", pageNumber, PAGE_SIZE);
+            const completed = response.content;
+            
+            if (isLoadMore) {
+                setDisplayedSessions(prev => [...prev, ...completed]);
+            } else {
+                setDisplayedSessions(completed);
+            }
+            
+            setHasMore(!response.last);
+            setPage(pageNumber);
+        } catch (err) {
+            console.error("Failed to fetch charging history:", err);
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchSessions = async () => {
-            if (!user?.id) return;
-            try {
-                setLoading(true);
-                const sessions = await getMyChargingSessions(Number(user.id));
-                const completed = sessions
-                    .filter((s) => s.status === ChargingSessionStatus.COMPLETED)
-                    .sort(
-                        (a, b) =>
-                            new Date(b.startTime || 0).getTime() -
-                            new Date(a.startTime || 0).getTime()
-                    );
-                setAllSessions(completed);
-                setDisplayedSessions(completed.slice(0, PAGE_SIZE));
-            } catch (err) {
-                console.error("Failed to fetch charging history:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSessions();
+        fetchSessions(0);
     }, [user?.id]);
 
     const loadMore = useCallback(() => {
-        const nextPage = page + 1;
-        const nextSlice = allSessions.slice(0, nextPage * PAGE_SIZE);
-        if (nextSlice.length > displayedSessions.length) {
-            setDisplayedSessions(nextSlice);
-            setPage(nextPage);
+        if (!loadingMore && hasMore) {
+            fetchSessions(page + 1, true);
         }
-    }, [page, allSessions, displayedSessions]);
+    }, [page, hasMore, loadingMore]);
 
     const renderItem = useCallback(
         ({ item }: { item: ChargingSessionResponse }) => {
@@ -80,7 +86,7 @@ export default function ChargingHistoryPage() {
         []
     );
 
-    const hasMore = displayedSessions.length < allSessions.length;
+
 
     return (
         <GradientBackground preset="main" dismissKeyboard={false}>

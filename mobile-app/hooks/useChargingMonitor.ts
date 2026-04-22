@@ -101,12 +101,14 @@ export const useChargingMonitor = (sessionId: number | null): UseChargingMonitor
 
                     if (retryCount < MAX_RETRIES) {
                         const delay = BASE_DELAY * Math.pow(2, retryCount);
+                        const jitter = Math.random() * 1000; // Add up to 1000ms jitter
+                        const totalDelay = delay + jitter;
                         retryCount++;
                         setTimeout(() => {
                             if (!isUnmounted && !isSessionEnded) {
                                 connect();
                             }
-                        }, delay);
+                        }, totalDelay);
                     } else {
                         setError("Connection lost. Please go back and re-open the charging screen.");
                     }
