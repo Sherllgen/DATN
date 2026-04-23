@@ -35,7 +35,7 @@ public class Vehicle {
     @Column(name = "model_name", nullable = false)
     private String modelName;
 
-    @ElementCollection(targetClass = ConnectorType.class)
+    @ElementCollection(targetClass = ConnectorType.class, fetch = FetchType.EAGER)
     @CollectionTable(name = "vehicle_connector_types", joinColumns = @JoinColumn(name = "vehicle_id"))
     @Enumerated(EnumType.STRING)
     @Column(name = "connector_type")

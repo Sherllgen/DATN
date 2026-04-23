@@ -20,6 +20,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PriceSettingServiceImpl implements PriceSettingService {
 
     private static final int DEFAULT_GRACE_PERIOD_MINUTES = 30;
