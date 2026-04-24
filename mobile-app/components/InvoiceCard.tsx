@@ -44,7 +44,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({ invoice, onPayAction }
                 </View>
                 <View className="items-end">
                     <Text className="text-white/60 text-xs mb-1">Amount</Text>
-                    <Text className="text-primary font-bold text-xl">
+                    <Text className="text-slate-200 font-bold text-xl">
                         {invoice.totalCost.toLocaleString('vi-VN')} ₫
                     </Text>
                 </View>

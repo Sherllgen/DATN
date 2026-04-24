@@ -97,7 +97,7 @@ export default function ChargingHistoryPage() {
                     <View className="flex-1 items-center justify-center">
                         <ActivityIndicator color="#00A452" size="large" />
                     </View>
-                ) : allSessions.length === 0 ? (
+                ) : displayedSessions.length === 0 ? (
                     <View className="flex-1 items-center justify-center px-6">
                         <Text className="text-white/50 text-base text-center">
                             No charging history yet.{"\n"}Your completed sessions will appear here.

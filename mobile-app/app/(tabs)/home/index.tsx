@@ -22,6 +22,7 @@ import ActiveChargingNotification from "@/components/home/ActiveChargingNotifica
 import { Ionicons } from "@expo/vector-icons";
 import DebtBanner from "@/components/home/DebtBanner";
 import * as paymentApi from "@/apis/paymentApi";
+import * as invoiceApi from "@/apis/invoiceApi";
 
 export default function HomePage() {
     const locationPerm = useLocationPermission(true); // Auto-check on mount
@@ -31,6 +32,7 @@ export default function HomePage() {
     const [loading, setLoading] = useState(false);
     const [recentSessions, setRecentSessions] = useState<ChargingSessionResponse[]>([]);
     const [lastSession, setLastSession] = useState<ChargingSessionResponse | null>(null);
+    const [lastSessionCost, setLastSessionCost] = useState<number | null>(null);
 
     const user = useUserStore((state) => state.user);
     const unpaidCount = useUserStore((state) => state.unpaidCount);
@@ -60,8 +62,15 @@ export default function HomePage() {
                         setRecentSessions(completedSessions);
                         if (completedSessions.length > 0) {
                             setLastSession(completedSessions[0]);
+                            invoiceApi.getInvoiceBySessionId(completedSessions[0].id)
+                                .then(inv => setLastSessionCost(inv.totalCost))
+                                .catch(err => {
+                                    console.log("Failed to fetch invoice for last session");
+                                    setLastSessionCost(null);
+                                });
                         } else {
                             setLastSession(null);
+                            setLastSessionCost(null);
                         }
                     })
                     .catch((err) => {
@@ -264,15 +273,15 @@ export default function HomePage() {
                                 />
                                 <ChargingInfoCard
                                     label="kWh"
-                                    value={lastSession?.totalKwh ?? 0}
+                                    value={lastSession?.totalKwh ? Number(lastSession.totalKwh).toFixed(2) : 0}
                                     iconName="flash"
                                     iconColor="#F59E0B"
                                     bgColor="rgba(245, 158, 11, 0.1)"
                                     iconBgColor="rgba(245, 158, 11, 0.2)"
                                 />
                                 <ChargingInfoCard
-                                    label="Total"
-                                    value={lastSession ? 'Paid' : `--`}
+                                    label="Total (VND)"
+                                    value={lastSessionCost != null ? `${Math.round(lastSessionCost).toLocaleString('vi-VN')}` : `--`}
                                     iconName="currency-usd"
                                     iconColor="#10B981"
                                     bgColor="rgba(16, 185, 129, 0.1)"
