@@ -39,7 +39,8 @@ public class SecurityConfig {
 			"/webjars/**",
 			"/api/v1/guests/**",
 			"/api/v1/zalopay/callback", // ZaloPay IPN webhook — MAC-verified internally
-			"/ocpp/**"
+			"/ocpp/**",
+			"/health/**"
 	};
 
 	@Bean
