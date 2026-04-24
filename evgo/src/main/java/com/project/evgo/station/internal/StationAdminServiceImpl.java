@@ -20,13 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class StationAdminServiceImpl implements StationAdminService {
 
     private final StationRepository stationRepository;
     private final StationDtoConverter converter;
 
     @Override
-    @Transactional(readOnly = true)
     public PageResponse<StationResponse> getAllStations(StationStatus status, Pageable pageable) {
         Page<Station> stationPage;
 
@@ -41,7 +41,6 @@ public class StationAdminServiceImpl implements StationAdminService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public StationResponse getStationById(Long stationId) {
         Station station = stationRepository.findByIdAndDeletedAtIsNull(stationId)
                 .orElseThrow(() -> new AppException(ErrorCode.STATION_NOT_FOUND));

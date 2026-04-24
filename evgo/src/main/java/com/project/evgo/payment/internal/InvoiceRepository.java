@@ -1,5 +1,7 @@
 package com.project.evgo.payment.internal;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 
@@ -18,4 +20,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByUserId(Long userId);
 
     boolean existsByUserIdAndStatus(Long userId, InvoiceStatus status);
+
+    Page<Invoice> findByUserIdAndStatus(Long userId, InvoiceStatus status, Pageable pageable);
 }

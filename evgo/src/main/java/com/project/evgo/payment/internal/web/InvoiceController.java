@@ -13,6 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.project.evgo.sharedkernel.dto.PageResponse;
+import com.project.evgo.sharedkernel.enums.InvoiceStatus;
+
 @RestController
 @RequestMapping("/api/v1/invoices")
 @RequiredArgsConstructor
@@ -64,6 +67,29 @@ public class InvoiceController {
                 .status(HttpStatus.OK.value())
                 .message("Success")
                 .data(hasUnpaid)
+                .build());
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Get my invoices", description = "Fetches a paginated list of invoices for the current user, filtered by status")
+    public ResponseEntity<ApiResponse<PageResponse<InvoiceResponse>>> getMyInvoices(
+            @RequestParam(defaultValue = "PENDING") String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        
+        InvoiceStatus invoiceStatus;
+        try {
+            invoiceStatus = InvoiceStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            invoiceStatus = InvoiceStatus.PENDING;
+        }
+
+        PageResponse<InvoiceResponse> result = invoiceService.getMyInvoices(userId, invoiceStatus, page, size);
+        return ResponseEntity.ok(ApiResponse.<PageResponse<InvoiceResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(result)
                 .build());
     }
 }
