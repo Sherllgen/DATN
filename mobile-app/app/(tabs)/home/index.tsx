@@ -2,7 +2,8 @@ import { StyleSheet, Text, TouchableOpacity, View, Image, ScrollView } from "rea
 import MapView, { UrlTile, Marker } from 'react-native-maps';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 
 import GradientBackground from "@/components/ui/GradientBackground";
 import LocationPermissionModal from "@/components/map/LocationPermissionModal";
@@ -11,12 +12,16 @@ import { searchNearbyStations } from "@/apis/stationApi/stationApi";
 import { StationSearchResult, StationStatus } from "@/types/station.types";
 import { useLocationPermission } from "@/hooks/useLocationPermission";
 import { useLocationStore } from "@/stores/locationStore";
+import { useUserStore } from "@/contexts/user.store";
+import { useChargingStore } from "@/stores/chargingStore";
+import { getActiveChargingSession, getChargingSessionHistory } from "@/apis/chargingApi";
+import { ChargingSessionStatus, ChargingSessionResponse } from "@/types/charging.types";
 import ChargingInfoCard from "@/components/home/ChargingInfoCard";
 import HistoryItem from "@/components/home/HistoryItem";
-import { mockChargingInfo, mockHistory } from "@/data/homeData";
-import { mockChargingProcessData } from "@/data/chargingData";
 import ActiveChargingNotification from "@/components/home/ActiveChargingNotification";
 import { Ionicons } from "@expo/vector-icons";
+import DebtBanner from "@/components/home/DebtBanner";
+import * as paymentApi from "@/apis/paymentApi";
 
 export default function HomePage() {
     const locationPerm = useLocationPermission(true); // Auto-check on mount
@@ -24,6 +29,56 @@ export default function HomePage() {
     const setGlobalLocation = useLocationStore((state) => state.setLocation);
     const [stations, setStations] = useState<StationSearchResult[]>([]);
     const [loading, setLoading] = useState(false);
+    const [recentSessions, setRecentSessions] = useState<ChargingSessionResponse[]>([]);
+    const [lastSession, setLastSession] = useState<ChargingSessionResponse | null>(null);
+
+    const user = useUserStore((state) => state.user);
+    const unpaidCount = useUserStore((state) => state.unpaidCount);
+    const setActiveSession = useChargingStore((state) => state.setActiveSession);
+
+    // Sync charging session state & debt state on screen focus
+    useFocusEffect(
+        useCallback(() => {
+            if (user?.id) {
+                // Fetch active session
+                getActiveChargingSession()
+                    .then((active) => {
+                        if (active) {
+                            setActiveSession(active);
+                        } else {
+                            setActiveSession(null);
+                        }
+                    })
+                    .catch((err) => {
+                        console.log("Failed to fetch active session:", err);
+                    });
+
+                // Get completed sessions for history (first page, size 3)
+                getChargingSessionHistory("COMPLETED", 0, 3)
+                    .then((pageResponse) => {
+                        const completedSessions = pageResponse.content;
+                        setRecentSessions(completedSessions);
+                        if (completedSessions.length > 0) {
+                            setLastSession(completedSessions[0]);
+                        } else {
+                            setLastSession(null);
+                        }
+                    })
+                    .catch((err) => {
+                        console.log("Failed to fetch charging history:", err);
+                    });
+
+                // Fetch debt state
+                paymentApi.checkUnpaidInvoices()
+                    .then((hasUnpaid: boolean) => {
+                        useUserStore.getState().setUnpaidCount(hasUnpaid ? 1 : 0);
+                    })
+                    .catch((err: any) => {
+                        console.log("Failed to fetch unpaid invoices:", err);
+                    });
+            }
+        }, [user?.id, setActiveSession])
+    );
 
     // Sync local location to global store
     useEffect(() => {
@@ -33,7 +88,7 @@ export default function HomePage() {
     }, [locationPerm.location]);
 
     // Watch for location changes and fetch nearby stations
-    // Use global location to ensure we get location from map screen too
+    // Use global location to ensure we get location from map screen too@index.tsx:current_problems 
     useEffect(() => {
         const currentLocation = locationPerm.location || globalLocation;
         if (currentLocation) {
@@ -86,6 +141,8 @@ export default function HomePage() {
                             <Ionicons name="notifications-outline" size={24} color="white" />
                         </TouchableOpacity>
                     </View>
+
+                    <DebtBanner isVisible={unpaidCount > 0} unpaidCount={unpaidCount} />
 
                     <View className="flex-1">
                         {/* Map Preview */}
@@ -188,17 +245,26 @@ export default function HomePage() {
                             </Text>
                             <View className="flex-row gap-3 mt-4">
                                 <ChargingInfoCard
-                                    label="Percentage"
-                                    value={mockChargingInfo.percentage}
-                                    subValue="%"
-                                    iconName="battery-check"
+                                    label="Duration"
+                                    value={(() => {
+                                        if (lastSession?.startTime && lastSession?.endTime) {
+                                            const diff = new Date(lastSession.endTime).getTime() - new Date(lastSession.startTime).getTime();
+                                            const totalMins = Math.floor(diff / 60000);
+                                            const h = Math.floor(totalMins / 60);
+                                            const m = totalMins % 60;
+                                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                                        }
+                                        return "--";
+                                    })()}
+                                    iconName="timer-outline"
+                                    iconType="Ionicons"
                                     iconColor="#8B5CF6"
                                     bgColor="rgba(139, 92, 246, 0.1)"
                                     iconBgColor="rgba(139, 92, 246, 0.2)"
                                 />
                                 <ChargingInfoCard
                                     label="kWh"
-                                    value={mockChargingInfo.kwh}
+                                    value={lastSession?.totalKwh ?? 0}
                                     iconName="flash"
                                     iconColor="#F59E0B"
                                     bgColor="rgba(245, 158, 11, 0.1)"
@@ -206,7 +272,7 @@ export default function HomePage() {
                                 />
                                 <ChargingInfoCard
                                     label="Total"
-                                    value={`${mockChargingInfo.currency}${mockChargingInfo.total.toFixed(2).replace('.', ',')}`}
+                                    value={lastSession ? 'Paid' : `--`}
                                     iconName="currency-usd"
                                     iconColor="#10B981"
                                     bgColor="rgba(16, 185, 129, 0.1)"
@@ -219,8 +285,11 @@ export default function HomePage() {
                         <View className="mt-8 mb-10">
                             <View className="flex-row items-center justify-between mb-4">
                                 <Text style={styles.h3}>History</Text>
-                                <TouchableOpacity onPress={() => console.log("See All")}>
-                                    <Text className="text-text-secondary text-sm">See All</Text>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    onPress={() => router.push("/charging/history" as any)}
+                                >
+                                    <Text className="text-secondary text-sm font-medium">See All</Text>
                                 </TouchableOpacity>
                             </View>
 
@@ -229,15 +298,32 @@ export default function HomePage() {
                                 nestedScrollEnabled={true}
                                 showsVerticalScrollIndicator={false}
                             >
-                                {mockHistory.map((item) => (
-                                    <HistoryItem
-                                        key={item.id}
-                                        date={item.date}
-                                        duration={item.duration}
-                                        energy={item.energy}
-                                        onPress={() => console.log("View history item", item.id)}
-                                    />
-                                ))}
+                                {recentSessions.length > 0 ? recentSessions.map((session) => {
+                                    const dateObj = new Date(session.startTime || session.createdAt || 0);
+                                    const dateStr = `${dateObj.getDate()} ${dateObj.toLocaleString('en-us', { month: 'short' })} ${dateObj.getFullYear()}`;
+                                    
+                                    // Calculate duration in minutes if possible
+                                    let duration = "0 min";
+                                    if (session.startTime && session.endTime) {
+                                        const diff = new Date(session.endTime).getTime() - new Date(session.startTime).getTime();
+                                        const mins = Math.floor(diff / 60000);
+                                        duration = `${mins} min`;
+                                    }
+
+                                    return (
+                                        <HistoryItem
+                                            key={session.id}
+                                            date={dateStr}
+                                            duration={duration}
+                                            energy={session.totalKwh || 0}
+                                            onPress={() => console.log("View session details", session.id)}
+                                        />
+                                    );
+                                }) : (
+                                    <View className="py-4 items-center">
+                                        <Text className="text-white/50 text-sm">No charging history yet</Text>
+                                    </View>
+                                )}
                             </ScrollView>
                         </View>
                     </View>
@@ -245,11 +331,9 @@ export default function HomePage() {
             </SafeAreaView>
 
             {/* Active Charging Notification */}
-            {mockChargingProcessData.status === "CHARGING" && (
-                <View className="absolute bottom-2 left-0 right-0">
-                    <ActiveChargingNotification data={mockChargingProcessData} />
-                </View>
-            )}
+            <View className="absolute bottom-2 left-0 right-0">
+                <ActiveChargingNotification />
+            </View>
 
             {/* Location Permission Modal */}
             <LocationPermissionModal

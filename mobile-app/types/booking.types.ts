@@ -4,6 +4,15 @@ export interface ApiResponse<T> {
     data: T;
 }
 
+export interface PageResponse<T> {
+    content: T[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    last: boolean;
+}
+
 export interface DurationConfigResponse {
     durations: number[]; // Array of hours e.g., [1.0, 1.5, 2.0]
 }

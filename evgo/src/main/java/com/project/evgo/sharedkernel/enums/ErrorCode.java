@@ -91,10 +91,15 @@ public enum ErrorCode {
     INVOICE_NOT_FOUND(10005, HttpStatus.NOT_FOUND, "Invoice not found"),
     INVOICE_ALREADY_PAID(10006, HttpStatus.CONFLICT, "Invoice has already been paid"),
     INVOICE_ALREADY_EXIST(10007, HttpStatus.CONFLICT, "Invoice already exist"),
+    UNPAID_INVOICE_EXISTS(10008, HttpStatus.FORBIDDEN, "User has unpaid invoices"),
 
-    // OCPP errors (11xxx)
+    // OCPP / Charging errors (11xxx)
     OCPP_INVALID_MESSAGE(11001, HttpStatus.BAD_REQUEST, "Invalid OCPP message format"),
     OCPP_CHARGE_POINT_NOT_CONNECTED(11002, HttpStatus.NOT_FOUND, "Charge point is not connected"),
+    SESSION_ALREADY_EXISTS(11003, HttpStatus.CONFLICT, "Charging session already in progress for this port"),
+    SESSION_NOT_FOUND(11004, HttpStatus.NOT_FOUND, "Charging session not found"),
+    SESSION_NOT_OWNED(11005, HttpStatus.FORBIDDEN, "You do not own this charging session"),
+    INVALID_SESSION_STATUS(11006, HttpStatus.BAD_REQUEST, "Charging session is not in a valid state"),
 
     // Review errors (12xxx)
     REVIEW_NOT_FOUND(12001, HttpStatus.NOT_FOUND, "Review not found"),

@@ -10,27 +10,32 @@ import java.util.Optional;
  * Converter for ChargingSession entity to DTO.
  */
 @Component
-public class ChargingDtoConverter {
+public class ChargingSessionDtoConverter {
 
-    public ChargingSessionResponse toResponse(ChargingSession session) {
+    public ChargingSessionResponse convert(ChargingSession session) {
         return ChargingSessionResponse.builder()
                 .id(session.getId())
                 .userId(session.getUserId())
+                .portId(session.getPortId())
+                .bookingId(session.getBookingId())
+                .invoiceId(session.getInvoiceId())
+                .transactionId(session.getTransactionId())
                 .startTime(session.getStartTime())
                 .endTime(session.getEndTime())
-                .energyConsumed(session.getEnergyConsumed())
+                .totalKwh(session.getTotalKwh())
                 .status(session.getStatus())
                 .createdAt(session.getCreatedAt())
+                .updatedAt(session.getUpdatedAt())
                 .build();
     }
 
-    public List<ChargingSessionResponse> toResponseList(List<ChargingSession> sessions) {
+    public List<ChargingSessionResponse> convert(List<ChargingSession> sessions) {
         return sessions.stream()
-                .map(this::toResponse)
+                .map(this::convert)
                 .toList();
     }
 
-    public Optional<ChargingSessionResponse> toResponse(Optional<ChargingSession> session) {
-        return session.map(this::toResponse);
+    public Optional<ChargingSessionResponse> convert(Optional<ChargingSession> session) {
+        return session.map(this::convert);
     }
 }

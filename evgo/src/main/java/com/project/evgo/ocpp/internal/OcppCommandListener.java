@@ -2,8 +2,10 @@ package com.project.evgo.ocpp.internal;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.project.evgo.booking.SendRemoteStopCommandEvent;
 import com.project.evgo.booking.SendReserveNowCommandEvent;
+import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
+import com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -43,8 +45,15 @@ public class OcppCommandListener {
      */
     @EventListener
     public void onRemoteStop(SendRemoteStopCommandEvent event) {
-        log.info("Received SendRemoteStopCommandEvent: chargePointId={}, transactionId={}, reason={}",
-                event.chargePointId(), event.transactionId(), event.reason());
+        log.info("Received SendRemoteStopCommandEvent: sessionId={}, chargePointId={}, transactionId={}, reason={}",
+                event.sessionId(), event.chargePointId(), event.transactionId(), event.reason());
+
+        if (event.transactionId() == null) {
+            log.warn("Cannot send RemoteStopTransaction: transactionId is null. " +
+                    "Session may still be PREPARING. chargePointId={}, sessionId={}",
+                    event.chargePointId(), event.sessionId());
+            return;
+        }
 
         WebSocketSession session = sessionManager.getSession(event.chargePointId());
         if (session == null || !session.isOpen()) {
@@ -124,4 +133,45 @@ public class OcppCommandListener {
                     event.chargePointId(), e.getMessage(), e);
         }
     }
+
+    /**
+     * Handles {@link com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent} from the Charging module.
+     * Sends a {@code RemoteStartTransaction.req} to the charge point.
+     * <p>
+     * Per OCPP 1.6 §6.5:
+     * <pre>{ "idTag": "&lt;string max20&gt;", "connectorId": &lt;int&gt; }</pre>
+     */
+    @EventListener
+    public void onChargingRemoteStart(SendRemoteStartCommandEvent event) {
+        log.info("Received charging.SendRemoteStartCommandEvent: sessionId={}, chargePointId={}, connectorId={}, idTag={}",
+                event.sessionId(), event.chargePointId(), event.connectorId(), event.idTag());
+
+        WebSocketSession session = sessionManager.getSession(event.chargePointId());
+        if (session == null || !session.isOpen()) {
+            log.error("Cannot send RemoteStartTransaction: no active session for chargePointId={}",
+                    event.chargePointId());
+            return;
+        }
+
+        try {
+            ObjectNode payload = objectMapper.createObjectNode();
+            payload.put("idTag", event.idTag());
+            if (event.connectorId() != null) {
+                payload.put("connectorId", event.connectorId());
+            }
+
+            String messageId = UUID.randomUUID().toString();
+            List<Object> callArray = List.of(2, messageId, "RemoteStartTransaction", payload);
+
+            String jsonString = objectMapper.writeValueAsString(callArray);
+            session.sendMessage(new TextMessage(jsonString));
+
+            log.info("Sent RemoteStartTransaction.req to CP {}: messageId={}, connectorId={}, idTag={}",
+                    event.chargePointId(), messageId, event.connectorId(), event.idTag());
+        } catch (IOException e) {
+            log.error("Failed to send RemoteStartTransaction to CP {}: {}",
+                    event.chargePointId(), e.getMessage(), e);
+        }
+    }
+
 }

@@ -10,6 +10,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { AppColors } from "@/constants/theme";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useUserStore } from "@/contexts/user.store";
+import { Alert } from "react-native";
 
 // Create the custom navigator
 const { Navigator } = createMaterialTopTabNavigator();
@@ -21,6 +23,16 @@ export default function TabLayout() {
     const insets = useSafeAreaInsets();
 
     const CenterTabButton = ({ onPress, isFocused }: { onPress?: () => void; isFocused: boolean }) => {
+        const unpaidCount = useUserStore((state) => state.unpaidCount) || 0;
+
+        const handlePress = () => {
+            if (unpaidCount > 0) {
+                Alert.alert("Action Blocked", "Please settle your unpaid invoices before starting a new charging session.");
+                return;
+            }
+            if (onPress) onPress();
+        };
+
         return (
             <View
                 style={{
@@ -30,7 +42,7 @@ export default function TabLayout() {
                 }}
             >
                 <Pressable
-                    onPress={onPress}
+                    onPress={handlePress}
                     style={[
                         {
                             width: 50,

@@ -6,6 +6,13 @@ import com.project.evgo.payment.request.ZaloPayOrderRequest;
 import com.project.evgo.payment.response.ZaloPayOrderResponse;
 import com.project.evgo.payment.response.ZaloPayStatusResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
+import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.payment.response.InvoiceResponse;
+import com.project.evgo.sharedkernel.enums.ErrorCode;
+import com.project.evgo.sharedkernel.enums.InvoiceStatus;
+import com.project.evgo.sharedkernel.exceptions.AppException;
+import com.project.evgo.user.security.SecurityUtil;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -38,6 +45,7 @@ import java.util.Map;
 public class ZaloPayController {
 
     private final ZaloPayService zaloPayService;
+    private final InvoiceService invoiceService;
 
     @PostMapping("/orders")
     @Operation(summary = "Create ZaloPay order", description = "Creates a ZaloPay Sandbox order and returns the App-to-App orderUrl and token.")
@@ -49,6 +57,36 @@ public class ZaloPayController {
                 .body(ApiResponse.<ZaloPayOrderResponse>builder()
                         .status(HttpStatus.CREATED.value())
                         .message("ZaloPay order created")
+                        .data(result)
+                        .build());
+    }
+
+    @PostMapping("/invoices/{id}/pay")
+    @Operation(summary = "Pay invoice via ZaloPay", description = "Creates a ZaloPay Sandbox order for a specific invoice and returns the App-to-App orderUrl and token.")
+    public ResponseEntity<ApiResponse<ZaloPayOrderResponse>> payInvoice(@PathVariable Long id) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        InvoiceResponse invoice = invoiceService.findById(id);
+
+        if (!invoice.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.INVOICE_NOT_FOUND);
+        }
+
+        if (invoice.getStatus() != InvoiceStatus.PENDING) {
+            throw new AppException(ErrorCode.INVOICE_ALREADY_PAID);
+        }
+
+        ZaloPayOrderRequest request = new ZaloPayOrderRequest(
+                invoice.getId(),
+                userId,
+                invoice.getTotalCost(),
+                "Thanh toan hoa don EV-Go " + invoice.getNumber()
+        );
+
+        ZaloPayOrderResponse result = zaloPayService.createOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.<ZaloPayOrderResponse>builder()
+                        .status(HttpStatus.CREATED.value())
+                        .message("ZaloPay order created for invoice")
                         .data(result)
                         .build());
     }
