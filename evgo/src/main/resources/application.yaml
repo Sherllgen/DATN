@@ -37,6 +37,7 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
+      ssl: ${REDIS_SSL:false} 
       timeout: 60000
       lettuce:
         pool:
