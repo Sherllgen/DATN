@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { View, Text, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Keyboard } from "react-native";
-import MapView, { Polyline } from "react-native-maps";
+import MapView, { Polyline, UrlTile } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -128,12 +128,17 @@ export default function MapScreen() {
                             key={`map-${mapLogic.mapKey}`}
                             ref={mapLogic.mapRef}
                             style={{ flex: 1 }}
-                            mapType="standard"
+                            mapType="none"
                             initialRegion={mapLogic.initialRegion}
                             onRegionChangeComplete={mapLogic.handleRegionChangeComplete}
                             showsUserLocation={true}
                             onPress={Keyboard.dismiss}
                         >
+                            <UrlTile
+                                urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                maximumZ={19}
+                                flipY={false}
+                            />
                             {/* Station Markers - Smart State */}
                             {markers}
 

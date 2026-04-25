@@ -179,7 +179,7 @@ export default function HomePage() {
                                 >
                                     <MapView
                                         style={{ flex: 1 }}
-                                        mapType="standard"
+                                        mapType="none"
                                         scrollEnabled={false}
                                         zoomEnabled={false}
                                         showsUserLocation={true} // Use default user location marker
@@ -190,13 +190,11 @@ export default function HomePage() {
                                             longitudeDelta: 0.05,
                                         }}
                                     >
-                                        {/* <UrlTile
-                                        urlTemplate="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
-                                        maximumZ={19}
-                                        flipY={false}
-                                        zIndex={1}
-                                        tileSize={256}
-                                    /> */}
+                                        <UrlTile
+                                            urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            maximumZ={19}
+                                            flipY={false}
+                                        />
 
                                         {/* User Location Marker - Removed to use default showsUserLocation */}
 
