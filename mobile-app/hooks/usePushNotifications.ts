@@ -12,7 +12,7 @@ Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true,
         shouldPlaySound: true,
-        shouldSetBadge: false,
+        shouldSetBadge: true,
         shouldShowBanner: true,
         shouldShowList: true,
     }),
@@ -32,11 +32,12 @@ export interface PushNotificationState {
 
 /**
  * Manages Expo Push Notifications end-to-end:
- * 1. Requests OS permission.
- * 2. Fetches the device's Expo Push Token.
- * 3. Registers the token with the EV-Go backend.
- * 4. Listens for foreground notifications.
- * 5. Listens for notification interactions (tap to open).
+ * 1. Sets up Android notification channel (required for Android 8+).
+ * 2. Requests OS permission.
+ * 3. Fetches the device's Expo Push Token.
+ * 4. Registers the token with the EV-Go backend.
+ * 5. Listens for foreground notifications.
+ * 6. Listens for notification interactions (tap to open).
  *
  * @param isAuthenticated - Pass `true` only when the user is logged in,
  *                          so the token is registered against the correct account.
@@ -48,6 +49,21 @@ export function usePushNotifications(isAuthenticated: boolean): PushNotification
     const notificationListener = useRef<Notifications.EventSubscription | null>(null);
     const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
+    // ── Android notification channel ─────────────────────────
+    useEffect(() => {
+        if (Platform.OS === "android") {
+            Notifications.setNotificationChannelAsync("default", {
+                name: "EV-Go Notifications",
+                importance: Notifications.AndroidImportance.MAX,
+                vibrationPattern: [0, 250, 250, 250],
+                lightColor: "#00A452",
+                sound: "default",
+            }).catch((err: unknown) =>
+                console.warn("[usePushNotifications] Failed to set Android notification channel:", err)
+            );
+        }
+    }, []);
+
     // ── Register & fetch token ──────────────────────────────
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -56,19 +72,19 @@ export function usePushNotifications(isAuthenticated: boolean): PushNotification
             .then((token) => {
                 if (!token) return;
                 setExpoPushToken(token);
-                
+
                 console.log('\n\n================================================');
                 console.log('🔔 YOUR EXPO PUSH TOKEN for testing:');
                 console.log(token);
                 console.log('================================================\n\n');
 
                 // Register with backend
-                const deviceType = Platform.OS === "ios" ? "ios" : "android";
-                registerPushTokenApi(token, deviceType).catch((err) =>
+                const deviceType: "ios" | "android" = Platform.OS === "ios" ? "ios" : "android";
+                registerPushTokenApi(token, deviceType).catch((err: unknown) =>
                     console.warn("[usePushNotifications] Failed to register token with backend:", err)
                 );
             })
-            .catch((err) =>
+            .catch((err: unknown) =>
                 console.warn("[usePushNotifications] Failed to get push token:", err)
             );
     }, [isAuthenticated]);
@@ -77,17 +93,24 @@ export function usePushNotifications(isAuthenticated: boolean): PushNotification
     useEffect(() => {
         notificationListener.current =
             Notifications.addNotificationReceivedListener((notif) => {
+                console.log(
+                    "[usePushNotifications] Foreground notification received:",
+                    notif.request.content.title,
+                    notif.request.content.body
+                );
                 setNotification(notif);
             });
 
         // Interaction listener (user taps a notification)
         responseListener.current =
             Notifications.addNotificationResponseReceivedListener((response) => {
+                const content = response.notification.request.content;
                 console.log(
                     "[usePushNotifications] Notification tapped:",
-                    response.notification.request.content
+                    content.title,
+                    content.body
                 );
-                // TODO: navigate to the relevant screen based on response data
+                // TODO: navigate to the relevant screen based on response.notification.request.content.data
             });
 
         return () => {
@@ -105,12 +128,21 @@ export function usePushNotifications(isAuthenticated: boolean): PushNotification
 
 /**
  * Requests OS permission for push notifications and returns the Expo Push Token.
- * Returns `null` if running on a simulator, permission is denied, or projectId is missing.
+ * Returns `null` if running on a simulator/emulator (iOS only — Android emulators
+ * support push notifications), permission is denied, or projectId is missing.
+ *
+ * NOTE: Push notifications do NOT work on iOS Simulators. Testing on iOS
+ * requires a physical device. Android Emulators with Google Play Services
+ * DO support push notifications.
  */
 async function registerForPushNotificationsAsync(): Promise<string | null> {
-    // Push notifications don't work on emulators/simulators
+    // Push notifications require a physical device on iOS.
+    // Android emulators with Google Play Services can receive push notifications.
     if (!Device.isDevice) {
-        console.warn("[usePushNotifications] Must use physical device for Push Notifications.");
+        console.warn(
+            "[usePushNotifications] Must use physical device for Push Notifications. " +
+            "(Android Emulators may work, but iOS Simulators will not.)"
+        );
         return null;
     }
 
@@ -141,7 +173,7 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
     try {
         const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
         return tokenData.data;
-    } catch (err) {
+    } catch (err: unknown) {
         console.error("[usePushNotifications] Error fetching Expo push token:", err);
         return null;
     }
