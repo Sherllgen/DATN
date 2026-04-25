@@ -24,7 +24,8 @@ import java.time.LocalDateTime;
 @Table(name = "charging_sessions", indexes = {
         @Index(name = "idx_session_port_status", columnList = "port_id, status"),
         @Index(name = "idx_session_transaction_id", columnList = "transaction_id"),
-        @Index(name = "idx_session_user_id", columnList = "user_id")
+        @Index(name = "idx_session_user_id", columnList = "user_id"),
+        @Index(name = "idx_session_user_status", columnList = "user_id, status")
 })
 public class ChargingSession {
 

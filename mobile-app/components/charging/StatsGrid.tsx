@@ -35,7 +35,7 @@ export default function StatsGrid({ elapsedTime, batteryPlaceholder, chargingRat
             </View>
             <View className="flex-row">
                 <StatItem value={`${chargingRatePerKwh.toLocaleString()} VND`} label="Rate" showBorderRight />
-                <StatItem value={`${estimatedCost.toLocaleString()} VND`} label="Total Fees" />
+                <StatItem value={`${estimatedCost.toLocaleString()} VND`} label="Estimated Fees" />
             </View>
         </View>
     );

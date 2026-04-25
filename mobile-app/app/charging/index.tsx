@@ -158,9 +158,19 @@ export default function ChargingPage() {
     // Robust Polling mechanism to detect actual stop and invoice generated
     useEffect(() => {
         let pollInterval: ReturnType<typeof setInterval>;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 30;
         
         if (isStopping && activeSession?.id) {
             pollInterval = setInterval(async () => {
+                attempts++;
+                if (attempts > MAX_ATTEMPTS) {
+                    clearInterval(pollInterval);
+                    setIsStopping(false);
+                    Toast.error("Request timed out. Please try again.");
+                    return;
+                }
+                
                 try {
                     const session = await getChargingSession(activeSession.id);
                     // Also check if status on backend became COMPLETED. 
@@ -190,6 +200,7 @@ export default function ChargingPage() {
 
     const handleDismissModal = () => {
         setShowCompleteModal(false);
+        useChargingStore.getState().clearMonitorData();
         clearSession();
         router.replace("/");
     };

@@ -1,13 +1,17 @@
 package com.project.evgo.charging.internal.web;
 
-import java.util.List;
-
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +24,8 @@ import com.project.evgo.charging.request.StartChargingRequest;
 import com.project.evgo.charging.request.StopChargingRequest;
 import com.project.evgo.charging.response.ChargingSessionResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
+import com.project.evgo.sharedkernel.dto.PageResponse;
+import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.user.security.SecurityUtil;
@@ -48,12 +54,45 @@ public class ChargingController {
                 .build());
     }
 
-    @GetMapping("/user/{userId}")
-    @Operation(summary = "Get charging sessions by user ID")
-    public ResponseEntity<ApiResponse<List<ChargingSessionResponse>>> getByUserId(
-            @PathVariable Long userId) {
-        List<ChargingSessionResponse> result = chargingService.findByUserId(userId);
-        return ResponseEntity.ok(ApiResponse.<List<ChargingSessionResponse>>builder()
+    /**
+     * Returns the currently active charging session for the authenticated user, if any.
+     * Looks for sessions in PREPARING, CHARGING, SUSPENDED_EV, SUSPENDED_EVSE, or FINISHING status.
+     * Returns null data if no active session exists.
+     */
+    @GetMapping("/me/active")
+    @Operation(summary = "Get the current user's active charging session")
+    public ResponseEntity<ApiResponse<ChargingSessionResponse>> getActiveSession() {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        ChargingSessionResponse result = chargingService.findActiveSession(currentUserId).orElse(null);
+        return ResponseEntity.ok(ApiResponse.<ChargingSessionResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(result)
+                .build());
+    }
+
+    /**
+     * Returns paginated charging session history for the authenticated user.
+     * Defaults to COMPLETED sessions, page 0, size 10.
+     */
+    @GetMapping("/me/history")
+    @Operation(summary = "Get the current user's charging session history (paginated)")
+    public ResponseEntity<ApiResponse<PageResponse<ChargingSessionResponse>>> getSessionHistory(
+            @RequestParam(defaultValue = "COMPLETED") String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+
+        ChargingSessionStatus sessionStatus;
+        try {
+            sessionStatus = ChargingSessionStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            sessionStatus = ChargingSessionStatus.COMPLETED;
+        }
+
+        PageResponse<ChargingSessionResponse> result = chargingService.findSessionHistory(
+                currentUserId, sessionStatus, page, size);
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ChargingSessionResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
                 .data(result)
@@ -101,3 +140,4 @@ public class ChargingController {
         return chargingMonitorService.subscribe(id, session.getPortId());
     }
 }
+

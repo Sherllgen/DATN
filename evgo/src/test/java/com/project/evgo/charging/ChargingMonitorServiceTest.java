@@ -23,6 +23,7 @@ import com.project.evgo.station.PriceSettingService;
 import com.project.evgo.station.response.PriceSettingResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 /**
@@ -145,7 +146,7 @@ class ChargingMonitorServiceTest {
         @DisplayName("Should silently skip when no subscriber exists")
         void pushUpdate_NoSubscriber_SkipsWithoutDbCall() {
             // No subscribe call → no emitter registered
-            monitorService.pushUpdate(1L, 3000, LocalDateTime.now());
+            monitorService.pushUpdate(chargingSession, 3000, LocalDateTime.now());
 
             // Should not throw, and no DB call needed
             verifyNoInteractions(sessionRepository);
@@ -158,47 +159,30 @@ class ChargingMonitorServiceTest {
             subscribeWithPricingMocks(1L, 10L);
 
             // Reset interaction counters to prove pushUpdate doesn't re-query
-            reset(chargerService, priceSettingService);
-
-            // Mock: session with meterStart=1000 Wh
-            when(sessionRepository.findById(1L)).thenReturn(Optional.of(chargingSession));
+            reset(chargerService, priceSettingService, sessionRepository);
 
             // Act: meter now at 3500 Wh → consumed = (3500-1000) / 1000 = 2.5 kWh
-            monitorService.pushUpdate(1L, 3500, LocalDateTime.now());
+            monitorService.pushUpdate(chargingSession, 3500, LocalDateTime.now());
 
-            // Verify: only session DB query, NO pricing queries (rate is cached)
-            verify(sessionRepository).findById(1L);
+            // Verify: NO session DB query, NO pricing queries (rate is cached)
+            verifyNoInteractions(sessionRepository);
             verifyNoInteractions(chargerService);
             verifyNoInteractions(priceSettingService);
         }
 
-        @Test
-        @DisplayName("Should handle session not found gracefully")
-        void pushUpdate_SessionNotFound_CompletesEmitter() {
-            subscribeWithPricingMocks(1L, 10L);
-            reset(chargerService, priceSettingService);
-
-            when(sessionRepository.findById(1L)).thenReturn(Optional.empty());
-
-            monitorService.pushUpdate(1L, 3000, LocalDateTime.now());
-
-            verify(sessionRepository).findById(1L);
-        }
 
         @Test
         @DisplayName("Should send final update using cached rate when session is FINISHING")
         void pushUpdate_SessionFinishing_SendsFinalUpdate() {
             subscribeWithPricingMocks(1L, 10L);
-            reset(chargerService, priceSettingService);
+            reset(chargerService, priceSettingService, sessionRepository);
 
             chargingSession.setStatus(ChargingSessionStatus.FINISHING);
             chargingSession.setTotalKwh(new BigDecimal("4.0000"));
-            when(sessionRepository.findById(1L)).thenReturn(Optional.of(chargingSession));
 
-            monitorService.pushUpdate(1L, 5000, LocalDateTime.now());
+            monitorService.pushUpdate(chargingSession, 5000, LocalDateTime.now());
 
-            // Verify: only session query, rate comes from cache
-            verify(sessionRepository).findById(1L);
+            verifyNoInteractions(sessionRepository);
             verifyNoInteractions(chargerService);
             verifyNoInteractions(priceSettingService);
         }
@@ -212,9 +196,8 @@ class ChargingMonitorServiceTest {
 
             // Reset and do a pushUpdate — should use the cached zero rate
             reset(chargerService, priceSettingService);
-            when(sessionRepository.findById(1L)).thenReturn(Optional.of(chargingSession));
 
-            monitorService.pushUpdate(1L, 3000, LocalDateTime.now());
+            monitorService.pushUpdate(chargingSession, 3000, LocalDateTime.now());
 
             verify(chargerService, never()).findPortById(anyLong());
             verifyNoInteractions(priceSettingService);
@@ -239,9 +222,8 @@ class ChargingMonitorServiceTest {
 
             // Reset and push an update — the cached zero rate should be used
             reset(chargerService, priceSettingService);
-            when(sessionRepository.findById(1L)).thenReturn(Optional.of(chargingSession));
 
-            monitorService.pushUpdate(1L, 3000, LocalDateTime.now());
+            monitorService.pushUpdate(chargingSession, 3000, LocalDateTime.now());
 
             // Verify: pricing chain NOT called again (zero was cached at subscribe time)
             verifyNoInteractions(chargerService);

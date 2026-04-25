@@ -14,15 +14,15 @@ import { useLocationPermission } from "@/hooks/useLocationPermission";
 import { useLocationStore } from "@/stores/locationStore";
 import { useUserStore } from "@/contexts/user.store";
 import { useChargingStore } from "@/stores/chargingStore";
-import { getMyChargingSessions } from "@/apis/chargingApi";
+import { getActiveChargingSession, getChargingSessionHistory } from "@/apis/chargingApi";
 import { ChargingSessionStatus, ChargingSessionResponse } from "@/types/charging.types";
 import ChargingInfoCard from "@/components/home/ChargingInfoCard";
 import HistoryItem from "@/components/home/HistoryItem";
-import { mockChargingInfo } from "@/data/homeData"; // keeping mock data only as fallback
 import ActiveChargingNotification from "@/components/home/ActiveChargingNotification";
 import { Ionicons } from "@expo/vector-icons";
 import DebtBanner from "@/components/home/DebtBanner";
 import * as paymentApi from "@/apis/paymentApi";
+import * as invoiceApi from "@/apis/invoiceApi";
 
 export default function HomePage() {
     const locationPerm = useLocationPermission(true); // Auto-check on mount
@@ -32,6 +32,7 @@ export default function HomePage() {
     const [loading, setLoading] = useState(false);
     const [recentSessions, setRecentSessions] = useState<ChargingSessionResponse[]>([]);
     const [lastSession, setLastSession] = useState<ChargingSessionResponse | null>(null);
+    const [lastSessionCost, setLastSessionCost] = useState<number | null>(null);
 
     const user = useUserStore((state) => state.user);
     const unpaidCount = useUserStore((state) => state.unpaidCount);
@@ -42,34 +43,38 @@ export default function HomePage() {
         useCallback(() => {
             if (user?.id) {
                 // Fetch active session
-                getMyChargingSessions(Number(user.id))
-                    .then((sessions) => {
-                        const active = sessions.find(
-                            (s) =>
-                                s.status === ChargingSessionStatus.PREPARING ||
-                                s.status === ChargingSessionStatus.CHARGING ||
-                                s.status === ChargingSessionStatus.SUSPENDED_EV ||
-                                s.status === ChargingSessionStatus.SUSPENDED_EVSE ||
-                                s.status === ChargingSessionStatus.FINISHING
-                        );
+                getActiveChargingSession()
+                    .then((active) => {
                         if (active) {
                             setActiveSession(active);
                         } else {
                             setActiveSession(null);
                         }
+                    })
+                    .catch((err) => {
+                        console.log("Failed to fetch active session:", err);
+                    });
 
-                        // Get completed sessions for history
-                        const completedSessions = sessions
-                            .filter(s => s.status === ChargingSessionStatus.COMPLETED)
-                            .sort((a, b) => new Date(b.startTime || 0).getTime() - new Date(a.startTime || 0).getTime());
-                        
+                // Get completed sessions for history (first page, size 3)
+                getChargingSessionHistory("COMPLETED", 0, 3)
+                    .then((pageResponse) => {
+                        const completedSessions = pageResponse.content;
                         setRecentSessions(completedSessions);
                         if (completedSessions.length > 0) {
                             setLastSession(completedSessions[0]);
+                            invoiceApi.getInvoiceBySessionId(completedSessions[0].id)
+                                .then(inv => setLastSessionCost(inv.totalCost))
+                                .catch(err => {
+                                    console.log("Failed to fetch invoice for last session");
+                                    setLastSessionCost(null);
+                                });
+                        } else {
+                            setLastSession(null);
+                            setLastSessionCost(null);
                         }
                     })
                     .catch((err) => {
-                        console.log("Failed to fetch charging sessions:", err);
+                        console.log("Failed to fetch charging history:", err);
                     });
 
                 // Fetch debt state
@@ -249,25 +254,34 @@ export default function HomePage() {
                             </Text>
                             <View className="flex-row gap-3 mt-4">
                                 <ChargingInfoCard
-                                    label="Percentage"
-                                    value={85} // Mock percentage as it's not stored in ChargingSessionResponse currently
-                                    subValue="%"
-                                    iconName="battery-check"
+                                    label="Duration"
+                                    value={(() => {
+                                        if (lastSession?.startTime && lastSession?.endTime) {
+                                            const diff = new Date(lastSession.endTime).getTime() - new Date(lastSession.startTime).getTime();
+                                            const totalMins = Math.floor(diff / 60000);
+                                            const h = Math.floor(totalMins / 60);
+                                            const m = totalMins % 60;
+                                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                                        }
+                                        return "--";
+                                    })()}
+                                    iconName="timer-outline"
+                                    iconType="Ionicons"
                                     iconColor="#8B5CF6"
                                     bgColor="rgba(139, 92, 246, 0.1)"
                                     iconBgColor="rgba(139, 92, 246, 0.2)"
                                 />
                                 <ChargingInfoCard
                                     label="kWh"
-                                    value={lastSession?.totalKwh ?? mockChargingInfo.kwh}
+                                    value={lastSession?.totalKwh ? Number(lastSession.totalKwh).toFixed(2) : 0}
                                     iconName="flash"
                                     iconColor="#F59E0B"
                                     bgColor="rgba(245, 158, 11, 0.1)"
                                     iconBgColor="rgba(245, 158, 11, 0.2)"
                                 />
                                 <ChargingInfoCard
-                                    label="Total"
-                                    value={lastSession ? 'Paid' : `${mockChargingInfo.currency}${mockChargingInfo.total.toFixed(2).replace('.', ',')}`}
+                                    label="Total (VND)"
+                                    value={lastSessionCost != null ? `${Math.round(lastSessionCost).toLocaleString('vi-VN')}` : `--`}
                                     iconName="currency-usd"
                                     iconColor="#10B981"
                                     bgColor="rgba(16, 185, 129, 0.1)"
@@ -280,8 +294,11 @@ export default function HomePage() {
                         <View className="mt-8 mb-10">
                             <View className="flex-row items-center justify-between mb-4">
                                 <Text style={styles.h3}>History</Text>
-                                <TouchableOpacity onPress={() => console.log("See All")}>
-                                    <Text className="text-text-secondary text-sm">See All</Text>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    onPress={() => router.push("/charging/history" as any)}
+                                >
+                                    <Text className="text-secondary text-sm font-medium">See All</Text>
                                 </TouchableOpacity>
                             </View>
 
@@ -290,7 +307,7 @@ export default function HomePage() {
                                 nestedScrollEnabled={true}
                                 showsVerticalScrollIndicator={false}
                             >
-                                {recentSessions.length > 0 ? recentSessions.slice(0, 5).map((session) => {
+                                {recentSessions.length > 0 ? recentSessions.map((session) => {
                                     const dateObj = new Date(session.startTime || session.createdAt || 0);
                                     const dateStr = `${dateObj.getDate()} ${dateObj.toLocaleString('en-us', { month: 'short' })} ${dateObj.getFullYear()}`;
                                     

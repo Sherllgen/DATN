@@ -95,7 +95,7 @@ const BookingCard = ({ booking, onCancel, onView, onPay }: BookingCardProps) => 
                 />
                 <BookingStatItem
                     label="Amount"
-                    value={`$${booking.totalPrice?.toFixed(2) || "0.00"}`}
+                    value={`₫${booking.totalPrice?.toFixed(2) || "0.00"}`}
                 />
             </View>
 

@@ -7,6 +7,10 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -35,6 +39,12 @@ import com.project.evgo.station.response.PriceSettingResponse;
  * cached rate instead of performing 3–4 DB queries (port → charger → station → priceSetting) per tick.
  * The cache entry is automatically evicted when the emitter completes, times out, or errors out.
  * <p>
+ * <b>SSE Keep-Alive — Heartbeat [M-3]:</b>
+ * A shared {@link ScheduledExecutorService} sends invisible SSE comment events ({@code :heartbeat})
+ * every {@value #HEARTBEAT_INTERVAL_SECONDS} seconds per subscribed session. This prevents intermediate
+ * infrastructure (ALB, Nginx, CDN proxies) from dropping idle connections during periods when the charge
+ * point is not sending MeterValues. Each heartbeat task is tracked per session and cancelled on cleanup.
+ * <p>
  * <b>Architectural Limitation — Horizontal Scaling [S-3]:</b>
  * Both the emitter registry ({@code emitters}) and the rate cache ({@code sessionRateCache}) are
  * JVM-local {@link ConcurrentHashMap} instances. This means that SSE connections are pinned to a single
@@ -47,9 +57,9 @@ import com.project.evgo.station.response.PriceSettingResponse;
  * <p>
  * Connection lifecycle:
  * <ul>
- *   <li>{@link #subscribe(Long, Long)} — resolves + caches rate, creates emitter, registers cleanup callbacks</li>
+ *   <li>{@link #subscribe(Long, Long)} — resolves + caches rate, creates emitter, starts heartbeat, registers cleanup callbacks</li>
  *   <li>{@link #pushUpdate(Long, Integer, LocalDateTime)} — calculates cost from cached rate and sends update</li>
- *   <li>Cleanup happens automatically via onCompletion/onTimeout/onError callbacks, which also evict the cached rate</li>
+ *   <li>Cleanup happens automatically via onCompletion/onTimeout/onError callbacks, which also evict the cached rate and cancel the heartbeat</li>
  * </ul>
  */
 @Service
@@ -59,6 +69,9 @@ public class ChargingMonitorService {
 
     /** SSE timeout: 30 minutes (in milliseconds). */
     private static final long SSE_TIMEOUT_MS = 30 * 60 * 1000L;
+
+    /** Heartbeat interval in seconds. Keeps SSE connections alive through proxies. */
+    private static final long HEARTBEAT_INTERVAL_SECONDS = 30;
 
     private final ChargingSessionRepository sessionRepository;
     private final ChargerService chargerService;
@@ -76,12 +89,34 @@ public class ChargingMonitorService {
     private final Map<Long, BigDecimal> sessionRateCache = new ConcurrentHashMap<>();
 
     /**
+     * Thread-safe registry: sessionId → scheduled heartbeat task.
+     * <p>
+     * Each entry is cancelled when the corresponding emitter is cleaned up,
+     * preventing thread leaks from orphaned scheduled tasks.
+     */
+    private final Map<Long, ScheduledFuture<?>> heartbeatTasks = new ConcurrentHashMap<>();
+
+    /**
+     * Shared single-thread scheduler for all SSE heartbeats.
+     * <p>
+     * Uses a single daemon thread to send lightweight comment events across all active sessions.
+     * A single thread is sufficient because sending an SSE comment is non-blocking I/O and
+     * completes in microseconds. The daemon flag ensures the thread does not prevent JVM shutdown.
+     */
+    private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "sse-heartbeat");
+        t.setDaemon(true);
+        return t;
+    });
+
+    /**
      * Subscribe to real-time updates for a charging session.
      * <p>
      * Resolves the charging rate per kWh ONCE by navigating
      * {@code portId → chargerId → stationId → activePriceSetting}, then caches the result
      * for the lifetime of this SSE connection. Creates an {@link SseEmitter} with a 30-minute
-     * timeout and registers cleanup callbacks that evict both the emitter and the cached rate.
+     * timeout, starts a periodic heartbeat, and registers cleanup callbacks that evict both
+     * the emitter, the cached rate, and cancel the heartbeat task.
      *
      * @param sessionId the charging session ID
      * @param portId    the port ID used to resolve the charging rate
@@ -106,23 +141,23 @@ public class ChargingMonitorService {
             }
         }
 
-        emitter.onCompletion(() -> {
+        // Start periodic heartbeat to keep the connection alive through proxies
+        startHeartbeat(sessionId);
+
+        // Cleanup callback: runs on normal completion, timeout, or error.
+        // Evicts the emitter, cached rate, and cancels the heartbeat task.
+        Runnable cleanup = () -> {
             emitters.remove(sessionId, emitter);
             sessionRateCache.remove(sessionId);
-            log.debug("SSE emitter completed for sessionId={}. Rate cache evicted.", sessionId);
-        });
+            cancelHeartbeat(sessionId);
+            log.debug("SSE emitter cleaned up for sessionId={}. Rate cache evicted, heartbeat cancelled.", sessionId);
+        };
 
-        emitter.onTimeout(() -> {
-            emitters.remove(sessionId, emitter);
-            sessionRateCache.remove(sessionId);
-            log.debug("SSE emitter timed out for sessionId={}. Rate cache evicted.", sessionId);
-        });
-
+        emitter.onCompletion(cleanup);
+        emitter.onTimeout(cleanup);
         emitter.onError((Throwable throwable) -> {
-            emitters.remove(sessionId, emitter);
-            sessionRateCache.remove(sessionId);
-            log.debug("SSE emitter error for sessionId={}: {}. Rate cache evicted.",
-                    sessionId, throwable.getMessage());
+            cleanup.run();
+            log.debug("SSE emitter error for sessionId={}: {}", sessionId, throwable.getMessage());
         });
 
         log.info("SSE client subscribed to sessionId={}", sessionId);
@@ -160,7 +195,8 @@ public class ChargingMonitorService {
      * @param currentMeterValue the current meter reading in Wh from the charge point
      * @param timestamp         the timestamp of the meter sample
      */
-    public void pushUpdate(Long sessionId, Integer currentMeterValue, LocalDateTime timestamp) {
+    public void pushUpdate(ChargingSession session, Integer currentMeterValue, LocalDateTime timestamp) {
+        Long sessionId = session.getId();
         SseEmitter emitter = emitters.get(sessionId);
         if (emitter == null) {
             log.debug("No SSE subscriber for sessionId={}. Skipping push.", sessionId);
@@ -168,15 +204,6 @@ public class ChargingMonitorService {
         }
 
         try {
-            // Fetch session from DB
-            Optional<ChargingSession> optionalSession = sessionRepository.findById(sessionId);
-            if (optionalSession.isEmpty()) {
-                log.warn("Session {} not found in DB. Completing SSE emitter.", sessionId);
-                completeEmitter(sessionId, emitter);
-                return;
-            }
-
-            ChargingSession session = optionalSession.get();
 
             // If session is no longer active, send final status and complete
             if (session.getStatus() != ChargingSessionStatus.CHARGING
@@ -234,6 +261,66 @@ public class ChargingMonitorService {
         }
     }
 
+    // ========================================================================
+    // Heartbeat Management
+    // ========================================================================
+
+    /**
+     * Start a periodic heartbeat for the given session.
+     * <p>
+     * Sends an invisible SSE comment event ({@code :heartbeat\n\n}) every
+     * {@value #HEARTBEAT_INTERVAL_SECONDS} seconds. SSE comment events are ignored by
+     * {@code EventSource} listeners on the client but keep the underlying TCP connection
+     * alive through intermediate proxies (ALB, Nginx, CDN) that may terminate idle connections
+     * after 60–120 seconds of inactivity.
+     * <p>
+     * Any previous heartbeat for this session is cancelled before starting a new one (reconnect scenario).
+     *
+     * @param sessionId the charging session ID
+     */
+    private void startHeartbeat(Long sessionId) {
+        cancelHeartbeat(sessionId); // Cancel any previous heartbeat for this session
+
+        ScheduledFuture<?> task = heartbeatScheduler.scheduleAtFixedRate(() -> {
+            SseEmitter emitter = emitters.get(sessionId);
+            if (emitter == null) {
+                // Emitter gone — cancel this heartbeat task to free the slot
+                cancelHeartbeat(sessionId);
+                return;
+            }
+            try {
+                emitter.send(SseEmitter.event().comment("heartbeat"));
+            } catch (IOException e) {
+                log.debug("Heartbeat failed for sessionId={} (client likely disconnected). Cleaning up.", sessionId);
+                completeEmitter(sessionId, emitter);
+            } catch (Exception e) {
+                log.debug("Heartbeat error for sessionId={}: {}", sessionId, e.getMessage());
+            }
+        }, HEARTBEAT_INTERVAL_SECONDS, HEARTBEAT_INTERVAL_SECONDS, TimeUnit.SECONDS);
+
+        heartbeatTasks.put(sessionId, task);
+        log.debug("Started heartbeat for sessionId={} (interval={}s)", sessionId, HEARTBEAT_INTERVAL_SECONDS);
+    }
+
+    /**
+     * Cancel and remove the heartbeat task for the given session.
+     * <p>
+     * Safe to call multiple times — no-ops if no task exists for the session.
+     *
+     * @param sessionId the charging session ID
+     */
+    private void cancelHeartbeat(Long sessionId) {
+        ScheduledFuture<?> task = heartbeatTasks.remove(sessionId);
+        if (task != null) {
+            task.cancel(false); // Don't interrupt if currently running
+            log.debug("Cancelled heartbeat for sessionId={}", sessionId);
+        }
+    }
+
+    // ========================================================================
+    // Rate Cache
+    // ========================================================================
+
     /**
      * Retrieve the cached charging rate for a session.
      * Falls back to resolving from DB if the cache entry is missing (defensive).
@@ -290,6 +377,10 @@ public class ChargingMonitorService {
         }
     }
 
+    // ========================================================================
+    // SSE Emitter Lifecycle
+    // ========================================================================
+
     /**
      * Send a final status update before completing the SSE connection.
      * Uses the cached rate if available; falls back to DB resolution otherwise.
@@ -320,10 +411,12 @@ public class ChargingMonitorService {
 
     /**
      * Safely complete and remove an emitter and its cached rate from the registries.
+     * Also cancels the heartbeat task for this session.
      */
     private void completeEmitter(Long sessionId, SseEmitter emitter) {
         emitters.remove(sessionId, emitter);
         sessionRateCache.remove(sessionId);
+        cancelHeartbeat(sessionId);
         try {
             emitter.complete();
         } catch (Exception e) {
