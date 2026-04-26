@@ -161,10 +161,15 @@ public class BookingScheduler {
     }
 
     private void handleBookingReminder(Booking booking) {
+        String formattedTime = booking.getStartTime()
+                .atZone(java.time.ZoneId.of("UTC"))
+                .withZoneSameInstant(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+
         eventPublisher.publishEvent(new SendPushNotificationEvent(
                 booking.getUserId(),
                 "Upcoming Charging Session \u23F0",
-                "Your charging session is scheduled for " + booking.getStartTime().toLocalTime() + ". Please arrive on time."
+                "Your charging session is scheduled for " + formattedTime + ". Please arrive on time."
         ));
         log.info("Booking reminder sent: booking={}, userId={}", booking.getId(), booking.getUserId());
     }
