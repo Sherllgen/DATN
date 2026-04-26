@@ -133,6 +133,7 @@ export default function PaymentPage() {
                         <Text className="text-white font-bold text-2xl">Payment History</Text>
                     </View>
                     <GuestPlaceholder
+                        title="Payment History"
                         description="Sign in to view your invoices and payment history."
                         icon="receipt-outline"
                     />

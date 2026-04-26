@@ -1,4 +1,4 @@
-{
+export default {
   "expo": {
     "name": "mobile-app",
     "slug": "capstone-project",
@@ -17,11 +17,10 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
-        
       },
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyDtjkYUyMre-8Muv4XnCjA1ayjCNLg9iMI"
+          "apiKey": process.env.EXPO_PUBLIC_MAP_API_KEY
         }
       },
       "edgeToEdgeEnabled": true,
