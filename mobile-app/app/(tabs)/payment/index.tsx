@@ -7,11 +7,14 @@ import { getMyInvoices, payInvoice } from '@/apis/invoiceApi';
 import { InvoiceResponse } from '@/types/invoice.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/contexts/auth.store';
+import GuestPlaceholder from '@/components/auth/GuestPlaceholder';
 
 type TabType = 'UNPAID' | 'PAID';
 
 export default function PaymentPage() {
     const router = useRouter();
+    const { accessToken } = useAuthStore();
     const [activeTab, setActiveTab] = useState<TabType>('UNPAID');
     const [invoices, setInvoices] = useState<InvoiceResponse[]>([]);
     const [page, setPage] = useState(0);
@@ -45,8 +48,10 @@ export default function PaymentPage() {
     }, []);
 
     useEffect(() => {
-        fetchInvoices(activeTab, 0);
-    }, [activeTab, fetchInvoices]);
+        if (accessToken) {
+            fetchInvoices(activeTab, 0);
+        }
+    }, [activeTab, fetchInvoices, accessToken]);
 
     // Listen to AppState to refresh UNPAID invoices when returning from ZaloPay
     useEffect(() => {
@@ -119,6 +124,22 @@ export default function PaymentPage() {
             </View>
         );
     };
+
+    if (!accessToken) {
+        return (
+            <GradientBackground preset="main">
+                <SafeAreaView className="flex-1 pt-4" edges={["top", "left", "right"]}>
+                    <View className="flex-row items-center mb-2 px-4">
+                        <Text className="text-white font-bold text-2xl">Payment History</Text>
+                    </View>
+                    <GuestPlaceholder
+                        description="Sign in to view your invoices and payment history."
+                        icon="receipt-outline"
+                    />
+                </SafeAreaView>
+            </GradientBackground>
+        );
+    }
 
     return (
         <GradientBackground preset="main">
