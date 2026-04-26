@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View, Image, ScrollView } from "react-native";
-import MapView, { UrlTile, Marker } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
@@ -22,6 +22,7 @@ import ActiveChargingNotification from "@/components/home/ActiveChargingNotifica
 import { Ionicons } from "@expo/vector-icons";
 import DebtBanner from "@/components/home/DebtBanner";
 import * as paymentApi from "@/apis/paymentApi";
+import * as invoiceApi from "@/apis/invoiceApi";
 
 export default function HomePage() {
     const locationPerm = useLocationPermission(true); // Auto-check on mount
@@ -31,6 +32,7 @@ export default function HomePage() {
     const [loading, setLoading] = useState(false);
     const [recentSessions, setRecentSessions] = useState<ChargingSessionResponse[]>([]);
     const [lastSession, setLastSession] = useState<ChargingSessionResponse | null>(null);
+    const [lastSessionCost, setLastSessionCost] = useState<number | null>(null);
 
     const user = useUserStore((state) => state.user);
     const unpaidCount = useUserStore((state) => state.unpaidCount);
@@ -60,8 +62,15 @@ export default function HomePage() {
                         setRecentSessions(completedSessions);
                         if (completedSessions.length > 0) {
                             setLastSession(completedSessions[0]);
+                            invoiceApi.getInvoiceBySessionId(completedSessions[0].id)
+                                .then(inv => setLastSessionCost(inv.totalCost))
+                                .catch(err => {
+                                    console.log("Failed to fetch invoice for last session");
+                                    setLastSessionCost(null);
+                                });
                         } else {
                             setLastSession(null);
+                            setLastSessionCost(null);
                         }
                     })
                     .catch((err) => {
@@ -170,6 +179,7 @@ export default function HomePage() {
                                 >
                                     <MapView
                                         style={{ flex: 1 }}
+                                        provider={PROVIDER_GOOGLE}
                                         mapType="standard"
                                         scrollEnabled={false}
                                         zoomEnabled={false}
@@ -181,13 +191,7 @@ export default function HomePage() {
                                             longitudeDelta: 0.05,
                                         }}
                                     >
-                                        {/* <UrlTile
-                                        urlTemplate="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
-                                        maximumZ={19}
-                                        flipY={false}
-                                        zIndex={1}
-                                        tileSize={256}
-                                    /> */}
+
 
                                         {/* User Location Marker - Removed to use default showsUserLocation */}
 
@@ -248,7 +252,9 @@ export default function HomePage() {
                                     label="Duration"
                                     value={(() => {
                                         if (lastSession?.startTime && lastSession?.endTime) {
-                                            const diff = new Date(lastSession.endTime).getTime() - new Date(lastSession.startTime).getTime();
+                                            const startStr = lastSession.startTime.endsWith('Z') ? lastSession.startTime : `${lastSession.startTime}Z`;
+                                            const endStr = lastSession.endTime.endsWith('Z') ? lastSession.endTime : `${lastSession.endTime}Z`;
+                                            const diff = new Date(endStr).getTime() - new Date(startStr).getTime();
                                             const totalMins = Math.floor(diff / 60000);
                                             const h = Math.floor(totalMins / 60);
                                             const m = totalMins % 60;
@@ -264,15 +270,15 @@ export default function HomePage() {
                                 />
                                 <ChargingInfoCard
                                     label="kWh"
-                                    value={lastSession?.totalKwh ?? 0}
+                                    value={lastSession?.totalKwh ? Number(lastSession.totalKwh).toFixed(2) : 0}
                                     iconName="flash"
                                     iconColor="#F59E0B"
                                     bgColor="rgba(245, 158, 11, 0.1)"
                                     iconBgColor="rgba(245, 158, 11, 0.2)"
                                 />
                                 <ChargingInfoCard
-                                    label="Total"
-                                    value={lastSession ? 'Paid' : `--`}
+                                    label="Total (VND)"
+                                    value={lastSessionCost != null ? `${Math.round(lastSessionCost).toLocaleString('vi-VN')}` : `--`}
                                     iconName="currency-usd"
                                     iconColor="#10B981"
                                     bgColor="rgba(16, 185, 129, 0.1)"
@@ -299,13 +305,17 @@ export default function HomePage() {
                                 showsVerticalScrollIndicator={false}
                             >
                                 {recentSessions.length > 0 ? recentSessions.map((session) => {
-                                    const dateObj = new Date(session.startTime || session.createdAt || 0);
+                                    const startTimeSource = (session.startTime || session.createdAt || "").toString();
+                                    const startTimeStr = startTimeSource.endsWith('Z') || startTimeSource === "" ? startTimeSource : `${startTimeSource}Z`;
+                                    const dateObj = new Date(startTimeStr || 0);
                                     const dateStr = `${dateObj.getDate()} ${dateObj.toLocaleString('en-us', { month: 'short' })} ${dateObj.getFullYear()}`;
                                     
                                     // Calculate duration in minutes if possible
                                     let duration = "0 min";
                                     if (session.startTime && session.endTime) {
-                                        const diff = new Date(session.endTime).getTime() - new Date(session.startTime).getTime();
+                                        const startStr = session.startTime.endsWith('Z') ? session.startTime : `${session.startTime}Z`;
+                                        const endStr = session.endTime.endsWith('Z') ? session.endTime : `${session.endTime}Z`;
+                                        const diff = new Date(endStr).getTime() - new Date(startStr).getTime();
                                         const mins = Math.floor(diff / 60000);
                                         duration = `${mins} min`;
                                     }

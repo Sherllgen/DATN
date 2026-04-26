@@ -103,7 +103,7 @@ export default function BookingPage() {
                                 key={booking.id}
                                 booking={booking}
                                 onCancel={() => { }}
-                                onView={() => { }}
+                                onView={() => router.push(`/booking/${booking.id}` as any)}
                                 onPay={() => handlePayNow(booking)}
                             />
                         ))

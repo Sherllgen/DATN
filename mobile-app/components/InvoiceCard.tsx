@@ -39,12 +39,18 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({ invoice, onPayAction }
                 <View>
                     <Text className="text-white/60 text-xs mb-1">Date Created</Text>
                     <Text className="text-white font-medium">
-                        {new Date(invoice.createdAt).toLocaleDateString('en-GB')}
+                        {new Date(invoice.createdAt.endsWith('Z') ? invoice.createdAt : `${invoice.createdAt}Z`).toLocaleString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}
                     </Text>
                 </View>
                 <View className="items-end">
                     <Text className="text-white/60 text-xs mb-1">Amount</Text>
-                    <Text className="text-primary font-bold text-xl">
+                    <Text className="text-slate-200 font-bold text-xl">
                         {invoice.totalCost.toLocaleString('vi-VN')} ₫
                     </Text>
                 </View>
