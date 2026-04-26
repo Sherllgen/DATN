@@ -1,6 +1,6 @@
 package com.project.evgo.booking.internal;
 
-import com.project.evgo.booking.SendPushNotificationEvent;
+import com.project.evgo.sharedkernel.events.SendPushNotificationEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.booking.SendReserveNowCommandEvent;
 import com.project.evgo.charger.ChargerService;

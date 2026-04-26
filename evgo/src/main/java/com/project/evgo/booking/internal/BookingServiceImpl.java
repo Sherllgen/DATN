@@ -127,6 +127,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setUserId(currentUserId);
         booking.setStationId(request.getStationId());
         booking.setChargerId(request.getChargerId());
+        booking.setVehicleId(request.getVehicleId());
         booking.setPortNumber(request.getPortNumber());
         booking.setStartTime(request.getStartTime());
         booking.setEndTime(request.getEndTime());

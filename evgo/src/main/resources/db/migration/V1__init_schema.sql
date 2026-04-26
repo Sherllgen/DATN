@@ -29,6 +29,7 @@ CREATE TABLE public.bookings (
     user_id bigint NOT NULL,
     station_id bigint NOT NULL,
     charger_id bigint NOT NULL,
+    vehicle_id bigint NOT NULL,
     port_number integer NOT NULL,
     start_time timestamp(6) without time zone NOT NULL,
     end_time timestamp(6) without time zone NOT NULL,
