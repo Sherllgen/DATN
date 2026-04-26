@@ -239,8 +239,8 @@ const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
                                     </View>
                                 </View>
                                 <View className="items-end">
-                                    <Text className="text-[10px] text-white/40 mb-1">{(review.updatedAt || review.createdAt).split('T')[0]}</Text>
-                                    <Text className="text-[10px] text-white/40 mb-2">{(review.updatedAt || review.createdAt).includes('T') ? (review.updatedAt || review.createdAt).split('T')[1].substring(0, 5) : ""}</Text>
+                                    <Text className="text-[10px] text-white/40 mb-1">{(() => { const ts = review.updatedAt || review.createdAt; const d = new Date(ts?.endsWith('Z') ? ts : `${ts}Z`); return d.toLocaleDateString('en-CA'); })()}</Text>
+                                    <Text className="text-[10px] text-white/40 mb-2">{(() => { const ts = review.updatedAt || review.createdAt; const d = new Date(ts?.endsWith('Z') ? ts : `${ts}Z`); return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); })()}</Text>
                                     {review.isOwner && (
                                         <TouchableOpacity
                                             onPress={() => {
