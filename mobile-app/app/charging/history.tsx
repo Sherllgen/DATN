@@ -59,16 +59,20 @@ export default function ChargingHistoryPage() {
 
     const renderItem = useCallback(
         ({ item }: { item: ChargingSessionResponse }) => {
-            const dateObj = new Date(item.startTime || item.createdAt || 0);
+            const startTimeSource = (item.startTime || item.createdAt || "").toString();
+            const startTimeStr = startTimeSource.endsWith('Z') || startTimeSource === "" ? startTimeSource : `${startTimeSource}Z`;
+            const dateObj = new Date(startTimeStr || 0);
             const dateStr = `${dateObj.getDate()} ${dateObj.toLocaleString("en-us", {
                 month: "short",
             })} ${dateObj.getFullYear()}`;
 
             let duration = "0 min";
             if (item.startTime && item.endTime) {
+                const startStr = item.startTime.endsWith('Z') ? item.startTime : `${item.startTime}Z`;
+                const endStr = item.endTime.endsWith('Z') ? item.endTime : `${item.endTime}Z`;
                 const diff =
-                    new Date(item.endTime).getTime() -
-                    new Date(item.startTime).getTime();
+                    new Date(endStr).getTime() -
+                    new Date(startStr).getTime();
                 const totalMins = Math.floor(diff / 60000);
                 const h = Math.floor(totalMins / 60);
                 const m = totalMins % 60;
@@ -97,7 +101,7 @@ export default function ChargingHistoryPage() {
                     <View className="flex-1 items-center justify-center">
                         <ActivityIndicator color="#00A452" size="large" />
                     </View>
-                ) : allSessions.length === 0 ? (
+                ) : displayedSessions.length === 0 ? (
                     <View className="flex-1 items-center justify-center px-6">
                         <Text className="text-white/50 text-base text-center">
                             No charging history yet.{"\n"}Your completed sessions will appear here.

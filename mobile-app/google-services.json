@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "589232262795",
+    "project_id": "evgo-2ee33",
+    "storage_bucket": "evgo-2ee33.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589232262795:android:b763dc0610bfa31d47ce8e",
+        "android_client_info": {
+          "package_name": "com.evgoteam.evgo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3mfjjCJXwO168zx6XDvTVDp77x8czRsA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

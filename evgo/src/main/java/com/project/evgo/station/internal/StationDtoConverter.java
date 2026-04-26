@@ -9,6 +9,7 @@ import com.project.evgo.station.response.StationSearchResult;
 import com.project.evgo.sharedkernel.utils.GeoUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -56,7 +57,7 @@ public class StationDtoConverter {
 				.longitude(from.getLongitude())
 				.rate(from.getRate())
 				.status(from.getStatus())
-				.imageUrls(from.getImageUrls())
+				.imageUrls(new ArrayList<>(from.getImageUrls()))
 				.isFlaggedLowQuality(from.getIsFlaggedLowQuality())
 				.availableChargersCount(availableChargers)
 				.totalChargersCount(totalChargers)

@@ -28,7 +28,7 @@ public class NotificationController {
     @GetMapping("/{id}")
     @Operation(summary = "Get notification by ID")
     public ResponseEntity<ApiResponse<NotificationResponse>> getById(@PathVariable Long id) {
-        var result = notificationService.findById(id)
+        NotificationResponse result = notificationService.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
         return ResponseEntity.ok(ApiResponse.<NotificationResponse>builder()
                 .status(HttpStatus.OK.value())
@@ -41,7 +41,7 @@ public class NotificationController {
     @Operation(summary = "Get notifications by user ID")
     public ResponseEntity<ApiResponse<List<NotificationResponse>>> getByUserId(
             @PathVariable Long userId) {
-        var result = notificationService.findByUserId(userId);
+        List<NotificationResponse> result = notificationService.findByUserId(userId);
         return ResponseEntity.ok(ApiResponse.<List<NotificationResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
@@ -53,7 +53,7 @@ public class NotificationController {
     @Operation(summary = "Get unread notifications by user ID")
     public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUnreadByUserId(
             @PathVariable Long userId) {
-        var result = notificationService.findUnreadByUserId(userId);
+        List<NotificationResponse> result = notificationService.findUnreadByUserId(userId);
         return ResponseEntity.ok(ApiResponse.<List<NotificationResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
@@ -64,7 +64,7 @@ public class NotificationController {
     @GetMapping("/user/{userId}/unread/count")
     @Operation(summary = "Count unread notifications by user ID")
     public ResponseEntity<ApiResponse<Long>> countUnreadByUserId(@PathVariable Long userId) {
-        var result = notificationService.countUnreadByUserId(userId);
+        long result = notificationService.countUnreadByUserId(userId);
         return ResponseEntity.ok(ApiResponse.<Long>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")

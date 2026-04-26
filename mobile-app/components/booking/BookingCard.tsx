@@ -18,9 +18,11 @@ const BookingCard = ({ booking, onCancel, onView, onPay }: BookingCardProps) => 
     const isUpcoming = booking.status === BookingStatus.CONFIRMED;
     const isPending = booking.status === BookingStatus.PENDING;
 
-    // Date & Time formatting
-    const dateObj = new Date(booking.startTime);
-    const endObj = new Date(booking.endTime);
+    // Booking times are stored in UTC – append 'Z' to convert to device local time
+    const startStr = booking.startTime?.endsWith('Z') ? booking.startTime : `${booking.startTime}Z`;
+    const endStr = booking.endTime?.endsWith('Z') ? booking.endTime : `${booking.endTime}Z`;
+    const dateObj = new Date(startStr);
+    const endObj = new Date(endStr);
     
     const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
     const timeStr = dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });

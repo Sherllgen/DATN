@@ -1,5 +1,6 @@
 package com.project.evgo.config;
 
+import jakarta.servlet.DispatcherType;
 import com.project.evgo.user.security.JwtAuthenticationEntryPoint;
 import com.project.evgo.user.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,7 @@ public class SecurityConfig {
 				.sessionManagement(session -> session
 						.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
+						.dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR, DispatcherType.ASYNC).permitAll()
 						.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/stations/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()

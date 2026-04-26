@@ -56,12 +56,12 @@ public class Station {
     @Column(name = "is_flagged_low_quality", nullable = false)
     private Boolean isFlaggedLowQuality = false;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "station_images", joinColumns = @JoinColumn(name = "station_id"))
     @Column(name = "image_url", length = 500)
     private List<String> imageUrls = new ArrayList<>();
 
-    @OneToMany(mappedBy = "station", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "station", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<StationOpeningHours> openingHours = new ArrayList<>();
 
     private LocalDateTime deletedAt;

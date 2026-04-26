@@ -9,9 +9,11 @@ Module quản lý thông báo, cung cấp các chức năng gửi email và SMS 
 | Thuộc tính | Giá trị |
 |------------|---------|
 | **Package** | `com.project.evgo.notification` |
-| **Display Name** | Notification |
-| **Số Services** | 3 (NotificationService, EmailService, SmsService) |
-| **Số Controllers** | 1 (NotificationController) |
+| **Display Name** | Notification Management |
+| **Số Services** | 4 (NotificationService, PushTokenService, EmailService, SmsService) |
+| **Số Controllers** | 2 (NotificationController, PushTokenController) |
+| **Event Listeners** | 1 (PushNotificationEventListener) |
+| **Dependencies** | `sharedkernel`, `booking` |
 
 ---
 
@@ -23,14 +25,20 @@ flowchart TD
     A --> C[SmsService]
     B --> D[SmtpEmailServiceImpl]
     C --> E[MockSmsServiceImpl]
+    F[PushTokenService] --> G[PushTokenServiceImpl]
+    G --> H[Expo Push API]
+    I[PushNotificationEventListener] --> F
 
     style D fill:#90EE90
     style E fill:#FFB6C1
+    style G fill:#90EE90
+    style I fill:#87CEEB
 ```
 
 | Service | Implementation | Status |
 |---------|----------------|--------|
 | NotificationService | NotificationServiceImpl | ✅ Production |
+| PushTokenService | PushTokenServiceImpl | ✅ Production |
 | EmailService | SmtpEmailServiceImpl | ✅ Production |
 | SmsService | MockSmsServiceImpl | ⚠️ Mock (development) |
 
@@ -41,6 +49,7 @@ flowchart TD
 ```mermaid
 erDiagram
     USER ||--o{ NOTIFICATION : receives
+    USER ||--o{ PUSH_TOKEN : registers
 
     NOTIFICATION {
         Long id
@@ -49,11 +58,22 @@ erDiagram
         NotificationType type
         Boolean isRead
     }
+
+    PUSH_TOKEN {
+        Long id
+        Long userId
+        String deviceToken
+        String deviceType
+        LocalDateTime createdAt
+        LocalDateTime updatedAt
+    }
 ```
 
 ---
 
 ## API Endpoints
+
+### Notification Endpoints
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -61,6 +81,13 @@ erDiagram
 | `GET` | `/api/v1/notifications/user/{userId}` | Danh sách thông báo của user | ✅ |
 | `GET` | `/api/v1/notifications/user/{userId}/unread` | Danh sách thông báo chưa đọc | ✅ |
 | `GET` | `/api/v1/notifications/user/{userId}/unread/count` | Đếm thông báo chưa đọc | ✅ |
+
+### ✅ **[NEW]** Push Token Endpoints
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `POST` | `/api/v1/notifications/push-tokens` | Đăng ký device token cho push notification | ✅ |
+| `DELETE` | `/api/v1/notifications/push-tokens/{token}` | Xóa device token (ngừng nhận push) | ✅ |
 
 ---
 
@@ -148,6 +175,15 @@ Hệ thống sử dụng các template HTML được xây dựng trực tiếp t
 - ✅ Truy vấn thông báo theo user
 - ✅ Đánh dấu đã đọc/chưa đọc
 - ✅ Đếm thông báo chưa đọc
+
+### ✅ **[NEW]** PushTokenService & Event Listener
+
+- ✅ Đăng ký / cập nhật Expo Push Token cho user
+- ✅ Xóa push token khi user đăng xuất
+- ✅ Gửi push notification đến tất cả device của user qua Expo Push API
+- ✅ **PushNotificationEventListener**: Lắng nghe `SendPushNotificationEvent` từ Booking module
+- ✅ Sử dụng `@ApplicationModuleListener` cho event-driven decoupling
+- ✅ Xử lý trường hợp user không có token (log warning, không crash)
 
 ### EmailService (SMTP)
 
@@ -252,23 +288,32 @@ app.password-reset.expiry-hours=1
 
 ```
 notification/
-├── package-info.java              # @ApplicationModule
-├── NotificationService.java       # Public service interface
-├── EmailService.java              # Public service interface
-├── SmsService.java                # Public service interface
+├── package-info.java                    # @ApplicationModule (depends on: sharedkernel, booking)
+├── NotificationService.java             # Public service interface
+├── PushTokenService.java                # Public service interface (push notifications)
+├── EmailService.java                    # Public service interface
+├── SmsService.java                      # Public service interface
 ├── request/
-│   └── SendNotificationRequest.java
+│   ├── SendNotificationRequest.java
+│   └── RegisterPushTokenRequest.java
 ├── response/
-│   └── NotificationResponse.java
+│   ├── NotificationResponse.java
+│   └── PushTokenResponse.java
 └── internal/
-    ├── Notification.java          # Entity
+    ├── Notification.java                # Entity
     ├── NotificationRepository.java
     ├── NotificationDtoConverter.java
     ├── NotificationServiceImpl.java
-    ├── SmtpEmailServiceImpl.java  # Production email
-    ├── MockSmsServiceImpl.java    # Mock SMS
+    ├── PushToken.java                   # Entity (Expo push tokens)
+    ├── PushTokenRepository.java
+    ├── PushTokenDtoConverter.java
+    ├── PushTokenServiceImpl.java        # Expo Push API integration
+    ├── PushNotificationEventListener.java  # [NEW] Listens to SendPushNotificationEvent
+    ├── SmtpEmailServiceImpl.java        # Production email
+    ├── MockSmsServiceImpl.java          # Mock SMS
     └── web/
-        └── NotificationController.java
+        ├── NotificationController.java
+        └── PushTokenController.java     # Push token registration API
 ```
 
 ---
@@ -277,10 +322,11 @@ notification/
 
 Module `notification` phụ thuộc vào:
 - `sharedkernel` - DTOs, Enums, Exceptions
+- `booking` - Lắng nghe `SendPushNotificationEvent` để gửi push notification
 
 Module `notification` được sử dụng bởi:
 - `user` - Gửi email xác minh, welcome, password reset
-- `booking` - Gửi thông báo đặt lịch (future)
+- `booking` - Publish `SendPushNotificationEvent` → consumed by `PushNotificationEventListener`
 - `charging` - Gửi thông báo khi sạc xong (future)
 - `payment` - Gửi thông báo thanh toán (future)
 
@@ -312,6 +358,65 @@ public class SmtpEmailServiceImpl implements EmailService {
 
 ---
 
+## Event-Driven Push Notification Flow
+
+```mermaid
+sequenceDiagram
+    participant BS as BookingScheduler
+    participant EP as EventPublisher
+    participant PL as PushNotificationEventListener
+    participant PS as PushTokenService
+    participant DB as PushTokenRepository
+    participant Expo as Expo Push API
+    participant Mobile as Mobile App
+
+    BS->>EP: publishEvent(SendPushNotificationEvent)
+    EP->>PL: onSendPushNotification(event)
+    PL->>PS: sendPushNotification(userId, title, body)
+    PS->>DB: findAllByUserId(userId)
+    alt Tokens found
+        loop For each token
+            PS->>Expo: POST /v2/push/send
+            Expo->>Mobile: Push notification delivered
+        end
+    else No tokens
+        PS-->>PS: log.warn("No device tokens found")
+    end
+```
+
+---
+
+## Mobile App Integration
+
+### Push Token Registration Flow
+
+1. User logs in → `_layout.tsx` calls `usePushNotifications(!!accessToken)`
+2. Hook checks `Device.isDevice` (required for iOS, recommended for Android)
+3. Requests OS notification permission
+4. Fetches Expo Push Token via `Notifications.getExpoPushTokenAsync()`
+5. Sends token to backend via `POST /api/v1/notifications/push-tokens`
+
+### Notification Handling
+
+| Scenario | Handler | Behavior |
+|----------|---------|----------|
+| **Foreground** | `Notifications.setNotificationHandler` | Shows alert, plays sound, sets badge |
+| **Foreground received** | `addNotificationReceivedListener` | Updates state, logs content |
+| **User taps notification** | `addNotificationResponseReceivedListener` | Logs tap, can navigate to relevant screen |
+
+### Android Notification Channel
+
+The hook creates a `default` channel with:
+- `importance: MAX` — heads-up display
+- `vibrationPattern: [0, 250, 250, 250]`
+- `lightColor: #00A452` (EV-Go brand green)
+- `sound: default`
+
+> [!WARNING]
+> **iOS Simulator Limitation**: Push notifications do NOT work on iOS Simulators. Testing on iOS requires a physical device. Android Emulators with Google Play Services DO support push notifications.
+
+---
+
 ## Lưu ý quan trọng
 
 1. **Mock SMS**: Hiện tại SMS service là mock, OTP được log ra console. Cần tích hợp Twilio/Nexmo cho production.
@@ -321,3 +426,7 @@ public class SmtpEmailServiceImpl implements EmailService {
 3. **Async Processing**: Email gửi async nên không ảnh hưởng đến response time của API chính.
 
 4. **Email Templates**: Templates được build trong code, có thể cải thiện bằng Thymeleaf hoặc FreeMarker.
+
+5. **Push Notification Event Flow**: `BookingScheduler` publishes `SendPushNotificationEvent` → `PushNotificationEventListener` (in notification module) consumes it → delegates to `PushTokenService.sendPushNotification()` → calls Expo Push API for each registered device token.
+
+6. **Token Reassignment**: When the same device token is registered by a different user (e.g., after logout/login), the system automatically reassigns the token to the new user.
