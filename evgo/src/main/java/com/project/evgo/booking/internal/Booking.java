@@ -37,6 +37,9 @@ public class Booking {
     @Column(name = "charger_id", nullable = false)
     private Long chargerId;
 
+    @Column(name = "vehicle_id", nullable = false)
+    private Long vehicleId;
+
     @Column(name = "port_number", nullable = false)
     private Integer portNumber;
 

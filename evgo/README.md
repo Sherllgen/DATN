@@ -118,7 +118,7 @@ This project uses a **Modular Monolithic** architecture with Spring Modulith, pr
 | `REDIS_HOST` | Redis host | `localhost` |
 | `REDIS_PORT` | Redis port | `6379` |
 | `JWT_SECRET` | JWT signing secret (min 256 bits) | - |
-| `SERVER_PORT` | Application port | `8081` |
+| `PORT` | Application port | `8080` |
 
 
 ### Google OAuth Configuration & Testing

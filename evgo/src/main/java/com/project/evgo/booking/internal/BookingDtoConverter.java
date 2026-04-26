@@ -8,6 +8,8 @@ import java.util.Optional;
 
 import com.project.evgo.station.StationService;
 import com.project.evgo.charger.ChargerService;
+import com.project.evgo.user.VehicleService;
+import com.project.evgo.user.response.VehicleResponse;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -19,6 +21,7 @@ public class BookingDtoConverter {
 
     private final StationService stationService;
     private final ChargerService chargerService;
+    private final VehicleService vehicleService;
 
     public BookingResponse toResponse(Booking booking) {
         BookingResponse response = BookingResponse.builder()
@@ -26,6 +29,7 @@ public class BookingDtoConverter {
                 .userId(booking.getUserId())
                 .stationId(booking.getStationId())
                 .chargerId(booking.getChargerId())
+                .vehicleId(booking.getVehicleId())
                 .portNumber(booking.getPortNumber())
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
@@ -45,6 +49,17 @@ public class BookingDtoConverter {
                 response.setConnectorType(charger.getConnectorType());
                 response.setMaxPower(charger.getMaxPower());
             });
+            if (booking.getVehicleId() != null) {
+                try {
+                    VehicleResponse vehicle = vehicleService.getVehicleById(booking.getVehicleId());
+                    if (vehicle != null) {
+                        response.setVehicleBrand(vehicle.getBrand());
+                        response.setVehicleModelName(vehicle.getModelName());
+                    }
+                } catch (Exception ignored) {
+                    // Ignored if vehicle is not found
+                }
+            }
         } catch (Exception e) {
             // Ignore errors to prevent failing the entire list serialization
         }

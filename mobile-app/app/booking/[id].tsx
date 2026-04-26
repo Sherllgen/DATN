@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, ScrollView, Image } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, ScrollView, Image, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from "@expo/vector-icons";
@@ -8,16 +8,84 @@ import GradientBackground from "@/components/ui/GradientBackground";
 import ListItemCard from "@/components/ui/ListItemCard";
 import Button from "@/components/ui/Button";
 import { AppColors } from "@/constants/theme";
-import { mockBookings } from "@/data/bookingData";
+import { getBookingById } from "@/apis/bookingApi";
+import { BookingResponse, BookingStatus } from "@/types/booking.types";
+
+const parseUTCDate = (dateString: string) => {
+    // Backend returns LocalDateTime (e.g. "2024-12-17T10:00:00") which is in UTC.
+    // Appending 'Z' forces JS to parse it as UTC, automatically converting to local time (e.g., UTC+7).
+    return new Date(dateString.endsWith('Z') ? dateString : dateString + 'Z');
+};
+
+// Date formatting utility
+const formatDateTime = (dateString: string) => {
+    const date = parseUTCDate(dateString);
+    const dateOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    const timeOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
+    return {
+        dateStr: date.toLocaleDateString('en-US', dateOpts),
+        timeStr: date.toLocaleTimeString('en-US', timeOpts)
+    };
+};
+
+const formatDuration = (start: string, end: string) => {
+    const startTime = parseUTCDate(start).getTime();
+    const endTime = parseUTCDate(end).getTime();
+    const diffHours = (endTime - startTime) / (1000 * 60 * 60);
+    return `${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+};
 
 export default function BookingDetailsScreen() {
-    const { id } = useLocalSearchParams();
+    const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const [booking, setBooking] = useState<BookingResponse | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Find booking data from mock list
-    const booking = mockBookings.find(b => b.id === id) || mockBookings[0];
+    useEffect(() => {
+        const fetchBooking = async () => {
+            try {
+                if (id) {
+                    const data = await getBookingById(id);
+                    setBooking(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch booking details:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchBooking();
+    }, [id]);
 
-    const isUpcoming = booking.status === "Upcoming";
+    if (loading) {
+        return (
+            <GradientBackground preset="main" dismissKeyboard={false}>
+                <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+                    <AppHeader title="Booking Details" showBack />
+                    <View className="flex-1 justify-center items-center">
+                        <ActivityIndicator size="large" color={AppColors.primary} />
+                    </View>
+                </SafeAreaView>
+            </GradientBackground>
+        );
+    }
+
+    if (!booking) {
+        return (
+            <GradientBackground preset="main" dismissKeyboard={false}>
+                <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+                    <AppHeader title="Booking Details" showBack />
+                    <View className="flex-1 justify-center items-center">
+                        <Text className="text-white text-base">Booking not found</Text>
+                    </View>
+                </SafeAreaView>
+            </GradientBackground>
+        );
+    }
+
+    const isUpcoming = booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.PENDING;
+    const { dateStr, timeStr } = formatDateTime(booking.startTime);
+    const durationStr = formatDuration(booking.startTime, booking.endTime);
 
     return (
         <GradientBackground preset="main" dismissKeyboard={false}>
@@ -37,14 +105,14 @@ export default function BookingDetailsScreen() {
                         icon={
                             <MaterialIcons name="electric-bike" size={22} color={AppColors.secondary} />
                         }
-                        title="Tesla Bike"
+                        title={booking.vehicleBrand ? `${booking.vehicleBrand} ${booking.vehicleModelName || ''}`.trim() : 'My EV'}
                         titleClassName="text-secondary font-semibold text-base"
                     >
                         <Text className="text-text-secondary text-sm">
-                            Model: Tesla Model S
+                            Model: {booking.vehicleModelName || 'Default Model'}
                         </Text>
                         <Text className="mt-1 text-text-secondary text-sm">
-                            Connectors: {booking.charger.connectorType}
+                            Connectors: {booking.connectorType || 'N/A'}
                         </Text>
                     </ListItemCard>
 
@@ -54,11 +122,11 @@ export default function BookingDetailsScreen() {
                         icon={
                             <MaterialCommunityIcons name="ev-station" size={22} color={AppColors.secondary} />
                         }
-                        title={booking.station.name}
+                        title={booking.stationName || 'Unknown Station'}
                         titleClassName="text-secondary font-semibold text-base"
                     >
                         <Text className="text-text-secondary text-sm">
-                            Address: {booking.station.address}
+                            Address: {booking.stationAddress || 'N/A'}
                         </Text>
                     </ListItemCard>
 
@@ -68,18 +136,18 @@ export default function BookingDetailsScreen() {
                         icon={
                             <MaterialCommunityIcons name="ev-plug-type2" size={30} color={AppColors.secondary} />
                         }
-                        title={`${booking.charger.connectorType} - Port 1`}
+                        title={`${booking.connectorType || 'Unknown'} - Port ${booking.portNumber}`}
                         titleClassName="text-secondary font-semibold text-base"
                     >
                         <View className="flex-row items-center flex-wrap gap-x-2 mt-2">
                             <Text className="text-text-secondary text-sm">
-                                {booking.charger.connectorType}
+                                {booking.connectorType || 'N/A'}
                             </Text>
                             <View className="w-[1px] h-8 bg-border-gray mx-1" />
                             <View>
                                 <Text className="text-text-secondary text-xs">Max. power</Text>
                                 <Text className="text-white font-semibold text-base">
-                                    {booking.charger.maxPower}
+                                    {booking.maxPower ? `${booking.maxPower} kW` : 'N/A'}
                                 </Text>
                             </View>
                         </View>
@@ -89,22 +157,22 @@ export default function BookingDetailsScreen() {
                     <View className="bg-border/20 border border-border p-4 rounded-lg mt-4 mb-4">
                         <View className="flex-row justify-between mb-3">
                             <Text className="text-text-secondary text-base">Booking Date</Text>
-                            <Text className="text-white font-semibold text-base">{booking.date}</Text>
+                            <Text className="text-white font-semibold text-base">{dateStr}</Text>
                         </View>
                         <View className="flex-row justify-between mb-3">
                             <Text className="text-text-secondary text-base">Time of Arrival</Text>
-                            <Text className="text-white font-semibold text-base">{booking.time}</Text>
+                            <Text className="text-white font-semibold text-base">{timeStr}</Text>
                         </View>
                         <View className="flex-row justify-between">
                             <Text className="text-text-secondary text-base">Charging Duration</Text>
-                            <Text className="text-white font-semibold text-base">{booking.duration}</Text>
+                            <Text className="text-white font-semibold text-base">{durationStr}</Text>
                         </View>
                     </View>
 
                     <View className="bg-border/20 border border-border p-4 rounded-lg mb-4">
                         <View className="flex-row justify-between mb-4">
                             <Text className="text-text-secondary text-base">Amount Paid</Text>
-                            <Text className="text-white font-semibold text-base">{booking.amount.toFixed(2)} VND</Text>
+                            <Text className="text-white font-semibold text-base">{booking.totalPrice?.toFixed(2) || '0.00'} VND</Text>
                         </View>
                         <View className="flex-row justify-between pb-4 border-b border-border/50 mb-4">
                             <Text className="text-text-secondary text-base">Tax</Text>
@@ -112,7 +180,7 @@ export default function BookingDetailsScreen() {
                         </View>
                         <View className="flex-row justify-between items-center">
                             <Text className="text-text-secondary text-base">Total Amount</Text>
-                            <Text className="text-white font-semibold text-base">{booking.amount.toFixed(2)} VND</Text>
+                            <Text className="text-white font-semibold text-base">{booking.totalPrice?.toFixed(2) || '0.00'} VND</Text>
                         </View>
                     </View>
 
@@ -155,7 +223,7 @@ export default function BookingDetailsScreen() {
                 <View className="px-6 pt-6 pb-12 gap-y-3">
                     {isUpcoming && (
                         <Button
-                            onPress={() => router.push({ pathname: '/charging', params: { portId: '1', bookingId: booking.id } })}
+                            onPress={() => router.push({ pathname: '/charging', params: { portId: booking.portNumber.toString(), bookingId: booking.id.toString() } })}
                             className="w-full"
                             textClassName="font-semibold text-base"
                             style={{ height: 56 }}

@@ -92,3 +92,13 @@ export const getMyBookings = async (): Promise<BookingResponse[]> => {
     );
     return res.data.data;
 };
+
+/**
+ * Get booking by ID
+ */
+export const getBookingById = async (id: string | number): Promise<BookingResponse> => {
+    const res = await axiosInstance.get<ApiResponse<BookingResponse>>(
+        `${API_BACKEND_URL}/api/v1/bookings/${id}`
+    );
+    return res.data.data;
+};
