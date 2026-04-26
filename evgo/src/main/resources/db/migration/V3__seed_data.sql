@@ -548,7 +548,21 @@ INSERT INTO station_opening_hours (id, station_id, day_of_week, open_time, close
 (134, 20, 'MONDAY', '07:00:00', '21:00:00', true), (135, 20, 'TUESDAY', '07:00:00', '21:00:00', true), (136, 20, 'WEDNESDAY', '07:00:00', '21:00:00', true), (137, 20, 'THURSDAY', '07:00:00', '21:00:00', true), (138, 20, 'FRIDAY', '07:00:00', '21:00:00', true), (139, 20, 'SATURDAY', '07:00:00', '21:00:00', true), (140, 20, 'SUNDAY', '07:00:00', '21:00:00', true)
 ON CONFLICT (id) DO NOTHING;
 
+-- Vehicles for User 1
+INSERT INTO vehicles (id, user_id, brand, model_name, in_use) VALUES
+(1, 1, 'VinFast', 'VF Evo Lite', true),
+(2, 1, 'VinFast', 'VF e34', false),
+(3, 1, 'Dat Bike', 'Weaver ++', false)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO vehicle_connector_types (vehicle_id, connector_type) VALUES
+(1, 'VINFAST_STD'),
+(2, 'VINFAST_STD'),
+(3, 'DATBIKE_FAST')
+ON CONFLICT DO NOTHING;
+
 -- Final touches: Update sequences
+SELECT setval('vehicles_id_seq', (SELECT MAX(id) FROM vehicles));
 SELECT setval('stations_id_seq', (SELECT MAX(id) FROM stations));
 SELECT setval('chargers_id_seq', (SELECT MAX(id) FROM chargers));
 SELECT setval('ports_id_seq', (SELECT MAX(id) FROM ports));

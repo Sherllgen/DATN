@@ -13,6 +13,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -94,6 +95,7 @@ public class BookingScheduler {
     // Runs every 60 seconds. Consolidates 3 previous jobs into 1 query.
     // ============================================================
     @Scheduled(fixedRate = 60000)
+    @Transactional
     public void processBookings() {
         LocalDateTime now = LocalDateTime.now();
         
@@ -162,7 +164,7 @@ public class BookingScheduler {
         eventPublisher.publishEvent(new SendPushNotificationEvent(
                 booking.getUserId(),
                 "Upcoming Charging Session \u23F0",
-                "Your charging session is scheduled for " + booking.getStartTime().toLocalTime() + ". Please arrive on time to avoid cancellation."
+                "Your charging session is scheduled for " + booking.getStartTime().toLocalTime() + ". Please arrive on time."
         ));
         log.info("Booking reminder sent: booking={}, userId={}", booking.getId(), booking.getUserId());
     }
