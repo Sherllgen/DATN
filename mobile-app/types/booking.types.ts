@@ -72,4 +72,9 @@ export interface BookingResponse {
     chargerName?: string;
     connectorType?: string;
     maxPower?: number;
+
+    // Vehicle fields
+    vehicleId?: number;
+    vehicleBrand?: string;
+    vehicleModelName?: string;
 }

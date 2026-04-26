@@ -12,6 +12,7 @@ import "../global.css";
 import { useAuthStore } from "@/contexts/auth.store";
 import { useUserStore } from "@/contexts/user.store";
 import { getProfileApi } from "@/apis/profileApi/profileApi";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete
 // SplashScreen.preventAutoHideAsync().catch(console.warn);
@@ -33,6 +34,9 @@ export default function RootLayout() {
     const user = useUserStore((state) => state.user);
     const setUser = useUserStore((state) => state.setUser);
     const logout = useAuthStore((state) => state.logout);
+
+    // Register & listen for push notifications once the user is authenticated
+    usePushNotifications(!!accessToken);
 
     useEffect(() => {
         console.log('RootLayout mounted, hiding splash...');

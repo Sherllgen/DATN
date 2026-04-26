@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.TimeZone;
 
 @SpringBootApplication
 @EnableScheduling
@@ -15,6 +16,7 @@ public class EvgoApplication {
 
     public static void main(String[] args) {
         loadEnvFile();
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         SpringApplication.run(EvgoApplication.class, args);
     }
 

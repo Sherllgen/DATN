@@ -3,6 +3,7 @@ package com.project.evgo.booking;
 import com.project.evgo.booking.internal.Booking;
 import com.project.evgo.booking.internal.BookingRepository;
 import com.project.evgo.booking.internal.BookingScheduler;
+import com.project.evgo.sharedkernel.events.SendPushNotificationEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
@@ -83,7 +84,7 @@ class BookingSchedulerTest {
         Booking booking = buildBooking(1L, BookingStatus.CONFIRMED, 10L, 1, 42L,
                 now.plusMinutes(9).plusSeconds(30), now.plusHours(1));
 
-        when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any()))
+        when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(booking));
         
         when(chargerService.findPortByChargerIdAndPortNumber(10L, 1))
@@ -104,7 +105,7 @@ class BookingSchedulerTest {
         Booking booking = buildBooking(2L, BookingStatus.IN_PROGRESS, 10L, 1, 42L,
                 now.minusMinutes(30), now.plusMinutes(14).plusSeconds(30));
 
-        when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any()))
+        when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(booking));
 
         bookingScheduler.processBookings();
@@ -121,7 +122,7 @@ class BookingSchedulerTest {
         Booking booking = buildBooking(3L, BookingStatus.IN_PROGRESS, 10L, 1, 42L,
                 now.minusMinutes(50), now.plusMinutes(9).plusSeconds(30));
 
-        when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any()))
+        when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(booking));
 
         bookingScheduler.processBookings();

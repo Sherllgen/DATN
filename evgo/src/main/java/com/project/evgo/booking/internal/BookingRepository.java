@@ -44,12 +44,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT b FROM Booking b " +
             "WHERE b.status IN :statuses " +
             "AND ((b.startTime >= :startWindowFrom AND b.startTime <= :startWindowTo) " +
+            "  OR (b.startTime >= :reminderWindowFrom AND b.startTime <= :reminderWindowTo) " +
             "  OR (b.endTime >= :endWindowFrom AND b.endTime <= :endWindowTo) " +
             "  OR (b.endTime >= :startWindowFrom AND b.endTime <= :startWindowTo))")
     List<Booking> findBookingsNeedingAction(
             @Param("statuses") List<BookingStatus> statuses,
             @Param("startWindowFrom") LocalDateTime startWindowFrom,
             @Param("startWindowTo") LocalDateTime startWindowTo,
+            @Param("reminderWindowFrom") LocalDateTime reminderWindowFrom,
+            @Param("reminderWindowTo") LocalDateTime reminderWindowTo,
             @Param("endWindowFrom") LocalDateTime endWindowFrom,
             @Param("endWindowTo") LocalDateTime endWindowTo);
 }

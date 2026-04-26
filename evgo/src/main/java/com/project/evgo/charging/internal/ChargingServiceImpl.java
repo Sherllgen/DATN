@@ -157,7 +157,8 @@ public class ChargingServiceImpl implements ChargingService {
 
         if (session.getStatus() != ChargingSessionStatus.CHARGING
                 && session.getStatus() != ChargingSessionStatus.PREPARING
-                && session.getStatus() != ChargingSessionStatus.SUSPENDED_EV) {
+                && session.getStatus() != ChargingSessionStatus.SUSPENDED_EV
+                && session.getStatus() != ChargingSessionStatus.SUSPENDED_EVSE) {
             throw new AppException(ErrorCode.INVALID_SESSION_STATUS);
         }
 

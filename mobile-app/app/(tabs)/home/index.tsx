@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View, Image, ScrollView } from "react-native";
-import MapView, { UrlTile, Marker } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
@@ -179,6 +179,7 @@ export default function HomePage() {
                                 >
                                     <MapView
                                         style={{ flex: 1 }}
+                                        provider={PROVIDER_GOOGLE}
                                         mapType="standard"
                                         scrollEnabled={false}
                                         zoomEnabled={false}
@@ -190,13 +191,7 @@ export default function HomePage() {
                                             longitudeDelta: 0.05,
                                         }}
                                     >
-                                        {/* <UrlTile
-                                        urlTemplate="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
-                                        maximumZ={19}
-                                        flipY={false}
-                                        zIndex={1}
-                                        tileSize={256}
-                                    /> */}
+
 
                                         {/* User Location Marker - Removed to use default showsUserLocation */}
 
@@ -257,7 +252,9 @@ export default function HomePage() {
                                     label="Duration"
                                     value={(() => {
                                         if (lastSession?.startTime && lastSession?.endTime) {
-                                            const diff = new Date(lastSession.endTime).getTime() - new Date(lastSession.startTime).getTime();
+                                            const startStr = lastSession.startTime.endsWith('Z') ? lastSession.startTime : `${lastSession.startTime}Z`;
+                                            const endStr = lastSession.endTime.endsWith('Z') ? lastSession.endTime : `${lastSession.endTime}Z`;
+                                            const diff = new Date(endStr).getTime() - new Date(startStr).getTime();
                                             const totalMins = Math.floor(diff / 60000);
                                             const h = Math.floor(totalMins / 60);
                                             const m = totalMins % 60;
@@ -308,13 +305,17 @@ export default function HomePage() {
                                 showsVerticalScrollIndicator={false}
                             >
                                 {recentSessions.length > 0 ? recentSessions.map((session) => {
-                                    const dateObj = new Date(session.startTime || session.createdAt || 0);
+                                    const startTimeSource = (session.startTime || session.createdAt || "").toString();
+                                    const startTimeStr = startTimeSource.endsWith('Z') || startTimeSource === "" ? startTimeSource : `${startTimeSource}Z`;
+                                    const dateObj = new Date(startTimeStr || 0);
                                     const dateStr = `${dateObj.getDate()} ${dateObj.toLocaleString('en-us', { month: 'short' })} ${dateObj.getFullYear()}`;
                                     
                                     // Calculate duration in minutes if possible
                                     let duration = "0 min";
                                     if (session.startTime && session.endTime) {
-                                        const diff = new Date(session.endTime).getTime() - new Date(session.startTime).getTime();
+                                        const startStr = session.startTime.endsWith('Z') ? session.startTime : `${session.startTime}Z`;
+                                        const endStr = session.endTime.endsWith('Z') ? session.endTime : `${session.endTime}Z`;
+                                        const diff = new Date(endStr).getTime() - new Date(startStr).getTime();
                                         const mins = Math.floor(diff / 60000);
                                         duration = `${mins} min`;
                                     }

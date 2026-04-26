@@ -1,6 +1,6 @@
 package com.project.evgo.booking.internal;
 
-import com.project.evgo.booking.SendPushNotificationEvent;
+import com.project.evgo.sharedkernel.events.SendPushNotificationEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.booking.SendReserveNowCommandEvent;
 import com.project.evgo.charger.ChargerService;
@@ -13,6 +13,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -94,12 +95,17 @@ public class BookingScheduler {
     // Runs every 60 seconds. Consolidates 3 previous jobs into 1 query.
     // ============================================================
     @Scheduled(fixedRate = 60000)
+    @Transactional
     public void processBookings() {
         LocalDateTime now = LocalDateTime.now();
         
         // Window T-10 mins (9 to 10) for Pre-arrival lock and Hard cutoff
         LocalDateTime startWindowFrom = now.plusMinutes(9);
         LocalDateTime startWindowTo = now.plusMinutes(10);
+        
+        // Window T-30 mins (29 to 30) for Booking Reminder
+        LocalDateTime reminderWindowFrom = now.plusMinutes(29);
+        LocalDateTime reminderWindowTo = now.plusMinutes(30);
         
         // Window T-15 mins (14 to 15) for Soft warning
         LocalDateTime endWindowFrom = now.plusMinutes(14);
@@ -108,6 +114,7 @@ public class BookingScheduler {
         List<Booking> bookings = bookingRepository.findBookingsNeedingAction(
                 List.of(BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS),
                 startWindowFrom, startWindowTo,
+                reminderWindowFrom, reminderWindowTo,
                 endWindowFrom, endWindowTo
         );
 
@@ -116,6 +123,10 @@ public class BookingScheduler {
                 // Check if it's the start window for hardware lock
                 if (booking.getStartTime().isAfter(startWindowFrom) && booking.getStartTime().isBefore(startWindowTo)) {
                     handlePreArrivalLock(booking);
+                }
+                // Check if it's the 30-min reminder window
+                if (booking.getStartTime().isAfter(reminderWindowFrom) && booking.getStartTime().isBefore(reminderWindowTo)) {
+                    handleBookingReminder(booking);
                 }
             } else if (booking.getStatus() == BookingStatus.IN_PROGRESS) {
                 // Check if it's the soft warning window (T-15)
@@ -149,6 +160,15 @@ public class BookingScheduler {
                 booking.getId(), chargePointId, booking.getPortNumber());
     }
 
+    private void handleBookingReminder(Booking booking) {
+        eventPublisher.publishEvent(new SendPushNotificationEvent(
+                booking.getUserId(),
+                "Upcoming Charging Session \u23F0",
+                "Your charging session is scheduled for " + booking.getStartTime().toLocalTime() + ". Please arrive on time."
+        ));
+        log.info("Booking reminder sent: booking={}, userId={}", booking.getId(), booking.getUserId());
+    }
+
     private void handleSoftWarning(Booking booking) {
         eventPublisher.publishEvent(new SendPushNotificationEvent(
                 booking.getUserId(),
@@ -163,8 +183,8 @@ public class BookingScheduler {
         
         eventPublisher.publishEvent(new SendPushNotificationEvent(
                 booking.getUserId(),
-                "Đã ngắt sạc an toàn",
-                "Đã ngắt sạc. Bạn có 10 phút để dắt xe ra khỏi ô đỗ (trước giờ kết thúc) để tránh phí phạt chiếm chỗ."));
+                "Charging Stopped \u26A0\uFE0F",
+                "Your session has been safely stopped. You have 10 minutes to move your vehicle before idle fees apply."));
         
         log.info("Hard cut-off dispatched: booking={}, chargePointId={}, port={}",
                 booking.getId(), chargePointId, booking.getPortNumber());

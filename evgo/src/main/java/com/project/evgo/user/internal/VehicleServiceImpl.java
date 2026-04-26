@@ -10,6 +10,7 @@ import com.project.evgo.user.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -77,7 +78,7 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
     public VehicleResponse getVehicleById(Long vehicleId) {
         Long currentUserId = getCurrentUserId();
         Vehicle vehicle = getVehicleAndCheckOwnership(vehicleId, currentUserId);

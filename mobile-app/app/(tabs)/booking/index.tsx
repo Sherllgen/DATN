@@ -9,9 +9,12 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { getMyBookings } from "@/apis/bookingApi";
 import { BookingResponse, BookingStatus } from "@/types/booking.types";
 import { getInvoiceByBookingId, createZaloPayOrder } from "@/apis/paymentApi";
+import { useAuthStore } from "@/contexts/auth.store";
+import GuestPlaceholder from "@/components/auth/GuestPlaceholder";
 
 export default function BookingPage() {
     const router = useRouter();
+    const { accessToken } = useAuthStore();
     const [activeTab, setActiveTab] = useState<TabName>("Upcoming");
     const [bookings, setBookings] = useState<BookingResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -33,8 +36,10 @@ export default function BookingPage() {
 
     useFocusEffect(
         useCallback(() => {
-            fetchBookings();
-        }, [fetchBookings])
+            if (accessToken) {
+                fetchBookings();
+            }
+        }, [fetchBookings, accessToken])
     );
 
     const filteredBookings = bookings.filter((booking) => {
@@ -68,6 +73,21 @@ export default function BookingPage() {
             setIsPaying(false);
         }
     };
+
+    if (!accessToken) {
+        return (
+            <GradientBackground preset="main">
+                <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+                    <AppHeader title="My Bookings" showBack={false} />
+                    <GuestPlaceholder
+                        title="Your Bookings"
+                        description="Sign in to view and manage your charging station reservations."
+                        icon="calendar-outline"
+                    />
+                </SafeAreaView>
+            </GradientBackground>
+        );
+    }
 
     return (
         <GradientBackground preset="main" dismissKeyboard={false}>

@@ -36,4 +36,9 @@ public class BookingResponse {
     private String chargerName;
     private ConnectorType connectorType;
     private Double maxPower;
+    
+    // Vehicle fields
+    private Long vehicleId;
+    private String vehicleBrand;
+    private String vehicleModelName;
 }

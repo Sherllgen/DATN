@@ -1,4 +1,4 @@
-package com.project.evgo.booking;
+package com.project.evgo.sharedkernel.events;
 
 /**
  * Event requesting a push notification to be sent to a user.
