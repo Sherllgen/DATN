@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import MapView, { Marker, UrlTile } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { Station, StationStatus } from "@/types/station.types";
 import ChargerTypeTag from "@/components/station/ChargerTypeTag";
 import Button from "@/components/ui/Button";
@@ -142,7 +142,8 @@ const InfoTab = ({ station }: InfoTabProps) => {
                 <View className="h-48 rounded-2xl overflow-hidden">
                     <MapView
                         style={{ flex: 1 }}
-                        mapType="none"
+                        provider={PROVIDER_GOOGLE}
+                        mapType="standard"
                         scrollEnabled={false}
                         zoomEnabled={false}
                         initialRegion={{
@@ -152,11 +153,7 @@ const InfoTab = ({ station }: InfoTabProps) => {
                             longitudeDelta: 0.01,
                         }}
                     >
-                        <UrlTile
-                            urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            maximumZ={19}
-                            flipY={false}
-                        />
+
                         <Marker
                             coordinate={{
                                 latitude: station.latitude,

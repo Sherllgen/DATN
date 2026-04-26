@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View, Image, ScrollView } from "react-native";
-import MapView, { UrlTile, Marker } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
@@ -179,7 +179,8 @@ export default function HomePage() {
                                 >
                                     <MapView
                                         style={{ flex: 1 }}
-                                        mapType="none"
+                                        provider={PROVIDER_GOOGLE}
+                                        mapType="standard"
                                         scrollEnabled={false}
                                         zoomEnabled={false}
                                         showsUserLocation={true} // Use default user location marker
@@ -190,11 +191,7 @@ export default function HomePage() {
                                             longitudeDelta: 0.05,
                                         }}
                                     >
-                                        <UrlTile
-                                            urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                            maximumZ={19}
-                                            flipY={false}
-                                        />
+
 
                                         {/* User Location Marker - Removed to use default showsUserLocation */}
 
