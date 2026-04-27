@@ -93,7 +93,7 @@ class BookingEventListenerTest {
         verify(eventPublisher).publishEvent(captor.capture());
         
         BookingConfirmedAndReadyForHardwareEvent publishedEvent = captor.getValue();
-        assertThat(publishedEvent.booking().getId()).isEqualTo(1L);
+        assertThat(publishedEvent.bookingId()).isEqualTo(1L);
     }
 
     @Test
@@ -106,7 +106,13 @@ class BookingEventListenerTest {
         booking.setUserId(42L);
         booking.setEndTime(LocalDateTime.now().plusHours(1));
 
-        BookingConfirmedAndReadyForHardwareEvent event = new BookingConfirmedAndReadyForHardwareEvent(booking);
+        BookingConfirmedAndReadyForHardwareEvent event = new BookingConfirmedAndReadyForHardwareEvent(
+                booking.getId(),
+                booking.getChargerId(),
+                booking.getPortNumber(),
+                booking.getUserId(),
+                booking.getEndTime()
+        );
 
         eventListener.onBookingConfirmedReadyForHardware(event);
 

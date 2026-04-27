@@ -89,7 +89,13 @@ public class BookingEventListener {
             LocalDateTime now = LocalDateTime.now();
             if (booking.getStartTime().isBefore(now.plusMinutes(10)) && booking.getStartTime().isAfter(now)) {
                 log.info("Booking {} starts soon (within 10m). Dispatching immediate ReserveNow.", booking.getId());
-                eventPublisher.publishEvent(new BookingConfirmedAndReadyForHardwareEvent(booking));
+                eventPublisher.publishEvent(new BookingConfirmedAndReadyForHardwareEvent(
+                        booking.getId(),
+                        booking.getChargerId(),
+                        booking.getPortNumber(),
+                        booking.getUserId(),
+                        booking.getEndTime()
+                ));
             }
         });
     }
@@ -103,14 +109,13 @@ public class BookingEventListener {
     // Spring automatic call this after transaction commit
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingConfirmedReadyForHardware(BookingConfirmedAndReadyForHardwareEvent event) {
-        Booking booking = event.booking();
         eventPublisher.publishEvent(new SendReserveNowCommandEvent(
-                String.valueOf(booking.getChargerId()),
-                booking.getPortNumber(),
-                "user-" + booking.getUserId(),
-                booking.getEndTime(),
-                booking.getId().intValue()
+                String.valueOf(event.chargerId()),
+                event.portNumber(),
+                "user-" + event.userId(),
+                event.endTime(),
+                event.bookingId().intValue()
         ));
-        log.info("Hardware ReserveNow safely dispatched for booking {}", booking.getId());
+        log.info("Hardware ReserveNow safely dispatched for booking {}", event.bookingId());
     }
 }
