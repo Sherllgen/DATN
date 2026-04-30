@@ -317,4 +317,33 @@ class BookingServiceTest {
                 verify(bookingRepository).findIdsByStationIdIn(stationIds);
                 verify(invoiceService).getStatsByBookingIds(bookingIds);
         }
+
+    @Test
+    @DisplayName("startBookingSession_ConfirmedBooking_TransitionsToInProgress")
+    void startBookingSession_ConfirmedBooking_TransitionsToInProgress() {
+        Booking booking = new Booking();
+        booking.setId(1L);
+        booking.setStatus(BookingStatus.CONFIRMED);
+
+        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+
+        bookingService.startBookingSession(1L);
+
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.IN_PROGRESS);
+        verify(bookingRepository).save(booking);
+    }
+
+    @Test
+    @DisplayName("startBookingSession_NonConfirmedBooking_ThrowsException")
+    void startBookingSession_NonConfirmedBooking_ThrowsException() {
+        Booking booking = new Booking();
+        booking.setId(1L);
+        booking.setStatus(BookingStatus.IN_PROGRESS); // Already in progress
+
+        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.startBookingSession(1L))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST);
+    }
 }

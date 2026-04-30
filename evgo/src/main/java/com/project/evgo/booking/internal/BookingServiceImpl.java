@@ -293,6 +293,27 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
     }
 
+    @Override
+    @Transactional
+    public void startBookingSession(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new AppException(ErrorCode.INVALID_REQUEST,
+                    "Booking must be CONFIRMED to start. Current status: " + booking.getStatus());
+        }
+
+        booking.setStatus(BookingStatus.IN_PROGRESS);
+        bookingRepository.save(booking);
+    }
+
+    @Override
+    public boolean hasUpcomingBookingOnPort(Long chargerId, Integer portNumber, LocalDateTime after) {
+        return bookingRepository.existsByChargerIdAndPortNumberAndStatusAndStartTimeAfter(
+                chargerId, portNumber, BookingStatus.CONFIRMED, after);
+    }
+
     // splits the duration into 30-minute blocks
     private List<LocalDateTime> getIntervals(LocalDateTime startTime, LocalDateTime endTime) {
         List<LocalDateTime> intervals = new ArrayList<>();

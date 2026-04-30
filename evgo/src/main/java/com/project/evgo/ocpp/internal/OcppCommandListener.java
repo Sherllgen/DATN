@@ -2,7 +2,7 @@ package com.project.evgo.ocpp.internal;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.project.evgo.booking.SendReserveNowCommandEvent;
+import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent;
 

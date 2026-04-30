@@ -2,14 +2,14 @@ package com.project.evgo.booking.internal;
 
 import com.project.evgo.booking.BookingConfirmedAndReadyForHardwareEvent;
 import com.project.evgo.booking.RequireRefundEvent;
-import com.project.evgo.booking.SendReserveNowCommandEvent;
+import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.payment.PaymentSuccessEvent;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
+import com.project.evgo.sharedkernel.events.ChargingSessionCompletedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,7 +32,7 @@ public class BookingEventListener {
     private final BookingRepository bookingRepository;
     private final StringRedisTemplate redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
-    
+
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
 
     @EventListener
@@ -69,18 +69,17 @@ public class BookingEventListener {
             booking.setStatus(BookingStatus.CONFIRMED);
             bookingRepository.save(booking);
 
-            // 4. Delete Redis Keys in Batch
+            // 4. Delete Redis Keys in Batch (format must match BookingServiceImpl.generateLockKey)
             List<String> keysToDelete = new ArrayList<>();
             LocalDateTime current = booking.getStartTime();
-            
+
             while (current.isBefore(booking.getEndTime())) {
-                String timeStr = current.format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
-                keysToDelete.add(LOCK_PREFIX + booking.getStationId() + ":" + booking.getPortNumber() + ":" + timeStr);
-                current = current.plusMinutes(30); 
+                keysToDelete.add(LOCK_PREFIX + booking.getStationId() + ":" + booking.getPortNumber() + ":" + current.toString());
+                current = current.plusMinutes(30);
             }
-            
+
             if (!keysToDelete.isEmpty()) {
-                redisTemplate.delete(keysToDelete); 
+                redisTemplate.delete(keysToDelete);
             }
             
             log.info("Booking {} confirmed and {} Redis locks deleted.", booking.getId(), keysToDelete.size());
@@ -104,6 +103,35 @@ public class BookingEventListener {
         eventPublisher.publishEvent(new RequireRefundEvent(
                 booking.getId(), booking.getUserId(), booking.getTotalPrice(), reason
         ));
+    }
+
+    /**
+     * When a charging session completes, transition the linked booking to COMPLETED.
+     * The bookingId is carried directly in the event (from sharedkernel),
+     * so no dependency on ChargingService is needed.
+     */
+    @EventListener
+    @Transactional
+    public void onChargingSessionCompleted(ChargingSessionCompletedEvent event) {
+        log.info("Received ChargingSessionCompletedEvent: sessionId={}", event.sessionId());
+
+        if (event.bookingId() == null) {
+            log.debug("No linked booking for sessionId={}. Nothing to update.", event.sessionId());
+            return;
+        }
+
+        Long bookingId = event.bookingId();
+        bookingRepository.findById(bookingId).ifPresent(booking -> {
+            if (booking.getStatus() == BookingStatus.IN_PROGRESS) {
+                booking.setStatus(BookingStatus.COMPLETED);
+                bookingRepository.save(booking);
+                log.info("Booking {} transitioned to COMPLETED after charging session {} finished.",
+                        bookingId, event.sessionId());
+            } else {
+                log.warn("Booking {} is in status {} (expected IN_PROGRESS). Skipping completion.",
+                        bookingId, booking.getStatus());
+            }
+        });
     }
 
     // Spring automatic call this after transaction commit

@@ -2,7 +2,8 @@ package com.project.evgo.booking.internal;
 
 import com.project.evgo.sharedkernel.events.SendPushNotificationEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
-import com.project.evgo.booking.SendReserveNowCommandEvent;
+import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
+import com.project.evgo.booking.BookingService;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
@@ -33,6 +34,7 @@ import org.springframework.data.redis.core.ScanOptions;
 public class BookingScheduler {
 
     private final BookingRepository bookingRepository;
+    private final BookingService bookingService;
     private final ChargerService chargerService;
     private final ApplicationEventPublisher eventPublisher;
     private final StringRedisTemplate redisTemplate;
@@ -183,13 +185,24 @@ public class BookingScheduler {
     }
 
     private void handleHardCutoff(Booking booking) {
+        // Issue 3: Only hard-cutoff if another booking follows on the same port.
+        // If no upcoming booking exists, let the user keep charging.
+        boolean hasNextBooking = bookingService.hasUpcomingBookingOnPort(
+                booking.getChargerId(), booking.getPortNumber(), booking.getEndTime());
+
+        if (!hasNextBooking) {
+            log.info("No upcoming booking on port {}:{}. Allowing session to continue past booking end time.",
+                    booking.getChargerId(), booking.getPortNumber());
+            return;
+        }
+
         String chargePointId = String.valueOf(booking.getChargerId());
         eventPublisher.publishEvent(new SendRemoteStopCommandEvent(null, chargePointId, 0, "hard-cutoff"));
         
         eventPublisher.publishEvent(new SendPushNotificationEvent(
                 booking.getUserId(),
                 "Charging Stopped \u26A0\uFE0F",
-                "Your session has been safely stopped. You have 10 minutes to move your vehicle before idle fees apply."));
+                "Your session has been safely stopped. Another user has a reservation. You have 10 minutes to move your vehicle."));
         
         log.info("Hard cut-off dispatched: booking={}, chargePointId={}, port={}",
                 booking.getId(), chargePointId, booking.getPortNumber());

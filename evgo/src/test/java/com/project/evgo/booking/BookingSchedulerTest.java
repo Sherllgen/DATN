@@ -5,6 +5,7 @@ import com.project.evgo.booking.internal.BookingRepository;
 import com.project.evgo.booking.internal.BookingScheduler;
 import com.project.evgo.sharedkernel.events.SendPushNotificationEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
+import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
@@ -29,6 +30,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -37,6 +40,9 @@ class BookingSchedulerTest {
 
     @Mock
     private BookingRepository bookingRepository;
+
+    @Mock
+    private BookingService bookingService;
 
     @Mock
     private ChargerService chargerService;
@@ -116,8 +122,8 @@ class BookingSchedulerTest {
     }
 
     @Test
-    @DisplayName("processBookings: Should dispatch RemoteStop (Hard Cutoff) for IN_PROGRESS booking at T-10")
-    void processBookings_InProgressAtT10_DispatchesRemoteStop() {
+    @DisplayName("processBookings: Should dispatch RemoteStop when next booking exists on same port")
+    void processBookings_InProgressAtT10_WithNextBooking_DispatchesRemoteStop() {
         LocalDateTime now = LocalDateTime.now();
         Booking booking = buildBooking(3L, BookingStatus.IN_PROGRESS, 10L, 1, 42L,
                 now.minusMinutes(50), now.plusMinutes(9).plusSeconds(30));
@@ -125,11 +131,37 @@ class BookingSchedulerTest {
         when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(booking));
 
+        // Another booking follows on the same port
+        when(bookingService.hasUpcomingBookingOnPort(eq(10L), eq(1), any()))
+                .thenReturn(true);
+
         bookingScheduler.processBookings();
 
         ArgumentCaptor<SendRemoteStopCommandEvent> captor = ArgumentCaptor.forClass(SendRemoteStopCommandEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().reason()).isEqualTo("hard-cutoff");
+    }
+
+    @Test
+    @DisplayName("processBookings: Should SKIP RemoteStop when no next booking exists on port")
+    void processBookings_InProgressAtT10_NoNextBooking_SkipsCutoff() {
+        LocalDateTime now = LocalDateTime.now();
+        Booking booking = buildBooking(4L, BookingStatus.IN_PROGRESS, 10L, 1, 42L,
+                now.minusMinutes(50), now.plusMinutes(9).plusSeconds(30));
+
+        when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(booking));
+
+        // No upcoming booking on this port
+        when(bookingService.hasUpcomingBookingOnPort(eq(10L), eq(1), any()))
+                .thenReturn(false);
+
+        bookingScheduler.processBookings();
+
+        // RemoteStop should NOT be dispatched
+        verify(eventPublisher, never()).publishEvent(any(SendRemoteStopCommandEvent.class));
+        // No push notification either
+        verify(eventPublisher, never()).publishEvent(any(SendPushNotificationEvent.class));
     }
 
     @Test

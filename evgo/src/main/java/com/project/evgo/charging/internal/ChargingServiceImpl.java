@@ -138,6 +138,13 @@ public class ChargingServiceImpl implements ChargingService {
             eventPublisher.publishEvent(new SendRemoteStartCommandEvent(
                     session.getId(), chargePointId, connectorId, idTag));
 
+            // Transition the linked booking to IN_PROGRESS
+            if (request.getBookingId() != null) {
+                bookingService.startBookingSession(request.getBookingId());
+                log.info("Booking {} transitioned to IN_PROGRESS for charging session {}", 
+                        request.getBookingId(), session.getId());
+            }
+
             return converter.convert(session);
         } catch (Exception e) {
             redisTemplate.delete(redisKey);

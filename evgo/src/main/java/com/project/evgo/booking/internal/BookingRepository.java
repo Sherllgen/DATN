@@ -78,4 +78,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("stationIds") List<Long> stationIds,
             @Param("status") BookingStatus status,
             @Param("year") int year);
+
+    boolean existsByChargerIdAndPortNumberAndStatusAndStartTimeAfter(
+            Long chargerId, Integer portNumber, BookingStatus status, LocalDateTime after);
 }

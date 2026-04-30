@@ -132,7 +132,7 @@ public class OcppChargingEventListener {
         log.info("Session {} set to FINISHING: totalKwh={}, reason={}", session.getId(), totalKwh, event.reason());
 
         eventPublisher.publishEvent(new ChargingSessionCompletedEvent(
-                session.getId(), session.getUserId(), session.getPortId(), totalKwh, event.reason()));
+                session.getId(), session.getUserId(), session.getPortId(), totalKwh, event.reason(), session.getBookingId()));
     }
 
     /**
