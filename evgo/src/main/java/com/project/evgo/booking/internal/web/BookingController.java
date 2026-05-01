@@ -19,6 +19,9 @@ import com.project.evgo.booking.request.CheckAvailabilityRequest;
 import com.project.evgo.booking.request.CreateBookingRequest;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.user.security.SecurityUtil;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 /**
  * REST controller for booking management.
@@ -61,6 +64,26 @@ public class BookingController {
         Long currentUserId = SecurityUtil.getCurrentUserId();
         List<BookingResponse> result = bookingService.findByUserId(currentUserId);
         return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(result)
+                .build());
+    }
+
+    @GetMapping("/owner")
+    @Operation(summary = "Get all bookings for stations owned by the current user (Station Owner)")
+    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getOwnerBookings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDir) {
+        
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        Sort.Direction direction = Sort.Direction.fromString(sortDir);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        PageResponse<BookingResponse> result = bookingService.getOwnerBookings(currentUserId, pageable);
+        return ResponseEntity.ok(ApiResponse.<PageResponse<BookingResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
                 .data(result)

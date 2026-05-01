@@ -9,6 +9,7 @@ import com.project.evgo.booking.request.CreateBookingRequest;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.PriceSettingService;
+import com.project.evgo.station.StationService;
 import com.project.evgo.user.security.SecurityUtil;
 
 import org.junit.jupiter.api.AfterEach;
@@ -61,6 +62,9 @@ class BookingServiceTest {
 
     @Mock
     private ValueOperations<String, String> valueOperations;
+
+    @Mock
+    private StationService stationService;
 
     @InjectMocks
     private BookingServiceImpl bookingService;
@@ -187,5 +191,47 @@ class BookingServiceTest {
         assertThatThrownBy(() -> bookingService.createBooking(req))
                 .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+    }
+
+    @Test
+    @DisplayName("getOwnerBookings_WithStations_ReturnsBookings")
+    void getOwnerBookings_WithStations_ReturnsBookings() {
+        // Given
+        Long ownerId = 1L;
+        List<Long> stationIds = List.of(100L, 101L);
+        when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(stationIds);
+
+        Booking booking = new Booking();
+        booking.setId(1L);
+        Page<Booking> page = new PageImpl<>(List.of(booking));
+        when(bookingRepository.findByStationIdIn(eq(stationIds), any(PageRequest.class))).thenReturn(page);
+
+        when(converter.toResponseListBulk(any())).thenReturn(List.of(BookingResponse.builder().id(1L).build()));
+
+        // When
+        PageResponse<BookingResponse> result = bookingService.getOwnerBookings(ownerId, PageRequest.of(0, 10));
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.content()).hasSize(1);
+        verify(stationService).getStationIdsByOwnerId(ownerId);
+        verify(bookingRepository).findByStationIdIn(eq(stationIds), any(PageRequest.class));
+    }
+
+    @Test
+    @DisplayName("getOwnerBookings_NoStations_ReturnsEmptyPage")
+    void getOwnerBookings_NoStations_ReturnsEmptyPage() {
+        // Given
+        Long ownerId = 1L;
+        when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(List.of());
+
+        // When
+        PageResponse<BookingResponse> result = bookingService.getOwnerBookings(ownerId, PageRequest.of(0, 10));
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.content()).isEmpty();
+        verify(stationService).getStationIdsByOwnerId(ownerId);
+        verify(bookingRepository, org.mockito.Mockito.never()).findByStationIdIn(any(), any());
     }
 }

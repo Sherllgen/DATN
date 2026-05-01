@@ -26,5 +26,7 @@ public interface BookingService {
 
     PageResponse<BookingResponse> getBookingsByStatus(String statusStr, int page, int size);
 
+    PageResponse<BookingResponse> getOwnerBookings(Long ownerId, org.springframework.data.domain.Pageable pageable);
+
     void cancelBooking(Long id);
 }

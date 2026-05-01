@@ -297,6 +297,21 @@ class StationServiceTest {
                 assertThat(result).isEmpty();
             }
         }
+
+        @Test
+        @DisplayName("getStationIdsByOwnerId should return list of station IDs")
+        void getStationIdsByOwnerId_ValidOwner_ReturnsList() {
+            // Given
+            when(stationRepository.findByOwnerIdAndDeletedAtIsNull(OWNER_ID))
+                    .thenReturn(List.of(testStation));
+
+            // When
+            List<Long> result = stationService.getStationIdsByOwnerId(OWNER_ID);
+
+            // Then
+            assertThat(result).containsExactly(STATION_ID);
+            verify(stationRepository).findByOwnerIdAndDeletedAtIsNull(OWNER_ID);
+        }
     }
 
     // ==================== DELETE STATION TESTS ====================

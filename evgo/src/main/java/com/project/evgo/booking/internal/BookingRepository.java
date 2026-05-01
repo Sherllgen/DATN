@@ -41,6 +41,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByStatusAndCreatedAtBefore(BookingStatus status, LocalDateTime threshold);
 
+    Page<Booking> findByStationIdIn(List<Long> stationIds, Pageable pageable);
+
     @Query("SELECT b FROM Booking b " +
             "WHERE b.status IN :statuses " +
             "AND ((b.startTime >= :startWindowFrom AND b.startTime <= :startWindowTo) " +

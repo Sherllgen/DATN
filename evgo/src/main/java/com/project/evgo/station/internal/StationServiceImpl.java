@@ -51,6 +51,14 @@ public class StationServiceImpl implements StationService {
     }
 
     @Override
+    public List<StationResponse> findAllByIds(java.util.Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return stationDtoConverter.convert(stationRepository.findAllById(ids));
+    }
+
+    @Override
     @Transactional
     public StationResponse create(CreateStationRequest request) {
         if (request == null) {
@@ -168,6 +176,14 @@ public class StationServiceImpl implements StationService {
         Long currentUserId = SecurityUtil.getCurrentUserId();
         List<Station> stations = stationRepository.findByOwnerIdAndDeletedAtIsNull(currentUserId);
         return stationDtoConverter.convert(stations);
+    }
+
+    @Override
+    public List<Long> getStationIdsByOwnerId(Long ownerId) {
+        return stationRepository.findByOwnerIdAndDeletedAtIsNull(ownerId)
+                .stream()
+                .map(Station::getId)
+                .collect(Collectors.toList());
     }
 
     @Override

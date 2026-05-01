@@ -21,6 +21,8 @@ public interface ChargerService {
 
     Optional<ChargerResponse> findById(Long id);
 
+    List<ChargerResponse> findAllByIds(java.util.Set<Long> ids);
+
     List<PortResponse> findPortsByChargerId(Long chargerId);
 
     Optional<PortResponse> findPortByChargerIdAndPortNumber(Long chargerId, Integer portNumber);

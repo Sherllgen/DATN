@@ -4,6 +4,7 @@ import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
 import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
+import com.project.evgo.station.StationService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.project.evgo.sharedkernel.dto.PageResponse;
@@ -45,6 +47,7 @@ public class BookingServiceImpl implements BookingService {
     private final InvoiceService invoiceService;
     private final PriceSettingService priceSettingService;
     private final StringRedisTemplate redisTemplate;
+    private final StationService stationService;
 
     private static final long LOCK_TTL_MINUTES = 8;
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
@@ -163,6 +166,17 @@ public class BookingServiceImpl implements BookingService {
 
         Page<BookingResponse> responsePage = bookingPage.map(converter::toResponse);
         return PageResponse.of(responsePage);
+    }
+
+    @Override
+    public PageResponse<BookingResponse> getOwnerBookings(Long ownerId, Pageable pageable) {
+        List<Long> stationIds = stationService.getStationIdsByOwnerId(ownerId);
+        if (stationIds.isEmpty()) {
+            return PageResponse.of(new PageImpl<>(List.of(), pageable, 0));
+        }
+        Page<Booking> bookingPage = bookingRepository.findByStationIdIn(stationIds, pageable);
+        List<BookingResponse> responses = converter.toResponseListBulk(bookingPage.getContent());
+        return PageResponse.of(new PageImpl<>(responses, pageable, bookingPage.getTotalElements()));
     }
 
     @Override

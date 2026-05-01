@@ -50,6 +50,14 @@ public class ChargerServiceImpl implements ChargerService {
         return converter.toChargerResponse(chargerRepository.findById(id));
     }
 
+    @Override
+    public List<ChargerResponse> findAllByIds(java.util.Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return converter.toChargerResponse(chargerRepository.findAllById(ids));
+    }
+
     // ==================== Port ====================
     @Override
     public List<PortResponse> findPortsByChargerId(Long chargerId) {

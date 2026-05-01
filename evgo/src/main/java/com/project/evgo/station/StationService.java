@@ -24,6 +24,8 @@ public interface StationService {
 
     List<StationResponse> findAll();
 
+    List<StationResponse> findAllByIds(java.util.Set<Long> ids);
+
     // Owner-specific operations
     StationResponse create(CreateStationRequest request);
 
@@ -32,6 +34,8 @@ public interface StationService {
     void delete(Long id);
 
     List<StationResponse> getMyStations();
+
+    List<Long> getStationIdsByOwnerId(Long ownerId);
 
     StationResponse updateStatus(Long id, StationStatus status);
 
