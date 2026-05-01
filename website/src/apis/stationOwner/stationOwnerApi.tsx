@@ -27,3 +27,24 @@ export async function getOwnerBookingsApi(params?: GetOwnerBookingsParams) {
 
     return res.data;
 }
+
+export async function getOwnerBookingStatsApi() {
+    const res = await axios.get("/api/stationOwner/stats/bookings", {
+        withCredentials: true,
+    });
+    return res.data;
+}
+
+export async function getOwnerInvoiceStatsApi() {
+    const res = await axios.get("/api/stationOwner/stats/invoices", {
+        withCredentials: true,
+    });
+    return res.data;
+}
+
+export async function getOwnerStationStatsApi() {
+    const res = await axios.get("/api/stationOwner/stats/stations", {
+        withCredentials: true,
+    });
+    return res.data;
+}

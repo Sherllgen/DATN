@@ -7,3 +7,24 @@ export const useOwnerBookings = (params: GetOwnerBookingsParams) => {
         queryFn: () => getOwnerBookingsApi(params),
     });
 };
+
+export const useOwnerBookingStats = () => {
+    return useQuery({
+        queryKey: ["owner-booking-stats"],
+        queryFn: () => import("@/apis/stationOwner/stationOwnerApi").then(m => m.getOwnerBookingStatsApi()),
+    });
+};
+
+export const useOwnerInvoiceStats = () => {
+    return useQuery({
+        queryKey: ["owner-invoice-stats"],
+        queryFn: () => import("@/apis/stationOwner/stationOwnerApi").then(m => m.getOwnerInvoiceStatsApi()),
+    });
+};
+
+export const useOwnerStationStats = () => {
+    return useQuery({
+        queryKey: ["owner-station-stats"],
+        queryFn: () => import("@/apis/stationOwner/stationOwnerApi").then(m => m.getOwnerStationStatsApi()),
+    });
+};

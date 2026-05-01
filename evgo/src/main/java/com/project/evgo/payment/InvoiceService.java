@@ -2,6 +2,7 @@ package com.project.evgo.payment;
 
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
 import com.project.evgo.payment.response.InvoiceResponse;
+import com.project.evgo.payment.response.InvoiceStatsResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 
@@ -17,4 +18,6 @@ public interface InvoiceService {
     PageResponse<InvoiceResponse> getMyInvoices(Long userId, InvoiceStatus status, int page, int size);
 
     boolean hasUnpaidInvoices(Long userId);
+
+    InvoiceStatsResponse getStatsByBookingIds(java.util.List<Long> bookingIds);
 }

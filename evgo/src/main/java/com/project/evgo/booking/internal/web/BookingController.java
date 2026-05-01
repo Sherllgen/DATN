@@ -2,7 +2,9 @@ package com.project.evgo.booking.internal.web;
 
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.booking.response.BookingStatsResponse;
 import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
+import com.project.evgo.payment.response.InvoiceStatsResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
@@ -83,14 +85,38 @@ public class BookingController {
                 Sort.Direction direction = Sort.Direction.fromString(sortDir);
                 Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-                PageResponse<com.project.evgo.booking.response.OwnerBookingSummaryResponse> result = bookingService
+                PageResponse<OwnerBookingSummaryResponse> result = bookingService
                                 .getOwnerBookings(currentUserId, pageable);
                 return ResponseEntity.ok(
-                                ApiResponse.<PageResponse<com.project.evgo.booking.response.OwnerBookingSummaryResponse>>builder()
+                                ApiResponse.<PageResponse<OwnerBookingSummaryResponse>>builder()
                                                 .status(HttpStatus.OK.value())
                                                 .message("Success")
                                                 .data(result)
                                                 .build());
+        }
+
+        @GetMapping("/owner/stats")
+        @Operation(summary = "Get booking statistics for Station Owner")
+        public ResponseEntity<ApiResponse<BookingStatsResponse>> getOwnerStats() {
+                Long currentUserId = SecurityUtil.getCurrentUserId();
+                BookingStatsResponse result = bookingService.getOwnerStats(currentUserId);
+                return ResponseEntity.ok(ApiResponse.<BookingStatsResponse>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
+        }
+
+        @GetMapping("/owner/invoice-stats")
+        @Operation(summary = "Get invoice statistics for Station Owner")
+        public ResponseEntity<ApiResponse<InvoiceStatsResponse>> getOwnerInvoiceStats() {
+                Long currentUserId = SecurityUtil.getCurrentUserId();
+                InvoiceStatsResponse result = bookingService.getOwnerInvoiceStats(currentUserId);
+                return ResponseEntity.ok(ApiResponse.<InvoiceStatsResponse>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
         }
 
         @GetMapping("/station/{stationId}/port/{portNumber}")

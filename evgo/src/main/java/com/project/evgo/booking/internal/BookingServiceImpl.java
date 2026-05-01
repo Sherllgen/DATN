@@ -2,9 +2,11 @@ package com.project.evgo.booking.internal;
 
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.booking.response.BookingStatsResponse;
 import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
 import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
+import com.project.evgo.payment.response.InvoiceStatsResponse;
 import com.project.evgo.station.StationService;
 
 import lombok.RequiredArgsConstructor;
@@ -178,6 +180,44 @@ public class BookingServiceImpl implements BookingService {
         Page<Booking> bookingPage = bookingRepository.findByStationIdIn(stationIds, pageable);
         List<OwnerBookingSummaryResponse> responses = converter.toOwnerSummaryListBulk(bookingPage.getContent());
         return PageResponse.of(new PageImpl<>(responses, pageable, bookingPage.getTotalElements()));
+    }
+
+    @Override
+    public BookingStatsResponse getOwnerStats(Long ownerId) {
+        List<Long> stationIds = stationService.getStationIdsByOwnerId(ownerId);
+        if (stationIds.isEmpty()) {
+            return new BookingStatsResponse(0, 0, 0.0, 0.0);
+        }
+
+        long totalBookings = bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.COMPLETED)
+                + bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.CONFIRMED)
+                + bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.IN_PROGRESS);
+
+        long totalCustomers = bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds,
+                BookingStatus.COMPLETED)
+                + bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.CONFIRMED)
+                + bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.IN_PROGRESS);
+
+        return BookingStatsResponse.builder()
+                .totalBookings(totalBookings)
+                .totalCustomers(totalCustomers)
+                .bookingsGrowth(0.0) // Future implementation
+                .customersGrowth(0.0) // Future implementation
+                .build();
+    }
+
+    @Override
+    public List<Long> getBookingIdsByOwnerId(Long ownerId) {
+        List<Long> stationIds = stationService.getStationIdsByOwnerId(ownerId);
+        if (stationIds.isEmpty())
+            return List.of();
+        return bookingRepository.findIdsByStationIdIn(stationIds);
+    }
+
+    @Override
+    public InvoiceStatsResponse getOwnerInvoiceStats(Long ownerId) {
+        List<Long> bookingIds = getBookingIdsByOwnerId(ownerId);
+        return invoiceService.getStatsByBookingIds(bookingIds);
     }
 
     @Override

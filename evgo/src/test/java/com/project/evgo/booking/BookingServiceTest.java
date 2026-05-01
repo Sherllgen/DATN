@@ -29,7 +29,9 @@ import org.springframework.data.redis.core.ValueOperations;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.booking.response.BookingStatsResponse;
 import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
+import com.project.evgo.payment.response.InvoiceStatsResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,6 +56,9 @@ class BookingServiceTest {
 
         @Mock
         private BookingDtoConverter converter;
+
+        @Mock
+        private com.project.evgo.payment.InvoiceService invoiceService;
 
         @Mock
         private PriceSettingService priceSettingService;
@@ -238,5 +243,84 @@ class BookingServiceTest {
                 assertThat(result.content()).isEmpty();
                 verify(stationService).getStationIdsByOwnerId(ownerId);
                 verify(bookingRepository, org.mockito.Mockito.never()).findByStationIdIn(any(), any());
+        }
+
+        @Test
+        @DisplayName("getOwnerStats_WithStations_ReturnsStats")
+        void getOwnerStats_WithStations_ReturnsStats() {
+                // Given
+                Long ownerId = 1L;
+                List<Long> stationIds = List.of(100L, 101L);
+                when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(stationIds);
+
+                when(bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.COMPLETED))
+                                .thenReturn(50L);
+                when(bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.CONFIRMED))
+                                .thenReturn(30L);
+                when(bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.IN_PROGRESS))
+                                .thenReturn(20L);
+
+                when(bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.COMPLETED))
+                                .thenReturn(40L);
+                when(bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.CONFIRMED))
+                                .thenReturn(25L);
+                when(bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.IN_PROGRESS))
+                                .thenReturn(15L);
+
+                // When
+                BookingStatsResponse result = bookingService.getOwnerStats(ownerId);
+
+                // Then
+                assertThat(result).isNotNull();
+                assertThat(result.getTotalBookings()).isEqualTo(100L);
+                assertThat(result.getTotalCustomers()).isEqualTo(80L);
+                verify(stationService).getStationIdsByOwnerId(ownerId);
+        }
+
+        @Test
+        @DisplayName("getOwnerStats_NoStations_ReturnsZeros")
+        void getOwnerStats_NoStations_ReturnsZeros() {
+                // Given
+                Long ownerId = 1L;
+                when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(List.of());
+
+                // When
+                BookingStatsResponse result = bookingService.getOwnerStats(ownerId);
+
+                // Then
+                assertThat(result).isNotNull();
+                assertThat(result.getTotalBookings()).isEqualTo(0L);
+                assertThat(result.getTotalCustomers()).isEqualTo(0L);
+                verify(stationService).getStationIdsByOwnerId(ownerId);
+                verify(bookingRepository, org.mockito.Mockito.never()).countByStationIdInAndStatus(any(), any());
+        }
+
+        @Test
+        @DisplayName("getOwnerInvoiceStats_WithStations_ReturnsInvoiceStats")
+        void getOwnerInvoiceStats_WithStations_ReturnsInvoiceStats() {
+                // Given
+                Long ownerId = 1L;
+                List<Long> stationIds = List.of(100L, 101L);
+                List<Long> bookingIds = List.of(10L, 11L, 12L);
+
+                when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(stationIds);
+                when(bookingRepository.findIdsByStationIdIn(stationIds)).thenReturn(bookingIds);
+
+                InvoiceStatsResponse mockResponse = InvoiceStatsResponse.builder()
+                                .totalRevenue(java.math.BigDecimal.valueOf(500000))
+                                .revenueGrowth(0.0)
+                                .build();
+
+                when(invoiceService.getStatsByBookingIds(bookingIds)).thenReturn(mockResponse);
+
+                // When
+                InvoiceStatsResponse result = bookingService.getOwnerInvoiceStats(ownerId);
+
+                // Then
+                assertThat(result).isNotNull();
+                assertThat(result.getTotalRevenue()).isEqualTo(java.math.BigDecimal.valueOf(500000));
+                verify(stationService).getStationIdsByOwnerId(ownerId);
+                verify(bookingRepository).findIdsByStationIdIn(stationIds);
+                verify(invoiceService).getStatsByBookingIds(bookingIds);
         }
 }

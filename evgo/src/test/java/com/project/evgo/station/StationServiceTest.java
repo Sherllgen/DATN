@@ -11,6 +11,7 @@ import com.project.evgo.station.request.CreateStationRequest;
 import com.project.evgo.station.request.StationOpeningHoursRequest;
 import com.project.evgo.station.request.UpdateStationRequest;
 import com.project.evgo.station.response.StationResponse;
+import com.project.evgo.station.response.StationStatsResponse;
 import com.project.evgo.user.security.SecurityUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -761,6 +762,31 @@ class StationServiceTest {
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST);
 
             verify(stationRepository, never()).searchByText(anyString(), anyDouble(), anyDouble(), anyInt());
+        }
+    }
+
+    // ==================== STATS TESTS ====================
+    @Nested
+    @DisplayName("Station Stats Tests")
+    class StationStatsTests {
+
+        @Test
+        @DisplayName("Should return station stats for owner")
+        void getOwnerStats_ValidOwner_ReturnsStats() {
+            // Given
+            when(stationRepository.countByOwnerIdAndDeletedAtIsNull(OWNER_ID)).thenReturn(5L);
+            when(stationRepository.countByOwnerIdAndStatusAndDeletedAtIsNull(OWNER_ID, StationStatus.ACTIVE))
+                    .thenReturn(3L);
+
+            // When
+            StationStatsResponse result = stationService.getOwnerStats(OWNER_ID);
+
+            // Then
+            assertThat(result).isNotNull();
+            assertThat(result.getTotalStations()).isEqualTo(5L);
+            assertThat(result.getActiveStations()).isEqualTo(3L);
+            verify(stationRepository).countByOwnerIdAndDeletedAtIsNull(OWNER_ID);
+            verify(stationRepository).countByOwnerIdAndStatusAndDeletedAtIsNull(OWNER_ID, StationStatus.ACTIVE);
         }
     }
 }

@@ -12,6 +12,7 @@ import com.project.evgo.station.request.UpdateStationRequest;
 import com.project.evgo.station.response.StationMetadataResponse;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
+import com.project.evgo.station.response.StationStatsResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.user.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -205,6 +206,18 @@ public class StationServiceImpl implements StationService {
     }
 
     @Override
+    public StationStatsResponse getOwnerStats(Long ownerId) {
+        long totalStations = stationRepository.countByOwnerIdAndDeletedAtIsNull(ownerId);
+        long activeStations = stationRepository.countByOwnerIdAndStatusAndDeletedAtIsNull(ownerId,
+                StationStatus.ACTIVE);
+
+        return StationStatsResponse.builder()
+                .totalStations(totalStations)
+                .activeStations(activeStations)
+                .build();
+    }
+
+    @Override
     public List<StationSearchResult> searchNearby(SearchNearbyRequest request) {
         // Validate inputs
         if (request.latitude() == null || request.longitude() == null) {
@@ -275,7 +288,8 @@ public class StationServiceImpl implements StationService {
         Double maxPower = stationRepository.findMaxPowerOutput();
         List<String> connectorTypes = stationRepository.findDistinctConnectorTypes();
 
-        // Collect all StationStatus enum values as strings for the frontend, excluding PENDING
+        // Collect all StationStatus enum values as strings for the frontend, excluding
+        // PENDING
         List<String> statuses = Arrays.stream(StationStatus.values())
                 .filter(status -> status != StationStatus.PENDING)
                 .map(Enum::name)
@@ -285,8 +299,7 @@ public class StationServiceImpl implements StationService {
                 minPower != null ? minPower : 0.0,
                 maxPower != null ? maxPower : 0.0,
                 connectorTypes,
-                statuses
-        );
+                statuses);
     }
 
     @Override
@@ -297,14 +310,15 @@ public class StationServiceImpl implements StationService {
                 : null;
 
         String statusStr = request.status() != null ? request.status().name() : null;
-        
+
         int page = request.page() != null ? Math.max(0, request.page()) : 0;
         int size = request.size() != null ? Math.max(1, request.size()) : 10;
         Pageable pageable = PageRequest.of(page, size);
 
         Page<StationProjection> projectionPage;
         if (connectorTypes != null) {
-            // Use the variant with connector type filter (avoids SpEL null-collection issues)
+            // Use the variant with connector type filter (avoids SpEL null-collection
+            // issues)
             projectionPage = stationRepository.findFilteredStationsWithConnectors(
                     request.minPower(),
                     request.maxPower(),
@@ -313,8 +327,7 @@ public class StationServiceImpl implements StationService {
                     request.query(),
                     request.userLat(),
                     request.userLng(),
-                    pageable
-            );
+                    pageable);
         } else {
             projectionPage = stationRepository.findFilteredStations(
                     request.minPower(),
@@ -323,8 +336,7 @@ public class StationServiceImpl implements StationService {
                     request.query(),
                     request.userLat(),
                     request.userLng(),
-                    pageable
-            );
+                    pageable);
         }
 
         List<StationSearchResult> results = stationDtoConverter.convertToSearchResults(projectionPage.getContent());

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useRef } from "react";
@@ -106,8 +107,12 @@ export function PhotoManager({ stationId, photos, onPhotosChange }: PhotoManager
             setShowAddDialog(false);
             resetDialog();
             onPhotosChange();
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to upload photo");
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || "Failed to upload photo");
+            } else {
+                toast.error("Failed to upload photo");
+            }
         } finally {
             setSubmitting(false);
         }
@@ -122,8 +127,12 @@ export function PhotoManager({ stationId, photos, onPhotosChange }: PhotoManager
             toast.success("Photo deleted");
             setDeleteTarget(null);
             onPhotosChange();
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to delete photo");
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || "Failed to delete photo");
+            } else {
+                toast.error("Failed to delete photo");
+            }
         }
     }
 

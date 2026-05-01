@@ -221,6 +221,10 @@ public interface StationRepository extends JpaRepository<Station, Long> {
 
     List<Station> findByOwnerIdAndDeletedAtIsNull(Long ownerId);
 
+    long countByOwnerIdAndDeletedAtIsNull(Long ownerId);
+
+    long countByOwnerIdAndStatusAndDeletedAtIsNull(Long ownerId, StationStatus status);
+
     boolean existsByNameAndOwnerIdAndDeletedAtIsNull(String name, Long ownerId);
 
     boolean existsByNameAndOwnerIdAndIdNotAndDeletedAtIsNull(String name, Long ownerId, Long id);

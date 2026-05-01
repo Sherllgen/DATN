@@ -3,7 +3,9 @@ package com.project.evgo.booking;
 import com.project.evgo.booking.request.CreateBookingRequest;
 import com.project.evgo.booking.request.CheckAvailabilityRequest;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.booking.response.BookingStatsResponse;
 import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
+import com.project.evgo.payment.response.InvoiceStatsResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 
 import java.util.List;
@@ -30,6 +32,12 @@ public interface BookingService {
     PageResponse<BookingResponse> getBookingsByStatus(String statusStr, int page, int size);
 
     PageResponse<OwnerBookingSummaryResponse> getOwnerBookings(Long ownerId, Pageable pageable);
+
+    List<Long> getBookingIdsByOwnerId(Long ownerId);
+
+    BookingStatsResponse getOwnerStats(Long ownerId);
+
+    InvoiceStatsResponse getOwnerInvoiceStats(Long ownerId);
 
     void cancelBooking(Long id);
 }
