@@ -29,6 +29,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,190 +49,194 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
 
-    @Mock
-    private BookingRepository bookingRepository;
+        @Mock
+        private BookingRepository bookingRepository;
 
-    @Mock
-    private BookingDtoConverter converter;
+        @Mock
+        private BookingDtoConverter converter;
 
-    @Mock
-    private PriceSettingService priceSettingService;
+        @Mock
+        private PriceSettingService priceSettingService;
 
-    @Mock
-    private StringRedisTemplate redisTemplate;
+        @Mock
+        private StringRedisTemplate redisTemplate;
 
-    @Mock
-    private ValueOperations<String, String> valueOperations;
+        @Mock
+        private ValueOperations<String, String> valueOperations;
 
-    @Mock
-    private StationService stationService;
+        @Mock
+        private StationService stationService;
 
-    @InjectMocks
-    private BookingServiceImpl bookingService;
+        @InjectMocks
+        private BookingServiceImpl bookingService;
 
-    private MockedStatic<SecurityUtil> mockedSecurityUtil;
+        private MockedStatic<SecurityUtil> mockedSecurityUtil;
 
-    @BeforeEach
-    void setUp() {
-        mockedSecurityUtil = mockStatic(SecurityUtil.class);
-        mockedSecurityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(1L);
-    }
+        @BeforeEach
+        void setUp() {
+                mockedSecurityUtil = mockStatic(SecurityUtil.class);
+                mockedSecurityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(1L);
+        }
 
-    @AfterEach
-    void tearDown() {
-        mockedSecurityUtil.close();
-    }
+        @AfterEach
+        void tearDown() {
+                mockedSecurityUtil.close();
+        }
 
-    @Test
-    @DisplayName("checkAvailability_AllBlocksFree_ReturnsSuccess")
-    void checkAvailability_AllBlocksFree_ReturnsSuccess() {
-        // Given - 1 hour booking, should generate exactly 2x 30-min intervals
-        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1,
-                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+        @Test
+        @DisplayName("checkAvailability_AllBlocksFree_ReturnsSuccess")
+        void checkAvailability_AllBlocksFree_ReturnsSuccess() {
+                // Given - 1 hour booking, should generate exactly 2x 30-min intervals
+                CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1,
+                                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
 
-        when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-                anyLong(), any(), any(), any(), any())).thenReturn(false);
+                when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                                anyLong(), any(), any(), any(), any())).thenReturn(false);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
-                .thenReturn(true);
+                when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
+                                .thenReturn(true);
 
-        // When
-        bookingService.checkAvailability(req);
+                // When
+                bookingService.checkAvailability(req);
 
-        // Then
-        verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(8L),
-                eq(TimeUnit.MINUTES));
-    }
+                // Then
+                verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(8L),
+                                eq(TimeUnit.MINUTES));
+        }
 
-    @Test
-    @DisplayName("checkAvailability_LockedPort_ThrowsException")
-    void checkAvailability_LockedPort_ThrowsException() {
-        // Given
-        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1,
-                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+        @Test
+        @DisplayName("checkAvailability_LockedPort_ThrowsException")
+        void checkAvailability_LockedPort_ThrowsException() {
+                // Given
+                CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1,
+                                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
 
-        when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-                anyLong(), any(), any(), any(), any())).thenReturn(false);
+                when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                                anyLong(), any(), any(), any(), any())).thenReturn(false);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
-                .thenReturn(false);
+                when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
+                                .thenReturn(false);
 
-        // When / Then
-        assertThatThrownBy(() -> bookingService.checkAvailability(req))
-                .isInstanceOf(AppException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
-    }
+                // When / Then
+                assertThatThrownBy(() -> bookingService.checkAvailability(req))
+                                .isInstanceOf(AppException.class)
+                                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+        }
 
-    @Test
-    @DisplayName("getBookingsByStatus_ValidStatus_ReturnsPaginatedList")
-    void getBookingsByStatus_ValidStatus_ReturnsPaginatedList() {
-        Booking booking = new Booking();
-        booking.setId(1L);
-        booking.setStatus(BookingStatus.CONFIRMED);
-        booking.setPortNumber(2);
+        @Test
+        @DisplayName("getBookingsByStatus_ValidStatus_ReturnsPaginatedList")
+        void getBookingsByStatus_ValidStatus_ReturnsPaginatedList() {
+                Booking booking = new Booking();
+                booking.setId(1L);
+                booking.setStatus(BookingStatus.CONFIRMED);
+                booking.setPortNumber(2);
 
-        Page<Booking> page = new PageImpl<>(List.of(booking));
-        when(bookingRepository.findByStatus(eq(BookingStatus.CONFIRMED), any(PageRequest.class)))
-                .thenReturn(page);
+                Page<Booking> page = new PageImpl<>(List.of(booking));
+                when(bookingRepository.findByStatus(eq(BookingStatus.CONFIRMED), any(PageRequest.class)))
+                                .thenReturn(page);
 
-        BookingResponse bookingResponse = BookingResponse.builder().id(1L).portNumber(2).status(BookingStatus.CONFIRMED)
-                .build();
-        when(converter.toResponse(any(Booking.class))).thenReturn(bookingResponse);
+                BookingResponse bookingResponse = BookingResponse.builder().id(1L).portNumber(2)
+                                .status(BookingStatus.CONFIRMED)
+                                .build();
+                when(converter.toResponse(any(Booking.class))).thenReturn(bookingResponse);
 
-        PageResponse<BookingResponse> res = bookingService.getBookingsByStatus("UPCOMING", 0, 10);
+                PageResponse<BookingResponse> res = bookingService.getBookingsByStatus("UPCOMING", 0, 10);
 
-        assertThat(res).isNotNull();
-        assertThat(res.content()).hasSize(1);
-        assertThat(res.content().get(0).getPortNumber()).isEqualTo(2);
-        assertThat(res.content().get(0).getStatus()).isEqualTo(BookingStatus.CONFIRMED);
-    }
+                assertThat(res).isNotNull();
+                assertThat(res.content()).hasSize(1);
+                assertThat(res.content().get(0).getPortNumber()).isEqualTo(2);
+                assertThat(res.content().get(0).getStatus()).isEqualTo(BookingStatus.CONFIRMED);
+        }
 
-    @Test
-    @DisplayName("cancelBooking_ValidCondition_CancelsBooking")
-    void cancelBooking_ValidCondition_CancelsBooking() {
-        Booking booking = new Booking();
-        booking.setId(1L);
-        booking.setStatus(BookingStatus.CONFIRMED);
-        booking.setStartTime(LocalDateTime.now().plusHours(3)); // > 2 hours ahead
+        @Test
+        @DisplayName("cancelBooking_ValidCondition_CancelsBooking")
+        void cancelBooking_ValidCondition_CancelsBooking() {
+                Booking booking = new Booking();
+                booking.setId(1L);
+                booking.setStatus(BookingStatus.CONFIRMED);
+                booking.setStartTime(LocalDateTime.now().plusHours(3)); // > 2 hours ahead
 
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+                when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
-        bookingService.cancelBooking(1L);
+                bookingService.cancelBooking(1L);
 
-        verify(bookingRepository).save(any(Booking.class));
-        assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
-    }
+                verify(bookingRepository).save(any(Booking.class));
+                assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        }
 
-    @Test
-    @DisplayName("cancelBooking_TooCloseToStartTime_ThrowsException")
-    void cancelBooking_TooCloseToStartTime_ThrowsException() {
-        Booking booking = new Booking();
-        booking.setId(1L);
-        booking.setStatus(BookingStatus.CONFIRMED);
-        booking.setStartTime(LocalDateTime.now().plusHours(1)); // < 2 hours ahead
+        @Test
+        @DisplayName("cancelBooking_TooCloseToStartTime_ThrowsException")
+        void cancelBooking_TooCloseToStartTime_ThrowsException() {
+                Booking booking = new Booking();
+                booking.setId(1L);
+                booking.setStatus(BookingStatus.CONFIRMED);
+                booking.setStartTime(LocalDateTime.now().plusHours(1)); // < 2 hours ahead
 
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+                when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
-        assertThatThrownBy(() -> bookingService.cancelBooking(1L))
-                .isInstanceOf(AppException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
-    }
+                assertThatThrownBy(() -> bookingService.cancelBooking(1L))
+                                .isInstanceOf(AppException.class)
+                                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
+        }
 
-    @Test
-    @DisplayName("createBooking_WithOverlappingBlock_ThrowsAppException")
-    void createBooking_WithOverlappingBlock_ThrowsAppException() {
-        CreateBookingRequest req = new CreateBookingRequest(1L, 1L, 1, 1L,
-                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+        @Test
+        @DisplayName("createBooking_WithOverlappingBlock_ThrowsAppException")
+        void createBooking_WithOverlappingBlock_ThrowsAppException() {
+                CreateBookingRequest req = new CreateBookingRequest(1L, 1L, 1, 1L,
+                                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.get(anyString())).thenReturn(null); // Simulates missing lock validation
+                when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+                when(valueOperations.get(anyString())).thenReturn(null); // Simulates missing lock validation
 
-        assertThatThrownBy(() -> bookingService.createBooking(req))
-                .isInstanceOf(AppException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
-    }
+                assertThatThrownBy(() -> bookingService.createBooking(req))
+                                .isInstanceOf(AppException.class)
+                                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+        }
 
-    @Test
-    @DisplayName("getOwnerBookings_WithStations_ReturnsBookings")
-    void getOwnerBookings_WithStations_ReturnsBookings() {
-        // Given
-        Long ownerId = 1L;
-        List<Long> stationIds = List.of(100L, 101L);
-        when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(stationIds);
+        @Test
+        @DisplayName("getOwnerBookings_WithStations_ReturnsBookings")
+        void getOwnerBookings_WithStations_ReturnsBookings() {
+                // Given
+                Long ownerId = 1L;
+                List<Long> stationIds = List.of(100L, 101L);
+                when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(stationIds);
 
-        Booking booking = new Booking();
-        booking.setId(1L);
-        Page<Booking> page = new PageImpl<>(List.of(booking));
-        when(bookingRepository.findByStationIdIn(eq(stationIds), any(PageRequest.class))).thenReturn(page);
+                Booking booking = new Booking();
+                booking.setId(1L);
+                Page<Booking> page = new PageImpl<>(List.of(booking));
+                when(bookingRepository.findByStationIdIn(eq(stationIds), any(PageRequest.class))).thenReturn(page);
 
-        when(converter.toResponseListBulk(any())).thenReturn(List.of(BookingResponse.builder().id(1L).build()));
+                when(converter.toOwnerSummaryListBulk(any()))
+                                .thenReturn(List.of(OwnerBookingSummaryResponse.builder().id(1L).build()));
 
-        // When
-        PageResponse<BookingResponse> result = bookingService.getOwnerBookings(ownerId, PageRequest.of(0, 10));
+                // When
+                PageResponse<OwnerBookingSummaryResponse> result = bookingService.getOwnerBookings(ownerId,
+                                PageRequest.of(0, 10));
 
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.content()).hasSize(1);
-        verify(stationService).getStationIdsByOwnerId(ownerId);
-        verify(bookingRepository).findByStationIdIn(eq(stationIds), any(PageRequest.class));
-    }
+                // Then
+                assertThat(result).isNotNull();
+                assertThat(result.content()).hasSize(1);
+                verify(stationService).getStationIdsByOwnerId(ownerId);
+                verify(bookingRepository).findByStationIdIn(eq(stationIds), any(PageRequest.class));
+        }
 
-    @Test
-    @DisplayName("getOwnerBookings_NoStations_ReturnsEmptyPage")
-    void getOwnerBookings_NoStations_ReturnsEmptyPage() {
-        // Given
-        Long ownerId = 1L;
-        when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(List.of());
+        @Test
+        @DisplayName("getOwnerBookings_NoStations_ReturnsEmptyPage")
+        void getOwnerBookings_NoStations_ReturnsEmptyPage() {
+                // Given
+                Long ownerId = 1L;
+                when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(List.of());
 
-        // When
-        PageResponse<BookingResponse> result = bookingService.getOwnerBookings(ownerId, PageRequest.of(0, 10));
+                // When
+                PageResponse<OwnerBookingSummaryResponse> result = bookingService.getOwnerBookings(ownerId,
+                                PageRequest.of(0, 10));
 
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.content()).isEmpty();
-        verify(stationService).getStationIdsByOwnerId(ownerId);
-        verify(bookingRepository, org.mockito.Mockito.never()).findByStationIdIn(any(), any());
-    }
+                // Then
+                assertThat(result).isNotNull();
+                assertThat(result.content()).isEmpty();
+                verify(stationService).getStationIdsByOwnerId(ownerId);
+                verify(bookingRepository, org.mockito.Mockito.never()).findByStationIdIn(any(), any());
+        }
 }

@@ -3,10 +3,13 @@ package com.project.evgo.booking;
 import com.project.evgo.booking.request.CreateBookingRequest;
 import com.project.evgo.booking.request.CheckAvailabilityRequest;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service interface for booking management.
@@ -26,7 +29,7 @@ public interface BookingService {
 
     PageResponse<BookingResponse> getBookingsByStatus(String statusStr, int page, int size);
 
-    PageResponse<BookingResponse> getOwnerBookings(Long ownerId, org.springframework.data.domain.Pageable pageable);
+    PageResponse<OwnerBookingSummaryResponse> getOwnerBookings(Long ownerId, Pageable pageable);
 
     void cancelBooking(Long id);
 }

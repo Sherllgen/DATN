@@ -11,3 +11,19 @@ export async function getProfileApi() {
 
     return res.data;
 }
+
+export interface GetOwnerBookingsParams {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+}
+
+export async function getOwnerBookingsApi(params?: GetOwnerBookingsParams) {
+    const res = await axios.get("/api/stationOwner/bookings", {
+        params,
+        withCredentials: true,
+    });
+
+    return res.data;
+}

@@ -2,6 +2,7 @@ package com.project.evgo.booking.internal.web;
 
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
@@ -32,123 +33,125 @@ import org.springframework.data.domain.Sort;
 @Tag(name = "Bookings", description = "Booking management APIs")
 public class BookingController {
 
-    private final BookingService bookingService;
+        private final BookingService bookingService;
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Get booking by ID")
-    public ResponseEntity<ApiResponse<BookingResponse>> getById(@PathVariable Long id) {
-        BookingResponse result = bookingService.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
-        return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
-                .status(HttpStatus.OK.value())
-                .message("Success")
-                .data(result)
-                .build());
-    }
+        @GetMapping("/{id}")
+        @Operation(summary = "Get booking by ID")
+        public ResponseEntity<ApiResponse<BookingResponse>> getById(@PathVariable Long id) {
+                BookingResponse result = bookingService.findById(id)
+                                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+                return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
+        }
 
-    @GetMapping("/user/{userId}")
-    @Operation(summary = "Get bookings by user ID")
-    public ResponseEntity<ApiResponse<List<BookingResponse>>> getByUserId(
-            @PathVariable Long userId) {
-        List<BookingResponse> result = bookingService.findByUserId(userId);
-        return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Success")
-                .data(result)
-                .build());
-    }
+        @GetMapping("/user/{userId}")
+        @Operation(summary = "Get bookings by user ID")
+        public ResponseEntity<ApiResponse<List<BookingResponse>>> getByUserId(
+                        @PathVariable Long userId) {
+                List<BookingResponse> result = bookingService.findByUserId(userId);
+                return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
+        }
 
-    @GetMapping("/my")
-    @Operation(summary = "Get my bookings")
-    public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookings() {
-        Long currentUserId = SecurityUtil.getCurrentUserId();
-        List<BookingResponse> result = bookingService.findByUserId(currentUserId);
-        return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Success")
-                .data(result)
-                .build());
-    }
+        @GetMapping("/my")
+        @Operation(summary = "Get my bookings")
+        public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookings() {
+                Long currentUserId = SecurityUtil.getCurrentUserId();
+                List<BookingResponse> result = bookingService.findByUserId(currentUserId);
+                return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
+        }
 
-    @GetMapping("/owner")
-    @Operation(summary = "Get all bookings for stations owned by the current user (Station Owner)")
-    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getOwnerBookings(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "DESC") String sortDir) {
-        
-        Long currentUserId = SecurityUtil.getCurrentUserId();
-        Sort.Direction direction = Sort.Direction.fromString(sortDir);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        
-        PageResponse<BookingResponse> result = bookingService.getOwnerBookings(currentUserId, pageable);
-        return ResponseEntity.ok(ApiResponse.<PageResponse<BookingResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Success")
-                .data(result)
-                .build());
-    }
+        @GetMapping("/owner")
+        @Operation(summary = "Get all bookings for stations owned by the current user (Station Owner)")
+        public ResponseEntity<ApiResponse<PageResponse<OwnerBookingSummaryResponse>>> getOwnerBookings(
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size,
+                        @RequestParam(defaultValue = "createdAt") String sortBy,
+                        @RequestParam(defaultValue = "DESC") String sortDir) {
 
-    @GetMapping("/station/{stationId}/port/{portNumber}")
-    @Operation(summary = "Get bookings by station ID and port number")
-    public ResponseEntity<ApiResponse<List<BookingResponse>>> getByStationIdAndPortNumber(
-            @PathVariable Long stationId,
-            @PathVariable Integer portNumber) {
-        List<BookingResponse> result = bookingService.findByStationIdAndPortNumber(stationId, portNumber);
-        return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Success")
-                .data(result)
-                .build());
-    }
+                Long currentUserId = SecurityUtil.getCurrentUserId();
+                Sort.Direction direction = Sort.Direction.fromString(sortDir);
+                Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-    @PostMapping("/check-availability")
-    @Operation(summary = "Check availability and create temporary lock")
-    public ResponseEntity<ApiResponse<Void>> checkAvailability(
-            @Valid @RequestBody CheckAvailabilityRequest request) {
-        bookingService.checkAvailability(request);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .status(HttpStatus.OK.value())
-                .message("Available")
-                .data(null)
-                .build());
-    }
+                PageResponse<com.project.evgo.booking.response.OwnerBookingSummaryResponse> result = bookingService
+                                .getOwnerBookings(currentUserId, pageable);
+                return ResponseEntity.ok(
+                                ApiResponse.<PageResponse<com.project.evgo.booking.response.OwnerBookingSummaryResponse>>builder()
+                                                .status(HttpStatus.OK.value())
+                                                .message("Success")
+                                                .data(result)
+                                                .build());
+        }
 
-    @PostMapping
-    @Operation(summary = "Create a PENDING booking")
-    public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
-            @Valid @RequestBody CreateBookingRequest request) {
-        BookingResponse result = bookingService.createBooking(request);
-        return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
-                .status(HttpStatus.OK.value())
-                .message("Success")
-                .data(result)
-                .build());
-    }
+        @GetMapping("/station/{stationId}/port/{portNumber}")
+        @Operation(summary = "Get bookings by station ID and port number")
+        public ResponseEntity<ApiResponse<List<BookingResponse>>> getByStationIdAndPortNumber(
+                        @PathVariable Long stationId,
+                        @PathVariable Integer portNumber) {
+                List<BookingResponse> result = bookingService.findByStationIdAndPortNumber(stationId, portNumber);
+                return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
+        }
 
-    @GetMapping
-    @Operation(summary = "Get bookings by status with pagination")
-    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getBookingsByStatus(
-            @RequestParam String status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        PageResponse<BookingResponse> result = bookingService.getBookingsByStatus(status, page, size);
-        return ResponseEntity.ok(ApiResponse.<PageResponse<BookingResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Success")
-                .data(result)
-                .build());
-    }
+        @PostMapping("/check-availability")
+        @Operation(summary = "Check availability and create temporary lock")
+        public ResponseEntity<ApiResponse<Void>> checkAvailability(
+                        @Valid @RequestBody CheckAvailabilityRequest request) {
+                bookingService.checkAvailability(request);
+                return ResponseEntity.ok(ApiResponse.<Void>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Available")
+                                .data(null)
+                                .build());
+        }
 
-    @PostMapping("/{id}/cancel")
-    @Operation(summary = "Cancel a booking")
-    public ResponseEntity<ApiResponse<Void>> cancelBooking(@PathVariable Long id) {
-        bookingService.cancelBooking(id);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .status(HttpStatus.OK.value())
-                .message("Booking cancelled successfully")
-                .data(null)
-                .build());
-    }
+        @PostMapping
+        @Operation(summary = "Create a PENDING booking")
+        public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
+                        @Valid @RequestBody CreateBookingRequest request) {
+                BookingResponse result = bookingService.createBooking(request);
+                return ResponseEntity.ok(ApiResponse.<BookingResponse>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
+        }
+
+        @GetMapping
+        @Operation(summary = "Get bookings by status with pagination")
+        public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getBookingsByStatus(
+                        @RequestParam String status,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size) {
+                PageResponse<BookingResponse> result = bookingService.getBookingsByStatus(status, page, size);
+                return ResponseEntity.ok(ApiResponse.<PageResponse<BookingResponse>>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
+        }
+
+        @PostMapping("/{id}/cancel")
+        @Operation(summary = "Cancel a booking")
+        public ResponseEntity<ApiResponse<Void>> cancelBooking(@PathVariable Long id) {
+                bookingService.cancelBooking(id);
+                return ResponseEntity.ok(ApiResponse.<Void>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Booking cancelled successfully")
+                                .data(null)
+                                .build());
+        }
 }

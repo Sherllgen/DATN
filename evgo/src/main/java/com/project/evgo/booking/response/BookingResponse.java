@@ -29,14 +29,14 @@ public class BookingResponse {
     private BookingStatus status;
     private BigDecimal totalPrice;
     private LocalDateTime createdAt;
-    
+
     // Flattened fields for UI
     private String stationName;
     private String stationAddress;
     private String chargerName;
     private ConnectorType connectorType;
     private Double maxPower;
-    
+
     // Vehicle fields
     private Long vehicleId;
     private String vehicleBrand;

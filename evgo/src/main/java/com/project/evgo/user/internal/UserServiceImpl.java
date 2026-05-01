@@ -47,6 +47,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<UserResponse> findAllByIds(java.util.Set<Long> ids) {
+        return userDtoConverter.convert(userRepository.findAllById(ids));
+    }
+
+    @Override
     public UserResponse getCurrentUser() {
         Long userId = getCurrentUserId();
         User user = userRepository.findById(userId)

@@ -2,6 +2,7 @@ package com.project.evgo.booking.internal;
 
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
 import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
 import com.project.evgo.station.StationService;
@@ -169,13 +170,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public PageResponse<BookingResponse> getOwnerBookings(Long ownerId, Pageable pageable) {
+    public PageResponse<OwnerBookingSummaryResponse> getOwnerBookings(Long ownerId, Pageable pageable) {
         List<Long> stationIds = stationService.getStationIdsByOwnerId(ownerId);
         if (stationIds.isEmpty()) {
             return PageResponse.of(new PageImpl<>(List.of(), pageable, 0));
         }
         Page<Booking> bookingPage = bookingRepository.findByStationIdIn(stationIds, pageable);
-        List<BookingResponse> responses = converter.toResponseListBulk(bookingPage.getContent());
+        List<OwnerBookingSummaryResponse> responses = converter.toOwnerSummaryListBulk(bookingPage.getContent());
         return PageResponse.of(new PageImpl<>(responses, pageable, bookingPage.getTotalElements()));
     }
 

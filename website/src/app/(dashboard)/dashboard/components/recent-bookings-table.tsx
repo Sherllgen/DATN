@@ -3,16 +3,13 @@
 import * as React from "react"
 import {
   ColumnDef,
-  ColumnFiltersState,
   SortingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { ArrowUpDown } from "lucide-react"
 
 import {
   Table,
@@ -25,16 +22,29 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Booking, recentBookings } from "../data/dashboard-data"
+import { useOwnerBookings } from "@/hooks/useStationOwner"
+import { Skeleton } from "@/components/ui/skeleton"
+
+export type BookingResponse = {
+    id: number;
+    userId: number;
+    customerName: string;
+    stationName: string;
+    createdAt: string;
+    status: string;
+    totalPrice: number;
+}
 
 const formatCurrency = (amount: number) => {
+  if (amount == null) return "0 ₫";
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
 const getStatusBadge = (status: string) => {
   switch (status) {
+    case "CONFIRMED":
     case "SUCCESS":
-      return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 dark:text-green-400">Success</Badge>
+      return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 dark:text-green-400">{status}</Badge>
     case "PENDING":
       return <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-400">Pending</Badge>
     case "CANCELLED":
@@ -44,33 +54,24 @@ const getStatusBadge = (status: string) => {
   }
 }
 
-export const columns: ColumnDef<Booking>[] = [
+export const columns: ColumnDef<BookingResponse>[] = [
   {
     accessorKey: "id",
     header: "ID",
-    cell: ({ row }) => <div className="font-medium">{row.getValue("id")}</div>,
+    cell: ({ row }) => <div className="font-medium">BK-00{row.getValue("id")}</div>,
   },
   {
     accessorKey: "customerName",
     header: "Customer",
+    cell: ({ row }) => <div>{row.getValue("customerName") || `User #${row.original.userId}`}</div>,
   },
   {
     accessorKey: "stationName",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="cursor-pointer -ml-4"
-        >
-          Station
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
+    header: "Station",
+    cell: ({ row }) => <div>{row.getValue("stationName") || "Unknown Station"}</div>,
   },
   {
-    accessorKey: "dateTime",
+    accessorKey: "createdAt",
     header: ({ column }) => {
       return (
         <Button
@@ -83,29 +84,18 @@ export const columns: ColumnDef<Booking>[] = [
         </Button>
       )
     },
-    cell: ({ row }) => <div>{new Date(row.getValue("dateTime")).toLocaleString('vi-VN')}</div>,
+    cell: ({ row }) => <div>{row.getValue("createdAt") ? new Date(row.getValue("createdAt")).toLocaleString('vi-VN') : "-"}</div>,
   },
   {
     accessorKey: "status",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="cursor-pointer -ml-4"
-        >
-          Status
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
+    header: "Status",
     cell: ({ row }) => getStatusBadge(row.getValue("status")),
   },
   {
-    accessorKey: "amount",
+    accessorKey: "totalPrice",
     header: () => <div className="text-right">Amount</div>,
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"))
+      const amount = parseFloat(row.getValue("totalPrice")) || 0;
       return <div className="text-right font-medium">{formatCurrency(amount)}</div>
     },
   },
@@ -113,40 +103,49 @@ export const columns: ColumnDef<Booking>[] = [
 
 export function RecentBookingsTable() {
   const [sorting, setSorting] = React.useState<SortingState>([
-    { id: "dateTime", desc: true },
+    { id: "createdAt", desc: true },
   ])
+  
+  const [{ pageIndex, pageSize }, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 5,
+  })
 
-  // Use more mock data so pagination is visible
-  const expandedData = React.useMemo(() => {
-    const data = [...recentBookings]
-    for (let i = 6; i <= 25; i++) {
-      data.push({
-        id: `BK-00${i}`,
-        customerName: `Customer ${i}`,
-        stationName: i % 2 === 0 ? "Trạm sạc Vincom Q1" : "Trạm sạc Landmark 81",
-        dateTime: new Date(Date.now() - i * 3600000).toISOString(),
-        amount: Math.floor(Math.random() * 200000) + 50000,
-        status: i % 3 === 0 ? "PENDING" : i % 5 === 0 ? "CANCELLED" : "SUCCESS",
-      })
-    }
-    return data
-  }, [])
+  const pagination = React.useMemo(
+    () => ({
+      pageIndex,
+      pageSize,
+    }),
+    [pageIndex, pageSize]
+  )
+
+  const sortBy = sorting.length > 0 ? sorting[0].id : "createdAt";
+  const sortDir = sorting.length > 0 && sorting[0].desc ? "DESC" : "ASC";
+
+  const { data, isLoading, isError } = useOwnerBookings({
+    page: pageIndex,
+    size: pageSize,
+    sortBy,
+    sortDir
+  });
+
+  const tableData = React.useMemo(() => data?.data?.content || [], [data])
+  const pageCount = data?.data?.totalPages ?? -1
 
   const table = useReactTable({
-    data: expandedData,
+    data: tableData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
+    pageCount,
     state: {
       sorting,
+      pagination,
     },
-    initialState: {
-      pagination: {
-        pageSize: 5,
-      },
-    },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    manualSorting: true,
   })
 
   return (
@@ -154,7 +153,7 @@ export function RecentBookingsTable() {
       <CardHeader>
         <CardTitle>Recent Bookings</CardTitle>
         <CardDescription>
-          Latest customer charging sessions and bookings across stations.
+          Latest customer charging sessions and bookings across your stations.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -179,7 +178,17 @@ export function RecentBookingsTable() {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {columns.map((_, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-6 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
@@ -201,7 +210,7 @@ export function RecentBookingsTable() {
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    No results.
+                    No bookings found.
                   </TableCell>
                 </TableRow>
               )}
@@ -212,11 +221,11 @@ export function RecentBookingsTable() {
         {/* Pagination controls */}
         <div className="flex items-center justify-between space-x-2 py-4">
           <div className="flex-1 text-sm text-muted-foreground">
-            Showing {table.getRowModel().rows.length} of {expandedData.length} bookings.
+            Showing {tableData.length} bookings of total {data?.data?.totalElements || 0}.
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-              Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() === -1 ? 1 : table.getPageCount()}
             </div>
             <div className="space-x-2">
               <Button
