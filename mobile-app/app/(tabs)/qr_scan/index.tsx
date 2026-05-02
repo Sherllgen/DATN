@@ -11,6 +11,7 @@ export default function QrScanPage() {
     const [facing, setFacing] = useState<CameraType>("back");
     const [permission, requestPermission] = useCameraPermissions();
     const [flashMode, setFlashMode] = useState<"off" | "on">("off");
+    const [scanned, setScanned] = useState(false);
     const isFocused = useIsFocused();
 
     if (!permission) {
@@ -35,7 +36,36 @@ export default function QrScanPage() {
         type: string;
         data: string;
     }) {
-        alert(`QR Code scanned!\nType: ${type}\nData: ${data}`);
+        if (scanned) return;
+        setScanned(true);
+        
+        let portId = data;
+        // Attempt to extract portId if it's a URL (e.g. https://evgo.app/charge?portId=123 or just passing JSON)
+        try {
+            if (data.includes("portId=")) {
+                const urlParams = new URL(data).searchParams;
+                const extracted = urlParams.get("portId");
+                if (extracted) {
+                    portId = extracted;
+                }
+            } else if (data.startsWith("{")) {
+                const parsed = JSON.parse(data);
+                if (parsed.portId) {
+                    portId = parsed.portId;
+                }
+            }
+        } catch (e) {
+            console.log("Error parsing QR data", e);
+        }
+
+        // Navigate to charging screen with portId parameter
+        router.push({
+            pathname: "/charging",
+            params: { portId: portId }
+        });
+
+        // Reset scanned state after a delay to allow scanning again if navigated back
+        setTimeout(() => setScanned(false), 3000);
     }
 
     function toggleFlash() {

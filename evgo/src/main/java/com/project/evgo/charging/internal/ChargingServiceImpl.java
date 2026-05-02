@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -118,6 +119,12 @@ public class ChargingServiceImpl implements ChargingService {
                 if (!booking.getUserId().equals(userId)) {
                     throw new AppException(ErrorCode.FORBIDDEN);
                 }
+
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime allowedStart = booking.getStartTime().minusMinutes(15);
+                if (now.isBefore(allowedStart) || now.isAfter(booking.getEndTime())) {
+                    throw new AppException(ErrorCode.INVALID_REQUEST, "Current time is outside the valid booking window");
+                }
             }
 
             ChargingSession session = new ChargingSession();
@@ -185,5 +192,24 @@ public class ChargingServiceImpl implements ChargingService {
 
         eventPublisher.publishEvent(new SendRemoteStopCommandEvent(
                 session.getId(), chargePointId, session.getTransactionId(), "User Requested"));
+    }
+
+    //-------------------------- Cron jobs --------------------------------------------------------
+
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void cleanupStuckPreparingSessions() {
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(3);
+        List<ChargingSession> stuckSessions = sessionRepository.findByStatusAndCreatedAtBefore(
+                ChargingSessionStatus.PREPARING, threshold);
+
+        for (ChargingSession session : stuckSessions) {
+            log.warn("Session {} stuck in PREPARING since {}. Cleaning up and setting to INTERRUPTED.", 
+                    session.getId(), session.getCreatedAt());
+            session.setStatus(ChargingSessionStatus.INTERRUPTED);
+            session.setEndTime(LocalDateTime.now());
+            sessionRepository.save(session);
+            chargerService.internalUpdatePortStatus(session.getPortId(), PortStatus.AVAILABLE);
+        }
     }
 }

@@ -4,7 +4,7 @@
 The **Charging Module** is responsible for managing the full lifecycle of an EV charging session. This encompasses starting/stopping a session from the mobile app (or via an active booking), preventing API abuse or spam requests, communicating with the `InvoiceService` to enforce debt checks, publishing system events to trigger remote OCPP actions, and **listening to OCPP callback events** to sync real-time charger state into the database.
 
 ## 2. Implemented Features
-- ✅ **[NEW]** Start a charging session checking Redis limits, invalid debts, and proper booking ownership.
+- ✅ **[NEW]** Start a charging session checking Redis limits, invalid debts, proper booking ownership, and booking time-window (15 mins before start time to end time).
 - ✅ **[NEW]** Stop an active charging session via User command.
 - ✅ **[NEW]** Real-time Monitoring via Server-Sent Events (SSE) for frontend meter values and estimated cost updates.
 - ✅ **[NEW]** Send cross-domain loosely-coupled Application Events (`SendRemoteStartCommandEvent`, `SendRemoteStopCommandEvent`) that the `OCPP` module can listen to.
@@ -12,6 +12,7 @@ The **Charging Module** is responsible for managing the full lifecycle of an EV 
   - Listen to `StartTransactionReceivedEvent` → update session to `CHARGING` with `transactionId` and `meterStart`.
   - Listen to `StopTransactionReceivedEvent` → complete session, calculate `totalKwh` (defensive check for relative/absolute meter values to prevent negative metrics), publish `ChargingSessionCompletedEvent`.
   - Listen to `StatusNotificationReceivedEvent` → detect cable unplug (`Available`/`Finishing`), publish `CableUnpluggedEvent`.
+- ✅ **[NEW]** `cleanupStuckPreparingSessions` (Scheduler) — Scans every 60 seconds for `PREPARING` sessions stuck for over 3 minutes (due to hardware offline/drop) and cleans them up to `INTERRUPTED`, returning the port to `AVAILABLE`.
 
 ## 3. Entity
 ### `ChargingSession`
