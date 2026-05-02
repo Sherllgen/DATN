@@ -1,5 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { getOwnerBookingsApi, GetOwnerBookingsParams } from "@/apis/stationOwner/stationOwnerApi";
+import {
+    getOwnerBookingsApi,
+    getOwnerBookingStatsApi,
+    getOwnerInvoiceStatsApi,
+    getOwnerStationStatsApi,
+    getOwnerMonthlyChartApi,
+    GetOwnerBookingsParams,
+} from "@/apis/stationOwner/stationOwnerApi";
 
 export const useOwnerBookings = (params: GetOwnerBookingsParams) => {
     return useQuery({
@@ -11,20 +18,27 @@ export const useOwnerBookings = (params: GetOwnerBookingsParams) => {
 export const useOwnerBookingStats = () => {
     return useQuery({
         queryKey: ["owner-booking-stats"],
-        queryFn: () => import("@/apis/stationOwner/stationOwnerApi").then(m => m.getOwnerBookingStatsApi()),
+        queryFn: () => getOwnerBookingStatsApi(),
     });
 };
 
 export const useOwnerInvoiceStats = () => {
     return useQuery({
         queryKey: ["owner-invoice-stats"],
-        queryFn: () => import("@/apis/stationOwner/stationOwnerApi").then(m => m.getOwnerInvoiceStatsApi()),
+        queryFn: () => getOwnerInvoiceStatsApi(),
     });
 };
 
 export const useOwnerStationStats = () => {
     return useQuery({
         queryKey: ["owner-station-stats"],
-        queryFn: () => import("@/apis/stationOwner/stationOwnerApi").then(m => m.getOwnerStationStatsApi()),
+        queryFn: () => getOwnerStationStatsApi(),
+    });
+};
+
+export const useOwnerMonthlyChart = () => {
+    return useQuery({
+        queryKey: ["owner-monthly-chart"],
+        queryFn: () => getOwnerMonthlyChartApi(),
     });
 };

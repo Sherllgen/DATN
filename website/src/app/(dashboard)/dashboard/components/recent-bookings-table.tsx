@@ -26,13 +26,13 @@ import { useOwnerBookings } from "@/hooks/useStationOwner"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export type BookingResponse = {
-    id: number;
-    userId: number;
-    customerName: string;
-    stationName: string;
-    createdAt: string;
-    status: string;
-    totalPrice: number;
+  id: number;
+  userId: number;
+  customerName: string;
+  stationName: string;
+  createdAt: string;
+  status: string;
+  totalPrice: number;
 }
 
 const formatCurrency = (amount: number) => {
@@ -42,13 +42,15 @@ const formatCurrency = (amount: number) => {
 
 const getStatusBadge = (status: string) => {
   switch (status) {
+    // case "CONFIRMED":
     case "CONFIRMED":
-    case "SUCCESS":
-      return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 dark:text-green-400">{status}</Badge>
-    case "PENDING":
-      return <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-400">Pending</Badge>
+      return <Badge variant="outline" className="text-green-500 border-green-300 bg-green-50 dark:bg-green-950 dark:border-green-700 dark:text-green-300">{status}</Badge>
+    case "COMPLETED":
+      return <Badge variant="outline" className="text-green-800 border-green-700 bg-green-200 dark:bg-green-800 dark:border-green-500 dark:text-green-100">{status}</Badge>
+    case "IN_PROGRESS":
+      return <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-400">{status}</Badge>
     case "CANCELLED":
-      return <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800 dark:text-red-400">Cancelled</Badge>
+      return <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800 dark:text-red-400">{status}</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }
@@ -105,7 +107,7 @@ export function RecentBookingsTable() {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "createdAt", desc: true },
   ])
-  
+
   const [{ pageIndex, pageSize }, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 5,
@@ -168,9 +170,9 @@ export function RecentBookingsTable() {
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </TableHead>
                     )
                   })}
@@ -217,7 +219,7 @@ export function RecentBookingsTable() {
             </TableBody>
           </Table>
         </div>
-        
+
         {/* Pagination controls */}
         <div className="flex items-center justify-between space-x-2 py-4">
           <div className="flex-1 text-sm text-muted-foreground">

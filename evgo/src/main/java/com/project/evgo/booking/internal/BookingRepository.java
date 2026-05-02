@@ -49,7 +49,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Long> findIdsByStationIdIn(@Param("stationIds") List<Long> stationIds);
 
     @Query("SELECT COUNT(DISTINCT b.userId) FROM Booking b WHERE b.stationId IN :stationIds AND b.status = :status")
-    long countDistinctUserIdByStationIdInAndStatus(@Param("stationIds") List<Long> stationIds, @Param("status") BookingStatus status);
+    long countDistinctUserIdByStationIdInAndStatus(
+            @Param("stationIds") List<Long> stationIds,
+            @Param("status") BookingStatus status);
 
     @Query("SELECT b FROM Booking b " +
             "WHERE b.status IN :statuses " +
@@ -65,4 +67,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("reminderWindowTo") LocalDateTime reminderWindowTo,
             @Param("endWindowFrom") LocalDateTime endWindowFrom,
             @Param("endWindowTo") LocalDateTime endWindowTo);
+
+    @Query("SELECT MONTH(b.createdAt) as month, COUNT(b) as cnt " +
+            "FROM Booking b " +
+            "WHERE b.stationId IN :stationIds " +
+            "AND b.status = :status " +
+            "AND YEAR(b.createdAt) = :year " +
+            "GROUP BY MONTH(b.createdAt)")
+    List<Object[]> countMonthlyByStationIdsAndStatusAndYear(
+            @Param("stationIds") List<Long> stationIds,
+            @Param("status") BookingStatus status,
+            @Param("year") int year);
 }

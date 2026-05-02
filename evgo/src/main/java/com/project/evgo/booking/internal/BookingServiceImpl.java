@@ -3,6 +3,7 @@ package com.project.evgo.booking.internal;
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
 import com.project.evgo.booking.response.BookingStatsResponse;
+import com.project.evgo.booking.response.MonthlyChartEntry;
 import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
 import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
@@ -24,12 +25,17 @@ import com.project.evgo.user.security.SecurityUtil;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -218,6 +224,53 @@ public class BookingServiceImpl implements BookingService {
     public InvoiceStatsResponse getOwnerInvoiceStats(Long ownerId) {
         List<Long> bookingIds = getBookingIdsByOwnerId(ownerId);
         return invoiceService.getStatsByBookingIds(bookingIds);
+    }
+
+    @Override
+    public List<MonthlyChartEntry> getOwnerMonthlyChart(Long ownerId) {
+        int year = LocalDate.now().getYear();
+        List<Long> stationIds = stationService.getStationIdsByOwnerId(ownerId);
+        if (stationIds.isEmpty()) {
+            return buildEmptyChart();
+        }
+
+        List<Long> bookingIds = bookingRepository.findIdsByStationIdIn(stationIds);
+
+        // Monthly booking counts (SUCCESS only)
+        List<Object[]> bookingRows = bookingRepository.countMonthlyByStationIdsAndStatusAndYear(
+                stationIds, BookingStatus.COMPLETED, year);
+        Map<Integer, Long> bookingsByMonth = new HashMap<>();
+        for (Object[] row : bookingRows) {
+            bookingsByMonth.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue());
+        }
+
+        // Monthly revenue (PAID invoices)
+        Map<Integer, BigDecimal> revenueByMonth = invoiceService.getMonthlyRevenueByBookingIds(bookingIds, year);
+
+        // Build 12-month result
+        List<MonthlyChartEntry> result = new ArrayList<>();
+        for (int m = 1; m <= 12; m++) {
+            String monthName = java.time.Month.of(m).getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            result.add(MonthlyChartEntry.builder()
+                    .month(monthName)
+                    .bookings(bookingsByMonth.getOrDefault(m, 0L))
+                    .revenue(revenueByMonth.getOrDefault(m, BigDecimal.ZERO))
+                    .build());
+        }
+        return result;
+    }
+
+    private List<MonthlyChartEntry> buildEmptyChart() {
+        List<MonthlyChartEntry> result = new ArrayList<>();
+        for (int m = 1; m <= 12; m++) {
+            String monthName = java.time.Month.of(m).getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            result.add(MonthlyChartEntry.builder()
+                    .month(monthName)
+                    .bookings(0L)
+                    .revenue(BigDecimal.ZERO)
+                    .build());
+        }
+        return result;
     }
 
     @Override

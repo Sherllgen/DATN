@@ -3,6 +3,7 @@ package com.project.evgo.booking.internal.web;
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
 import com.project.evgo.booking.response.BookingStatsResponse;
+import com.project.evgo.booking.response.MonthlyChartEntry;
 import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
 import com.project.evgo.payment.response.InvoiceStatsResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
@@ -113,6 +114,18 @@ public class BookingController {
                 Long currentUserId = SecurityUtil.getCurrentUserId();
                 InvoiceStatsResponse result = bookingService.getOwnerInvoiceStats(currentUserId);
                 return ResponseEntity.ok(ApiResponse.<InvoiceStatsResponse>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
+        }
+
+        @GetMapping("/owner/monthly-chart")
+        @Operation(summary = "Get monthly revenue and bookings chart for Station Owner")
+        public ResponseEntity<ApiResponse<List<MonthlyChartEntry>>> getOwnerMonthlyChart() {
+                Long currentUserId = SecurityUtil.getCurrentUserId();
+                List<MonthlyChartEntry> result = bookingService.getOwnerMonthlyChart(currentUserId);
+                return ResponseEntity.ok(ApiResponse.<List<MonthlyChartEntry>>builder()
                                 .status(HttpStatus.OK.value())
                                 .message("Success")
                                 .data(result)

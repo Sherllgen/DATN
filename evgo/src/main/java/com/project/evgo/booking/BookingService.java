@@ -8,6 +8,8 @@ import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
 import com.project.evgo.payment.response.InvoiceStatsResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 
+import com.project.evgo.booking.response.MonthlyChartEntry;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -38,6 +40,8 @@ public interface BookingService {
     BookingStatsResponse getOwnerStats(Long ownerId);
 
     InvoiceStatsResponse getOwnerInvoiceStats(Long ownerId);
+
+    List<MonthlyChartEntry> getOwnerMonthlyChart(Long ownerId);
 
     void cancelBooking(Long id);
 }

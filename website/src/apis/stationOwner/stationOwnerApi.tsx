@@ -48,3 +48,10 @@ export async function getOwnerStationStatsApi() {
     });
     return res.data;
 }
+
+export async function getOwnerMonthlyChartApi() {
+    const res = await axios.get("/api/stationOwner/monthly-chart", {
+        withCredentials: true,
+    });
+    return res.data;
+}

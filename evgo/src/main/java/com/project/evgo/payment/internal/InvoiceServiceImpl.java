@@ -1,5 +1,9 @@
 package com.project.evgo.payment.internal;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -100,5 +104,21 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .totalRevenue(totalRevenue)
                 .revenueGrowth(0.0) // Future implementation
                 .build();
+    }
+
+    @Override
+    public Map<Integer, BigDecimal> getMonthlyRevenueByBookingIds(List<Long> bookingIds, int year) {
+        Map<Integer, BigDecimal> result = new HashMap<>();
+        if (bookingIds == null || bookingIds.isEmpty()) {
+            return result;
+        }
+        List<Object[]> rows = invoiceRepository.sumMonthlyRevenueByBookingIdsAndYear(
+                bookingIds, InvoiceStatus.PAID, year);
+        for (Object[] row : rows) {
+            int month = ((Number) row[0]).intValue();
+            BigDecimal revenue = row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO;
+            result.put(month, revenue);
+        }
+        return result;
     }
 }
