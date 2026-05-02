@@ -43,15 +43,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Page<Booking> findByStationIdIn(List<Long> stationIds, Pageable pageable);
 
-    long countByStationIdInAndStatus(List<Long> stationIds, BookingStatus status);
+    long countByStationIdInAndStatusIn(List<Long> stationIds, List<BookingStatus> statuses);
 
     @Query("SELECT b.id FROM Booking b WHERE b.stationId IN :stationIds")
     List<Long> findIdsByStationIdIn(@Param("stationIds") List<Long> stationIds);
 
-    @Query("SELECT COUNT(DISTINCT b.userId) FROM Booking b WHERE b.stationId IN :stationIds AND b.status = :status")
-    long countDistinctUserIdByStationIdInAndStatus(
+    @Query("SELECT COUNT(DISTINCT b.userId) FROM Booking b WHERE b.stationId IN :stationIds AND b.status IN :statuses")
+    long countDistinctUserIdByStationIdInAndStatusIn(
             @Param("stationIds") List<Long> stationIds,
-            @Param("status") BookingStatus status);
+            @Param("statuses") List<BookingStatus> statuses);
 
     @Query("SELECT b FROM Booking b " +
             "WHERE b.status IN :statuses " +

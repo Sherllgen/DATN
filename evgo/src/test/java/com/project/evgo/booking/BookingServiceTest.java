@@ -253,19 +253,13 @@ class BookingServiceTest {
                 List<Long> stationIds = List.of(100L, 101L);
                 when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(stationIds);
 
-                when(bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.COMPLETED))
-                                .thenReturn(50L);
-                when(bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.CONFIRMED))
-                                .thenReturn(30L);
-                when(bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.IN_PROGRESS))
-                                .thenReturn(20L);
+                List<BookingStatus> activeStatuses = List.of(BookingStatus.COMPLETED, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS);
 
-                when(bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.COMPLETED))
-                                .thenReturn(40L);
-                when(bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.CONFIRMED))
-                                .thenReturn(25L);
-                when(bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.IN_PROGRESS))
-                                .thenReturn(15L);
+                when(bookingRepository.countByStationIdInAndStatusIn(stationIds, activeStatuses))
+                                .thenReturn(100L);
+
+                when(bookingRepository.countDistinctUserIdByStationIdInAndStatusIn(stationIds, activeStatuses))
+                                .thenReturn(80L);
 
                 // When
                 BookingStatsResponse result = bookingService.getOwnerStats(ownerId);
@@ -292,7 +286,7 @@ class BookingServiceTest {
                 assertThat(result.getTotalBookings()).isEqualTo(0L);
                 assertThat(result.getTotalCustomers()).isEqualTo(0L);
                 verify(stationService).getStationIdsByOwnerId(ownerId);
-                verify(bookingRepository, org.mockito.Mockito.never()).countByStationIdInAndStatus(any(), any());
+                verify(bookingRepository, org.mockito.Mockito.never()).countByStationIdInAndStatusIn(any(), any());
         }
 
         @Test

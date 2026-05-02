@@ -195,14 +195,11 @@ public class BookingServiceImpl implements BookingService {
             return new BookingStatsResponse(0, 0, 0.0, 0.0);
         }
 
-        long totalBookings = bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.COMPLETED)
-                + bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.CONFIRMED)
-                + bookingRepository.countByStationIdInAndStatus(stationIds, BookingStatus.IN_PROGRESS);
+        List<BookingStatus> activeStatuses = List.of(BookingStatus.COMPLETED, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS);
 
-        long totalCustomers = bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds,
-                BookingStatus.COMPLETED)
-                + bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.CONFIRMED)
-                + bookingRepository.countDistinctUserIdByStationIdInAndStatus(stationIds, BookingStatus.IN_PROGRESS);
+        long totalBookings = bookingRepository.countByStationIdInAndStatusIn(stationIds, activeStatuses);
+
+        long totalCustomers = bookingRepository.countDistinctUserIdByStationIdInAndStatusIn(stationIds, activeStatuses);
 
         return BookingStatsResponse.builder()
                 .totalBookings(totalBookings)
