@@ -145,21 +145,24 @@ public class BookingScheduler {
 
     private void handlePreArrivalLock(Booking booking) {
         String chargePointId = String.valueOf(booking.getChargerId());
-        PortStatus portStatus = resolvePortStatus(booking.getChargerId(), booking.getPortNumber());
+        PortStatus portStatus = resolvePortStatus(booking.getPortId());
         
+        // Resolve portNumber for OCPP hardware communication
+        Integer portNumber = resolvePortNumber(booking.getPortId());
+
         if (portStatus == PortStatus.CHARGING) {
-            log.warn("Port {}:{} is still charging (overstay). Sending RemoteStop.",
-                    booking.getChargerId(), booking.getPortNumber());
+            log.warn("Port {} (portId={}) is still charging (overstay). Sending RemoteStop.",
+                    portNumber, booking.getPortId());
             eventPublisher.publishEvent(new SendRemoteStopCommandEvent(null, chargePointId, 0, "overstay"));
         }
 
         String idTag = "user-" + booking.getUserId();
         eventPublisher.publishEvent(new SendReserveNowCommandEvent(
-                chargePointId, booking.getPortNumber(), idTag,
+                chargePointId, portNumber, idTag,
                 booking.getEndTime(), booking.getId().intValue()));
 
-        log.info("Pre-arrival lock dispatched: booking={}, chargePointId={}, port={}",
-                booking.getId(), chargePointId, booking.getPortNumber());
+        log.info("Pre-arrival lock dispatched: booking={}, chargePointId={}, portId={}",
+                booking.getId(), chargePointId, booking.getPortId());
     }
 
     private void handleBookingReminder(Booking booking) {
@@ -188,11 +191,11 @@ public class BookingScheduler {
         // Issue 3: Only hard-cutoff if another booking follows on the same port.
         // If no upcoming booking exists, let the user keep charging.
         boolean hasNextBooking = bookingService.hasUpcomingBookingOnPort(
-                booking.getChargerId(), booking.getPortNumber(), booking.getEndTime());
+                booking.getPortId(), booking.getEndTime());
 
         if (!hasNextBooking) {
-            log.info("No upcoming booking on port {}:{}. Allowing session to continue past booking end time.",
-                    booking.getChargerId(), booking.getPortNumber());
+            log.info("No upcoming booking on portId={}. Allowing session to continue past booking end time.",
+                    booking.getPortId());
             return;
         }
 
@@ -204,8 +207,8 @@ public class BookingScheduler {
                 "Charging Stopped \u26A0\uFE0F",
                 "Your session has been safely stopped. Another user has a reservation. You have 10 minutes to move your vehicle."));
         
-        log.info("Hard cut-off dispatched: booking={}, chargePointId={}, port={}",
-                booking.getId(), chargePointId, booking.getPortNumber());
+        log.info("Hard cut-off dispatched: booking={}, chargePointId={}, portId={}",
+                booking.getId(), chargePointId, booking.getPortId());
     }
 
     // ============================================================
@@ -213,11 +216,21 @@ public class BookingScheduler {
     // ============================================================
 
     /**
-     * Resolves the current port status for a given charger and port number.
+     * Resolves the current port status using portId.
      */
-    private PortStatus resolvePortStatus(Long chargerId, Integer portNumber) {
-        return chargerService.findPortByChargerIdAndPortNumber(chargerId, portNumber)
+    private PortStatus resolvePortStatus(Long portId) {
+        return chargerService.findPortById(portId)
                 .map(PortResponse::getStatus)
                 .orElse(PortStatus.UNAVAILABLE);
+    }
+
+    /**
+     * Resolves the OCPP connector number (portNumber) from the port database ID.
+     * Used only for hardware communication.
+     */
+    private Integer resolvePortNumber(Long portId) {
+        return chargerService.findPortById(portId)
+                .map(PortResponse::getPortNumber)
+                .orElse(0);
     }
 }

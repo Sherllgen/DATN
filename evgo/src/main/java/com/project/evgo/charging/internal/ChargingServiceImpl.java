@@ -117,7 +117,7 @@ public class ChargingServiceImpl implements ChargingService {
                     .orElseThrow(() -> new AppException(ErrorCode.PORT_NOT_FOUND));
 
             // Validate port is available for charging
-            if (port.getStatus() != PortStatus.AVAILABLE) {
+            if (request.getBookingId() == null && port.getStatus() != PortStatus.AVAILABLE) {
                 throw new AppException(ErrorCode.PORT_NOT_AVAILABLE);
             }
 

@@ -72,17 +72,16 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingResponse> findByStationIdAndPortNumber(Long stationId, Integer portNumber) {
-        return converter.toResponseList(bookingRepository.findByStationIdAndPortNumber(stationId, portNumber));
+    public List<BookingResponse> findByPortId(Long portId) {
+        return converter.toResponseList(bookingRepository.findByPortId(portId));
     }
 
     // check availability and create a hold on Redis
     @Override
     public void checkAvailability(CheckAvailabilityRequest request) {
         boolean hasOverlapDB = bookingRepository
-                .existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-                        request.getStationId(),
-                        request.getPortNumber(),
+                .existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                        request.getPortId(),
                         request.getStartTime(),
                         request.getEndTime(),
                         Arrays.asList(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS));
@@ -97,7 +96,7 @@ public class BookingServiceImpl implements BookingService {
 
         // set lock for each 30-minute interval
         for (LocalDateTime interval : intervals) {
-            String lockKey = generateLockKey(request.getStationId(), request.getPortNumber(), interval);
+            String lockKey = generateLockKey(request.getPortId(), interval);
             Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, currentUserId.toString(),
                     LOCK_TTL_MINUTES, TimeUnit.MINUTES);
 
@@ -120,7 +119,7 @@ public class BookingServiceImpl implements BookingService {
 
         // check if the lock is still held by the user
         for (LocalDateTime interval : intervals) {
-            String lockKey = generateLockKey(request.getStationId(), request.getPortNumber(), interval);
+            String lockKey = generateLockKey(request.getPortId(), interval);
             String lockOwner = redisTemplate.opsForValue().get(lockKey);
             if (lockOwner == null || !lockOwner.equals(currentUserId.toString())) {
                 throw new AppException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
@@ -140,7 +139,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setStationId(request.getStationId());
         booking.setChargerId(request.getChargerId());
         booking.setVehicleId(request.getVehicleId());
-        booking.setPortNumber(request.getPortNumber());
+        booking.setPortId(request.getPortId());
         booking.setStartTime(request.getStartTime());
         booking.setEndTime(request.getEndTime());
         booking.setStatus(BookingStatus.PENDING);
@@ -309,9 +308,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public boolean hasUpcomingBookingOnPort(Long chargerId, Integer portNumber, LocalDateTime after) {
-        return bookingRepository.existsByChargerIdAndPortNumberAndStatusAndStartTimeAfter(
-                chargerId, portNumber, BookingStatus.CONFIRMED, after);
+    public boolean hasUpcomingBookingOnPort(Long portId, LocalDateTime after) {
+        return bookingRepository.existsByPortIdAndStatusAndStartTimeAfter(
+                portId, BookingStatus.CONFIRMED, after);
     }
 
     // splits the duration into 30-minute blocks
@@ -325,7 +324,7 @@ public class BookingServiceImpl implements BookingService {
         return intervals;
     }
 
-    private String generateLockKey(Long stationId, Integer portNumber, LocalDateTime intervalStart) {
-        return LOCK_PREFIX + stationId + ":" + portNumber + ":" + intervalStart.toString();
+    private String generateLockKey(Long portId, LocalDateTime intervalStart) {
+        return LOCK_PREFIX + portId + ":" + intervalStart.toString();
     }
 }

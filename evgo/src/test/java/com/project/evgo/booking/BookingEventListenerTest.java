@@ -37,6 +37,9 @@ class BookingEventListenerTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private com.project.evgo.charger.ChargerService chargerService;
+
     @InjectMocks
     private BookingEventListener eventListener;
 
@@ -50,7 +53,7 @@ class BookingEventListenerTest {
         Booking booking = new Booking();
         booking.setId(1L);
         booking.setStationId(10L);
-        booking.setPortNumber(1);
+        booking.setPortId(1L);
         booking.setStatus(BookingStatus.PENDING);
         // Far in the future to not trigger immediate ReserveNow
         booking.setStartTime(LocalDateTime.now().plusHours(5));
@@ -77,7 +80,7 @@ class BookingEventListenerTest {
         Booking booking = new Booking();
         booking.setId(1L);
         booking.setChargerId(10L);
-        booking.setPortNumber(2);
+        booking.setPortId(2L);
         booking.setUserId(42L);
         booking.setStatus(BookingStatus.PENDING);
         // Close to start (5 mins out)
@@ -85,6 +88,7 @@ class BookingEventListenerTest {
         booking.setEndTime(LocalDateTime.now().plusHours(1));
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+        when(chargerService.findPortById(2L)).thenReturn(Optional.of(new com.project.evgo.charger.response.PortResponse(2L, 2, com.project.evgo.sharedkernel.enums.PortStatus.AVAILABLE, 10L, null)));
 
         // When
         eventListener.onPaymentSuccess(event);
@@ -105,14 +109,14 @@ class BookingEventListenerTest {
         Booking booking = new Booking();
         booking.setId(1L);
         booking.setChargerId(10L);
-        booking.setPortNumber(2);
+        booking.setPortId(2L);
         booking.setUserId(42L);
         booking.setEndTime(LocalDateTime.now().plusHours(1));
 
         BookingConfirmedAndReadyForHardwareEvent event = new BookingConfirmedAndReadyForHardwareEvent(
                 booking.getId(),
                 booking.getChargerId(),
-                booking.getPortNumber(),
+                2, // Hardcoded port number for the test event
                 booking.getUserId(),
                 booking.getEndTime()
         );

@@ -88,15 +88,17 @@ class BookingServiceTest {
                 mockedSecurityUtil.close();
         }
 
-        @Test
-        @DisplayName("checkAvailability_AllBlocksFree_ReturnsSuccess")
-        void checkAvailability_AllBlocksFree_ReturnsSuccess() {
-                // Given - 1 hour booking, should generate exactly 2x 30-min intervals
-                CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1,
-                                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+    @Test
+    @DisplayName("checkAvailability_AllBlocksFree_ReturnsSuccess")
+    void checkAvailability_AllBlocksFree_ReturnsSuccess() {
+        // Given - 1 hour booking, should generate exactly 2x 30-min intervals
+        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 100L,
+                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
 
-                when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-                                anyLong(), any(), any(), any(), any())).thenReturn(false);
+        when(bookingRepository.existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                anyLong(), any(), any(), any())).thenReturn(false);
+
+
 
                 when(redisTemplate.opsForValue()).thenReturn(valueOperations);
                 when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
@@ -109,16 +111,16 @@ class BookingServiceTest {
                 verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(8L),
                                 eq(TimeUnit.MINUTES));
         }
+    @Test
+    @DisplayName("checkAvailability_LockedPort_ThrowsException")
+    void checkAvailability_LockedPort_ThrowsException() {
+        // Given
+        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 100L,
+                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
 
-        @Test
-        @DisplayName("checkAvailability_LockedPort_ThrowsException")
-        void checkAvailability_LockedPort_ThrowsException() {
-                // Given
-                CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 1,
-                                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+        when(bookingRepository.existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                anyLong(), any(), any(), any())).thenReturn(false);
 
-                when(bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-                                anyLong(), any(), any(), any(), any())).thenReturn(false);
 
                 when(redisTemplate.opsForValue()).thenReturn(valueOperations);
                 when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
@@ -136,22 +138,21 @@ class BookingServiceTest {
                 Booking booking = new Booking();
                 booking.setId(1L);
                 booking.setStatus(BookingStatus.CONFIRMED);
-                booking.setPortNumber(2);
+                
+                BookingResponse bookingResponse = BookingResponse.builder().id(1L).portId(100L).portNumber(2)
+                                        .status(BookingStatus.CONFIRMED)
+                                        .build();
+                when(converter.toResponse(any(Booking.class))).thenReturn(bookingResponse);
 
                 Page<Booking> page = new PageImpl<>(List.of(booking));
                 when(bookingRepository.findByStatus(eq(BookingStatus.CONFIRMED), any(PageRequest.class)))
                                 .thenReturn(page);
 
-                BookingResponse bookingResponse = BookingResponse.builder().id(1L).portNumber(2)
-                                .status(BookingStatus.CONFIRMED)
-                                .build();
-                when(converter.toResponse(any(Booking.class))).thenReturn(bookingResponse);
-
                 PageResponse<BookingResponse> res = bookingService.getBookingsByStatus("UPCOMING", 0, 10);
 
                 assertThat(res).isNotNull();
                 assertThat(res.content()).hasSize(1);
-                assertThat(res.content().get(0).getPortNumber()).isEqualTo(2);
+                assertThat(res.content().get(0).getPortId()).isEqualTo(100L);
                 assertThat(res.content().get(0).getStatus()).isEqualTo(BookingStatus.CONFIRMED);
         }
 
@@ -189,7 +190,7 @@ class BookingServiceTest {
         @Test
         @DisplayName("createBooking_WithOverlappingBlock_ThrowsAppException")
         void createBooking_WithOverlappingBlock_ThrowsAppException() {
-                CreateBookingRequest req = new CreateBookingRequest(1L, 1L, 1, 1L,
+                CreateBookingRequest req = new CreateBookingRequest(1L, 1L, 1L, 1L,
                                 LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
 
                 when(redisTemplate.opsForValue()).thenReturn(valueOperations);

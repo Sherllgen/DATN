@@ -20,7 +20,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByUserId(Long userId);
 
-    List<Booking> findByStationIdAndPortNumber(Long stationId, Integer portNumber);
+    List<Booking> findByPortId(Long portId);
 
     List<Booking> findByStationIdAndStatusInAndStartTimeBetween(
             Long stationId,
@@ -28,9 +28,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDateTime start,
             LocalDateTime end);
 
-    boolean existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-            Long stationId,
-            Integer portNumber,
+    boolean existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+            Long portId,
             LocalDateTime startTime,
             LocalDateTime endTime,
             List<BookingStatus> statuses);
@@ -79,6 +78,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("status") BookingStatus status,
             @Param("year") int year);
 
-    boolean existsByChargerIdAndPortNumberAndStatusAndStartTimeAfter(
-            Long chargerId, Integer portNumber, BookingStatus status, LocalDateTime after);
+
+    boolean existsByPortIdAndStatusAndStartTimeAfter(
+            Long portId, BookingStatus status, LocalDateTime after);
 }

@@ -38,7 +38,7 @@ public class BookingDtoConverter {
                 .stationId(booking.getStationId())
                 .chargerId(booking.getChargerId())
                 .vehicleId(booking.getVehicleId())
-                .portNumber(booking.getPortNumber())
+                .portId(booking.getPortId())
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .status(booking.getStatus())
@@ -57,9 +57,9 @@ public class BookingDtoConverter {
                 response.setConnectorType(charger.getConnectorType());
                 response.setMaxPower(charger.getMaxPower());
             });
-            // Resolve port database ID from chargerId + portNumber
-            chargerService.findPortByChargerIdAndPortNumber(booking.getChargerId(), booking.getPortNumber())
-                    .ifPresent(port -> response.setPortId(port.getId()));
+            // Resolve portNumber for display from the port entity
+            chargerService.findPortById(booking.getPortId())
+                    .ifPresent(port -> response.setPortNumber(port.getPortNumber()));
             if (booking.getVehicleId() != null) {
                 try {
                     VehicleResponse vehicle = vehicleService.getVehicleById(booking.getVehicleId());

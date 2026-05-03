@@ -4,6 +4,7 @@ import com.project.evgo.booking.BookingConfirmedAndReadyForHardwareEvent;
 import com.project.evgo.booking.RequireRefundEvent;
 import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.payment.PaymentSuccessEvent;
+import com.project.evgo.charger.ChargerService;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
 import com.project.evgo.sharedkernel.events.ChargingSessionCompletedEvent;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class BookingEventListener {
     private final BookingRepository bookingRepository;
     private final StringRedisTemplate redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
+    private final ChargerService chargerService;
 
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
 
@@ -51,8 +53,8 @@ public class BookingEventListener {
             }
 
             // 2. Handle delayed IPN: Slot has been taken by another user
-            boolean hasOverlapDB = bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-                    booking.getStationId(), booking.getPortNumber(),
+            boolean hasOverlapDB = bookingRepository.existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                    booking.getPortId(),
                     booking.getStartTime(), booking.getEndTime(),
                     java.util.Arrays.asList(BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS)
             );
@@ -74,7 +76,7 @@ public class BookingEventListener {
             LocalDateTime current = booking.getStartTime();
 
             while (current.isBefore(booking.getEndTime())) {
-                keysToDelete.add(LOCK_PREFIX + booking.getStationId() + ":" + booking.getPortNumber() + ":" + current.toString());
+                keysToDelete.add(LOCK_PREFIX + booking.getPortId() + ":" + current.toString());
                 current = current.plusMinutes(30);
             }
 
@@ -84,14 +86,20 @@ public class BookingEventListener {
             
             log.info("Booking {} confirmed and {} Redis locks deleted.", booking.getId(), keysToDelete.size());
 
-            // 5. Send hardware command 
+            // 5. Send hardware command — resolve portNumber from portId for OCPP
             LocalDateTime now = LocalDateTime.now();
             if (booking.getStartTime().isBefore(now.plusMinutes(10)) && booking.getStartTime().isAfter(now)) {
                 log.info("Booking {} starts soon (within 10m). Dispatching immediate ReserveNow.", booking.getId());
+
+                // Resolve portNumber from portId for hardware communication
+                Integer portNumber = chargerService.findPortById(booking.getPortId())
+                        .map(port -> port.getPortNumber())
+                        .orElse(0);
+
                 eventPublisher.publishEvent(new BookingConfirmedAndReadyForHardwareEvent(
                         booking.getId(),
                         booking.getChargerId(),
-                        booking.getPortNumber(),
+                        portNumber,
                         booking.getUserId(),
                         booking.getEndTime()
                 ));

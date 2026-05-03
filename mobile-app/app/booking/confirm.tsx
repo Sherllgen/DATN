@@ -119,7 +119,7 @@ export default function ConfirmBookingScreen() {
                 await checkAvailability({
                     stationId: Number(stationId),
                     chargerId: selectedCharger.id,
-                    portNumber: selectedPort.portNumber,
+                    portId: selectedPort.id,
                     startTime: formatUTC(startTime),
                     endTime: formatUTC(endTime)
                 });
@@ -178,7 +178,7 @@ export default function ConfirmBookingScreen() {
             const booking = await createBooking({
                 stationId: Number(stationId),
                 chargerId: selectedCharger.id,
-                portNumber: selectedPort.portNumber,
+                portId: selectedPort.id,
                 vehicleId: Number(vehicleId),
                 startTime: formatUTC(startTime),
                 endTime: formatUTC(endTime)

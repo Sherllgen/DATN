@@ -74,6 +74,18 @@ public class BookingController {
                                 .build());
         }
 
+        @GetMapping("/port/{portId}")
+        @Operation(summary = "Get bookings by port ID")
+        public ResponseEntity<ApiResponse<List<BookingResponse>>> getByPortId(
+                        @PathVariable Long portId) {
+                List<BookingResponse> result = bookingService.findByPortId(portId);
+                return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
+                                .status(HttpStatus.OK.value())
+                                .message("Success")
+                                .data(result)
+                                .build());
+        }
+
         @GetMapping("/owner")
         @Operation(summary = "Get all bookings for stations owned by the current user (Station Owner)")
         public ResponseEntity<ApiResponse<PageResponse<OwnerBookingSummaryResponse>>> getOwnerBookings(
@@ -126,19 +138,6 @@ public class BookingController {
                 Long currentUserId = SecurityUtil.getCurrentUserId();
                 List<MonthlyChartEntry> result = bookingService.getOwnerMonthlyChart(currentUserId);
                 return ResponseEntity.ok(ApiResponse.<List<MonthlyChartEntry>>builder()
-                                .status(HttpStatus.OK.value())
-                                .message("Success")
-                                .data(result)
-                                .build());
-        }
-
-        @GetMapping("/station/{stationId}/port/{portNumber}")
-        @Operation(summary = "Get bookings by station ID and port number")
-        public ResponseEntity<ApiResponse<List<BookingResponse>>> getByStationIdAndPortNumber(
-                        @PathVariable Long stationId,
-                        @PathVariable Integer portNumber) {
-                List<BookingResponse> result = bookingService.findByStationIdAndPortNumber(stationId, portNumber);
-                return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
                                 .status(HttpStatus.OK.value())
                                 .message("Success")
                                 .data(result)

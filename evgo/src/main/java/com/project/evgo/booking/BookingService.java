@@ -26,7 +26,7 @@ public interface BookingService {
 
     List<BookingResponse> findByUserId(Long userId);
 
-    List<BookingResponse> findByStationIdAndPortNumber(Long stationId, Integer portNumber);
+    List<BookingResponse> findByPortId(Long portId);
 
     void checkAvailability(CheckAvailabilityRequest request);
 
@@ -59,5 +59,5 @@ public interface BookingService {
      *
      * @return true if another booking exists on the port after the given time
      */
-    boolean hasUpcomingBookingOnPort(Long chargerId, Integer portNumber, LocalDateTime after);
+    boolean hasUpcomingBookingOnPort(Long portId, LocalDateTime after);
 }
