@@ -3,7 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -58,14 +58,40 @@ export default function QrScanPage() {
             console.log("Error parsing QR data", e);
         }
 
-        // Navigate to charging screen with portId parameter
-        router.push({
-            pathname: "/charging",
-            params: { portId: portId }
-        });
+        // Validate portId is a valid number
+        const portIdNum = Number(portId);
+        if (isNaN(portIdNum) || portIdNum <= 0) {
+            Alert.alert(
+                "Invalid QR Code",
+                "This QR code does not contain a valid charging port. Please scan a valid EV-Go QR code.",
+                [{ text: "OK", onPress: () => setScanned(false) }]
+            );
+            return;
+        }
 
-        // Reset scanned state after a delay to allow scanning again if navigated back
-        setTimeout(() => setScanned(false), 3000);
+        // Show confirmation before starting
+        Alert.alert(
+            "Start Charging",
+            `Do you want to start charging on port #${portId}?`,
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                    onPress: () => setScanned(false)
+                },
+                {
+                    text: "Start",
+                    onPress: () => {
+                        router.push({
+                            pathname: "/charging",
+                            params: { portId: portId }
+                        });
+                        // Reset scanned state after a delay to allow scanning again if navigated back
+                        setTimeout(() => setScanned(false), 3000);
+                    }
+                }
+            ]
+        );
     }
 
     function toggleFlash() {

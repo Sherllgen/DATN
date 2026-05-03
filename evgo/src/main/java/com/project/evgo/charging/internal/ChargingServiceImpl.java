@@ -112,6 +112,15 @@ public class ChargingServiceImpl implements ChargingService {
                 throw new AppException(ErrorCode.SESSION_ALREADY_EXISTS);
             }
 
+            // Resolve portId → chargePointId (chargerId) + connectorId (portNumber)
+            PortResponse port = chargerService.findPortById(request.getPortId())
+                    .orElseThrow(() -> new AppException(ErrorCode.PORT_NOT_FOUND));
+
+            // Validate port is available for charging
+            if (port.getStatus() != PortStatus.AVAILABLE) {
+                throw new AppException(ErrorCode.PORT_NOT_AVAILABLE);
+            }
+
             if (request.getBookingId() != null) {
                 BookingResponse booking = bookingService.findById(request.getBookingId())
                         .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
@@ -135,9 +144,6 @@ public class ChargingServiceImpl implements ChargingService {
 
             session = sessionRepository.save(session);
 
-            // Resolve portId → chargePointId (chargerId) + connectorId (portNumber)
-            PortResponse port = chargerService.findPortById(request.getPortId())
-                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Port not found"));
             String chargePointId = port.getChargerId().toString();
             Integer connectorId = port.getPortNumber();
             String idTag = userId.toString();

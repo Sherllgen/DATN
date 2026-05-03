@@ -57,6 +57,9 @@ public class BookingDtoConverter {
                 response.setConnectorType(charger.getConnectorType());
                 response.setMaxPower(charger.getMaxPower());
             });
+            // Resolve port database ID from chargerId + portNumber
+            chargerService.findPortByChargerIdAndPortNumber(booking.getChargerId(), booking.getPortNumber())
+                    .ifPresent(port -> response.setPortId(port.getId()));
             if (booking.getVehicleId() != null) {
                 try {
                     VehicleResponse vehicle = vehicleService.getVehicleById(booking.getVehicleId());

@@ -223,7 +223,7 @@ export default function BookingDetailsScreen() {
                 <View className="px-6 pt-6 pb-12 gap-y-3">
                     {isUpcoming && (
                         <Button
-                            onPress={() => router.push({ pathname: '/charging', params: { portId: booking.portNumber.toString(), bookingId: booking.id.toString() } })}
+                            onPress={() => router.push({ pathname: '/charging', params: { portId: booking.portId.toString(), bookingId: booking.id.toString() } })}
                             className="w-full"
                             textClassName="font-semibold text-base"
                             style={{ height: 56 }}
