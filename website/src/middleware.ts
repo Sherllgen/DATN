@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { protectedRoutes } from "@/config/protected-routes";
-import { RoutePermission, UserRole } from "./types/user";
 import { hasAccess } from "@/config/has-access";
 
 // Các route dành cho guest (chưa đăng nhập)

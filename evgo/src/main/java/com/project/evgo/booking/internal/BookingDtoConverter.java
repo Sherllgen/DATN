@@ -5,11 +5,18 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.project.evgo.station.StationService;
 import com.project.evgo.charger.ChargerService;
+import com.project.evgo.user.UserService;
 import com.project.evgo.user.VehicleService;
+import com.project.evgo.user.response.UserResponse;
 import com.project.evgo.user.response.VehicleResponse;
+import com.project.evgo.station.response.StationResponse;
+import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
+import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -22,6 +29,7 @@ public class BookingDtoConverter {
     private final StationService stationService;
     private final ChargerService chargerService;
     private final VehicleService vehicleService;
+    private final UserService userService;
 
     public BookingResponse toResponse(Booking booking) {
         BookingResponse response = BookingResponse.builder()
@@ -30,7 +38,7 @@ public class BookingDtoConverter {
                 .stationId(booking.getStationId())
                 .chargerId(booking.getChargerId())
                 .vehicleId(booking.getVehicleId())
-                .portNumber(booking.getPortNumber())
+                .portId(booking.getPortId())
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .status(booking.getStatus())
@@ -49,6 +57,9 @@ public class BookingDtoConverter {
                 response.setConnectorType(charger.getConnectorType());
                 response.setMaxPower(charger.getMaxPower());
             });
+            // Resolve portNumber for display from the port entity
+            chargerService.findPortById(booking.getPortId())
+                    .ifPresent(port -> response.setPortNumber(port.getPortNumber()));
             if (booking.getVehicleId() != null) {
                 try {
                     VehicleResponse vehicle = vehicleService.getVehicleById(booking.getVehicleId());
@@ -70,6 +81,48 @@ public class BookingDtoConverter {
     public List<BookingResponse> toResponseList(List<Booking> bookings) {
         return bookings.stream()
                 .map(this::toResponse)
+                .toList();
+    }
+
+    public List<OwnerBookingSummaryResponse> toOwnerSummaryListBulk(
+            List<Booking> bookings) {
+        if (bookings == null || bookings.isEmpty())
+            return List.of();
+
+        Set<Long> stationIds = bookings.stream().map(Booking::getStationId).collect(Collectors.toSet());
+        Set<Long> userIds = bookings.stream().map(Booking::getUserId).filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, StationResponse> stationMap = stationService
+                .findAllByIds(stationIds).stream()
+                .collect(Collectors.toMap(StationResponse::id, s -> s));
+        Map<Long, UserResponse> userMap = userService.findAllByIds(userIds).stream()
+                .collect(Collectors.toMap(UserResponse::id, u -> u));
+
+        return bookings.stream()
+                .map(b -> {
+                    OwnerBookingSummaryResponse response = OwnerBookingSummaryResponse
+                            .builder()
+                            .id(b.getId())
+                            .userId(b.getUserId())
+                            .stationId(b.getStationId())
+                            .status(b.getStatus())
+                            .totalPrice(b.getTotalPrice())
+                            .createdAt(b.getCreatedAt())
+                            .build();
+
+                    StationResponse station = stationMap.get(b.getStationId());
+                    if (station != null) {
+                        response.setStationName(station.name());
+                    }
+
+                    UserResponse user = userMap.get(b.getUserId());
+                    if (user != null) {
+                        response.setCustomerName(user.fullName());
+                    }
+
+                    return response;
+                })
                 .toList();
     }
 

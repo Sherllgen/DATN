@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 
 export interface PriceSetting {
     id: number;
@@ -75,8 +74,12 @@ export function PricingEditor({ stationId, activePricing, onPricingChange }: Pri
             toast.success("Pricing updated successfully");
             setEditing(false);
             onPricingChange();
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to update pricing");
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || "Failed to update pricing");
+            } else {
+                toast.error("Failed to update pricing");
+            }
         } finally {
             setSubmitting(false);
         }

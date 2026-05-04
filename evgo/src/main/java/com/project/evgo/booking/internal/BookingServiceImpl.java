@@ -2,8 +2,13 @@ package com.project.evgo.booking.internal;
 
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.booking.response.BookingResponse;
+import com.project.evgo.booking.response.BookingStatsResponse;
+import com.project.evgo.booking.response.MonthlyChartEntry;
+import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
 import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
+import com.project.evgo.payment.response.InvoiceStatsResponse;
+import com.project.evgo.station.StationService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,14 +25,20 @@ import com.project.evgo.user.security.SecurityUtil;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.project.evgo.sharedkernel.dto.PageResponse;
@@ -45,6 +56,7 @@ public class BookingServiceImpl implements BookingService {
     private final InvoiceService invoiceService;
     private final PriceSettingService priceSettingService;
     private final StringRedisTemplate redisTemplate;
+    private final StationService stationService;
 
     private static final long LOCK_TTL_MINUTES = 8;
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
@@ -60,17 +72,16 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingResponse> findByStationIdAndPortNumber(Long stationId, Integer portNumber) {
-        return converter.toResponseList(bookingRepository.findByStationIdAndPortNumber(stationId, portNumber));
+    public List<BookingResponse> findByPortId(Long portId) {
+        return converter.toResponseList(bookingRepository.findByPortId(portId));
     }
 
     // check availability and create a hold on Redis
     @Override
     public void checkAvailability(CheckAvailabilityRequest request) {
         boolean hasOverlapDB = bookingRepository
-                .existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-                        request.getStationId(),
-                        request.getPortNumber(),
+                .existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                        request.getPortId(),
                         request.getStartTime(),
                         request.getEndTime(),
                         Arrays.asList(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS));
@@ -85,7 +96,7 @@ public class BookingServiceImpl implements BookingService {
 
         // set lock for each 30-minute interval
         for (LocalDateTime interval : intervals) {
-            String lockKey = generateLockKey(request.getStationId(), request.getPortNumber(), interval);
+            String lockKey = generateLockKey(request.getPortId(), interval);
             Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, currentUserId.toString(),
                     LOCK_TTL_MINUTES, TimeUnit.MINUTES);
 
@@ -108,7 +119,7 @@ public class BookingServiceImpl implements BookingService {
 
         // check if the lock is still held by the user
         for (LocalDateTime interval : intervals) {
-            String lockKey = generateLockKey(request.getStationId(), request.getPortNumber(), interval);
+            String lockKey = generateLockKey(request.getPortId(), interval);
             String lockOwner = redisTemplate.opsForValue().get(lockKey);
             if (lockOwner == null || !lockOwner.equals(currentUserId.toString())) {
                 throw new AppException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
@@ -128,7 +139,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setStationId(request.getStationId());
         booking.setChargerId(request.getChargerId());
         booking.setVehicleId(request.getVehicleId());
-        booking.setPortNumber(request.getPortNumber());
+        booking.setPortId(request.getPortId());
         booking.setStartTime(request.getStartTime());
         booking.setEndTime(request.getEndTime());
         booking.setStatus(BookingStatus.PENDING);
@@ -166,6 +177,99 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public PageResponse<OwnerBookingSummaryResponse> getOwnerBookings(Long ownerId, Pageable pageable) {
+        List<Long> stationIds = stationService.getStationIdsByOwnerId(ownerId);
+        if (stationIds.isEmpty()) {
+            return PageResponse.of(new PageImpl<>(List.of(), pageable, 0));
+        }
+        Page<Booking> bookingPage = bookingRepository.findByStationIdIn(stationIds, pageable);
+        List<OwnerBookingSummaryResponse> responses = converter.toOwnerSummaryListBulk(bookingPage.getContent());
+        return PageResponse.of(new PageImpl<>(responses, pageable, bookingPage.getTotalElements()));
+    }
+
+    @Override
+    public BookingStatsResponse getOwnerStats(Long ownerId) {
+        List<Long> stationIds = stationService.getStationIdsByOwnerId(ownerId);
+        if (stationIds.isEmpty()) {
+            return new BookingStatsResponse(0, 0, 0.0, 0.0);
+        }
+
+        List<BookingStatus> activeStatuses = List.of(BookingStatus.COMPLETED, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS);
+
+        long totalBookings = bookingRepository.countByStationIdInAndStatusIn(stationIds, activeStatuses);
+
+        long totalCustomers = bookingRepository.countDistinctUserIdByStationIdInAndStatusIn(stationIds, activeStatuses);
+
+        return BookingStatsResponse.builder()
+                .totalBookings(totalBookings)
+                .totalCustomers(totalCustomers)
+                .bookingsGrowth(0.0) // Future implementation
+                .customersGrowth(0.0) // Future implementation
+                .build();
+    }
+
+    @Override
+    public List<Long> getBookingIdsByOwnerId(Long ownerId) {
+        List<Long> stationIds = stationService.getStationIdsByOwnerId(ownerId);
+        if (stationIds.isEmpty())
+            return List.of();
+        return bookingRepository.findIdsByStationIdIn(stationIds);
+    }
+
+    @Override
+    public InvoiceStatsResponse getOwnerInvoiceStats(Long ownerId) {
+        List<Long> bookingIds = getBookingIdsByOwnerId(ownerId);
+        return invoiceService.getStatsByBookingIds(bookingIds);
+    }
+
+    @Override
+    public List<MonthlyChartEntry> getOwnerMonthlyChart(Long ownerId) {
+        int year = LocalDate.now().getYear();
+        List<Long> stationIds = stationService.getStationIdsByOwnerId(ownerId);
+        if (stationIds.isEmpty()) {
+            return buildEmptyChart();
+        }
+
+        List<Long> bookingIds = bookingRepository.findIdsByStationIdIn(stationIds);
+
+        // Monthly booking counts (SUCCESS only)
+        List<Object[]> bookingRows = bookingRepository.countMonthlyByStationIdsAndStatusAndYear(
+                stationIds, BookingStatus.COMPLETED, year);
+        Map<Integer, Long> bookingsByMonth = new HashMap<>();
+        for (Object[] row : bookingRows) {
+            bookingsByMonth.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue());
+        }
+
+        // Monthly revenue (PAID invoices)
+        Map<Integer, BigDecimal> revenueByMonth = invoiceService.getMonthlyRevenueByBookingIds(bookingIds, year);
+
+        // Build 12-month result
+        List<MonthlyChartEntry> result = new ArrayList<>();
+        for (int m = 1; m <= 12; m++) {
+            String monthName = java.time.Month.of(m).getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            result.add(MonthlyChartEntry.builder()
+                    .month(monthName)
+                    .bookings(bookingsByMonth.getOrDefault(m, 0L))
+                    .revenue(revenueByMonth.getOrDefault(m, BigDecimal.ZERO))
+                    .build());
+        }
+        return result;
+    }
+
+    private List<MonthlyChartEntry> buildEmptyChart() {
+        List<MonthlyChartEntry> result = new ArrayList<>();
+        for (int m = 1; m <= 12; m++) {
+            String monthName = java.time.Month.of(m).getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            result.add(MonthlyChartEntry.builder()
+                    .month(monthName)
+                    .bookings(0L)
+                    .revenue(BigDecimal.ZERO)
+                    .build());
+        }
+        return result;
+    }
+
+    @Override
     @Transactional
     public void cancelBooking(Long id) {
         Booking booking = bookingRepository.findById(id)
@@ -188,6 +292,27 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
     }
 
+    @Override
+    @Transactional
+    public void startBookingSession(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new AppException(ErrorCode.INVALID_REQUEST,
+                    "Booking must be CONFIRMED to start. Current status: " + booking.getStatus());
+        }
+
+        booking.setStatus(BookingStatus.IN_PROGRESS);
+        bookingRepository.save(booking);
+    }
+
+    @Override
+    public boolean hasUpcomingBookingOnPort(Long portId, LocalDateTime after) {
+        return bookingRepository.existsByPortIdAndStatusAndStartTimeAfter(
+                portId, BookingStatus.CONFIRMED, after);
+    }
+
     // splits the duration into 30-minute blocks
     private List<LocalDateTime> getIntervals(LocalDateTime startTime, LocalDateTime endTime) {
         List<LocalDateTime> intervals = new ArrayList<>();
@@ -199,7 +324,7 @@ public class BookingServiceImpl implements BookingService {
         return intervals;
     }
 
-    private String generateLockKey(Long stationId, Integer portNumber, LocalDateTime intervalStart) {
-        return LOCK_PREFIX + stationId + ":" + portNumber + ":" + intervalStart.toString();
+    private String generateLockKey(Long portId, LocalDateTime intervalStart) {
+        return LOCK_PREFIX + portId + ":" + intervalStart.toString();
     }
 }

@@ -11,3 +11,47 @@ export async function getProfileApi() {
 
     return res.data;
 }
+
+export interface GetOwnerBookingsParams {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+}
+
+export async function getOwnerBookingsApi(params?: GetOwnerBookingsParams) {
+    const res = await axios.get("/api/stationOwner/bookings", {
+        params,
+        withCredentials: true,
+    });
+
+    return res.data;
+}
+
+export async function getOwnerBookingStatsApi() {
+    const res = await axios.get("/api/stationOwner/stats/bookings", {
+        withCredentials: true,
+    });
+    return res.data;
+}
+
+export async function getOwnerInvoiceStatsApi() {
+    const res = await axios.get("/api/stationOwner/stats/invoices", {
+        withCredentials: true,
+    });
+    return res.data;
+}
+
+export async function getOwnerStationStatsApi() {
+    const res = await axios.get("/api/stationOwner/stats/stations", {
+        withCredentials: true,
+    });
+    return res.data;
+}
+
+export async function getOwnerMonthlyChartApi() {
+    const res = await axios.get("/api/stationOwner/monthly-chart", {
+        withCredentials: true,
+    });
+    return res.data;
+}

@@ -11,12 +11,14 @@ import java.math.BigDecimal;
  * @param portId    the port database ID
  * @param totalKwh  total energy consumed in kWh
  * @param reason    optional OCPP stop reason (e.g., "Local", "EVDisconnected", "Remote")
+ * @param bookingId the linked booking ID (nullable — null if session was started without a booking)
  */
 public record ChargingSessionCompletedEvent(
     Long sessionId, 
     Long userId, 
     Long portId, 
     BigDecimal totalKwh,
-    String reason
+    String reason,
+    Long bookingId
 ) {
 }

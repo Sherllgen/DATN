@@ -20,7 +20,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByUserId(Long userId);
 
-    List<Booking> findByStationIdAndPortNumber(Long stationId, Integer portNumber);
+    List<Booking> findByPortId(Long portId);
 
     List<Booking> findByStationIdAndStatusInAndStartTimeBetween(
             Long stationId,
@@ -28,9 +28,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDateTime start,
             LocalDateTime end);
 
-    boolean existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-            Long stationId,
-            Integer portNumber,
+    boolean existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+            Long portId,
             LocalDateTime startTime,
             LocalDateTime endTime,
             List<BookingStatus> statuses);
@@ -40,6 +39,18 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByStatusAndEndTimeBetween(BookingStatus status, LocalDateTime from, LocalDateTime to);
 
     List<Booking> findByStatusAndCreatedAtBefore(BookingStatus status, LocalDateTime threshold);
+
+    Page<Booking> findByStationIdIn(List<Long> stationIds, Pageable pageable);
+
+    long countByStationIdInAndStatusIn(List<Long> stationIds, List<BookingStatus> statuses);
+
+    @Query("SELECT b.id FROM Booking b WHERE b.stationId IN :stationIds")
+    List<Long> findIdsByStationIdIn(@Param("stationIds") List<Long> stationIds);
+
+    @Query("SELECT COUNT(DISTINCT b.userId) FROM Booking b WHERE b.stationId IN :stationIds AND b.status IN :statuses")
+    long countDistinctUserIdByStationIdInAndStatusIn(
+            @Param("stationIds") List<Long> stationIds,
+            @Param("statuses") List<BookingStatus> statuses);
 
     @Query("SELECT b FROM Booking b " +
             "WHERE b.status IN :statuses " +
@@ -55,4 +66,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("reminderWindowTo") LocalDateTime reminderWindowTo,
             @Param("endWindowFrom") LocalDateTime endWindowFrom,
             @Param("endWindowTo") LocalDateTime endWindowTo);
+
+    @Query("SELECT MONTH(b.createdAt) as month, COUNT(b) as cnt " +
+            "FROM Booking b " +
+            "WHERE b.stationId IN :stationIds " +
+            "AND b.status = :status " +
+            "AND YEAR(b.createdAt) = :year " +
+            "GROUP BY MONTH(b.createdAt)")
+    List<Object[]> countMonthlyByStationIdsAndStatusAndYear(
+            @Param("stationIds") List<Long> stationIds,
+            @Param("status") BookingStatus status,
+            @Param("year") int year);
+
+
+    boolean existsByPortIdAndStatusAndStartTimeAfter(
+            Long portId, BookingStatus status, LocalDateTime after);
 }

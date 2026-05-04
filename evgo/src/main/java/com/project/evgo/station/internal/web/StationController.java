@@ -11,6 +11,8 @@ import com.project.evgo.station.request.UpdateStationRequest;
 import com.project.evgo.station.response.StationMetadataResponse;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
+import com.project.evgo.station.response.StationStatsResponse;
+import com.project.evgo.user.security.SecurityUtil;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -68,6 +70,19 @@ public class StationController {
 	public ResponseEntity<ApiResponse<List<StationResponse>>> getMyStations() {
 		List<StationResponse> result = stationService.getMyStations();
 		return ResponseEntity.ok(ApiResponse.<List<StationResponse>>builder()
+				.status(HttpStatus.OK.value())
+				.message("Success")
+				.data(result)
+				.build());
+	}
+
+	@GetMapping("/owner/stats")
+	@PreAuthorize("hasRole('STATION_OWNER')")
+	@Operation(summary = "Get station statistics", description = "Get station statistics for the current owner")
+	public ResponseEntity<ApiResponse<StationStatsResponse>> getOwnerStats() {
+		Long currentUserId = SecurityUtil.getCurrentUserId();
+		StationStatsResponse result = stationService.getOwnerStats(currentUserId);
+		return ResponseEntity.ok(ApiResponse.<StationStatsResponse>builder()
 				.status(HttpStatus.OK.value())
 				.message("Success")
 				.data(result)

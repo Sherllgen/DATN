@@ -5,6 +5,7 @@ import com.project.evgo.booking.internal.BookingRepository;
 import com.project.evgo.booking.internal.BookingScheduler;
 import com.project.evgo.sharedkernel.events.SendPushNotificationEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
+import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
@@ -39,6 +40,9 @@ class BookingSchedulerTest {
     private BookingRepository bookingRepository;
 
     @Mock
+    private BookingService bookingService;
+
+    @Mock
     private ChargerService chargerService;
 
     @Mock
@@ -61,7 +65,7 @@ class BookingSchedulerTest {
         when(connection.keyCommands()).thenReturn(keyCommands);
         when(keyCommands.scan(any(ScanOptions.class))).thenReturn(cursor);
 
-        byte[] stuckKey = "evgo:booking:lock:1:1:TIME".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] stuckKey = "evgo:booking:lock:100:TIME".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         when(cursor.hasNext()).thenReturn(true, false);
         when(cursor.next()).thenReturn(stuckKey);
 
@@ -81,14 +85,15 @@ class BookingSchedulerTest {
     @DisplayName("processBookings: Should dispatch ReserveNow for upcoming CONFIRMED booking")
     void processBookings_UpcomingConfirmed_DispatchesReserveNow() {
         LocalDateTime now = LocalDateTime.now();
-        Booking booking = buildBooking(1L, BookingStatus.CONFIRMED, 10L, 1, 42L,
+        Booking booking = buildBooking(1L, BookingStatus.CONFIRMED, 10L, 100L, 42L,
                 now.plusMinutes(9).plusSeconds(30), now.plusHours(1));
 
         when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(booking));
         
-        when(chargerService.findPortByChargerIdAndPortNumber(10L, 1))
-                .thenReturn(Optional.of(PortResponse.builder().portNumber(1).status(PortStatus.AVAILABLE).build()));
+        // resolvePortStatus and resolvePortNumber both call findPortById
+        when(chargerService.findPortById(100L))
+                .thenReturn(Optional.of(PortResponse.builder().id(100L).portNumber(1).status(PortStatus.AVAILABLE).build()));
 
         bookingScheduler.processBookings();
 
@@ -102,7 +107,7 @@ class BookingSchedulerTest {
     @DisplayName("processBookings: Should dispatch Push Notification for IN_PROGRESS booking ending soon")
     void processBookings_InProgressEndingSoon_DispatchesPush() {
         LocalDateTime now = LocalDateTime.now();
-        Booking booking = buildBooking(2L, BookingStatus.IN_PROGRESS, 10L, 1, 42L,
+        Booking booking = buildBooking(2L, BookingStatus.IN_PROGRESS, 10L, 100L, 42L,
                 now.minusMinutes(30), now.plusMinutes(14).plusSeconds(30));
 
         when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
@@ -116,20 +121,46 @@ class BookingSchedulerTest {
     }
 
     @Test
-    @DisplayName("processBookings: Should dispatch RemoteStop (Hard Cutoff) for IN_PROGRESS booking at T-10")
-    void processBookings_InProgressAtT10_DispatchesRemoteStop() {
+    @DisplayName("processBookings: Should dispatch RemoteStop when next booking exists on same port")
+    void processBookings_InProgressAtT10_WithNextBooking_DispatchesRemoteStop() {
         LocalDateTime now = LocalDateTime.now();
-        Booking booking = buildBooking(3L, BookingStatus.IN_PROGRESS, 10L, 1, 42L,
+        Booking booking = buildBooking(3L, BookingStatus.IN_PROGRESS, 10L, 100L, 42L,
                 now.minusMinutes(50), now.plusMinutes(9).plusSeconds(30));
 
         when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(booking));
+
+        // Another booking follows on the same port (now uses portId only)
+        when(bookingService.hasUpcomingBookingOnPort(eq(100L), any()))
+                .thenReturn(true);
 
         bookingScheduler.processBookings();
 
         ArgumentCaptor<SendRemoteStopCommandEvent> captor = ArgumentCaptor.forClass(SendRemoteStopCommandEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().reason()).isEqualTo("hard-cutoff");
+    }
+
+    @Test
+    @DisplayName("processBookings: Should SKIP RemoteStop when no next booking exists on port")
+    void processBookings_InProgressAtT10_NoNextBooking_SkipsCutoff() {
+        LocalDateTime now = LocalDateTime.now();
+        Booking booking = buildBooking(4L, BookingStatus.IN_PROGRESS, 10L, 100L, 42L,
+                now.minusMinutes(50), now.plusMinutes(9).plusSeconds(30));
+
+        when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(booking));
+
+        // No upcoming booking on this port (now uses portId only)
+        when(bookingService.hasUpcomingBookingOnPort(eq(100L), any()))
+                .thenReturn(false);
+
+        bookingScheduler.processBookings();
+
+        // RemoteStop should NOT be dispatched
+        verify(eventPublisher, never()).publishEvent(any(SendRemoteStopCommandEvent.class));
+        // No push notification either
+        verify(eventPublisher, never()).publishEvent(any(SendPushNotificationEvent.class));
     }
 
     @Test
@@ -148,13 +179,13 @@ class BookingSchedulerTest {
         verify(bookingRepository).save(stale);
     }
 
-    private Booking buildBooking(Long id, BookingStatus status, Long chargerId, Integer portNumber,
+    private Booking buildBooking(Long id, BookingStatus status, Long chargerId, Long portId,
                                   Long userId, LocalDateTime start, LocalDateTime end) {
         Booking b = new Booking();
         b.setId(id);
         b.setStatus(status);
         b.setChargerId(chargerId);
-        b.setPortNumber(portNumber);
+        b.setPortId(portId);
         b.setUserId(userId);
         b.setStartTime(start);
         b.setEndTime(end);

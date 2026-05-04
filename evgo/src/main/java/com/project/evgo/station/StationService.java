@@ -10,6 +10,7 @@ import com.project.evgo.station.response.StationMetadataResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.station.response.StationResponse;
 import com.project.evgo.station.response.StationSearchResult;
+import com.project.evgo.station.response.StationStatsResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,8 @@ public interface StationService {
 
     List<StationResponse> findAll();
 
+    List<StationResponse> findAllByIds(java.util.Set<Long> ids);
+
     // Owner-specific operations
     StationResponse create(CreateStationRequest request);
 
@@ -33,7 +36,11 @@ public interface StationService {
 
     List<StationResponse> getMyStations();
 
+    List<Long> getStationIdsByOwnerId(Long ownerId);
+
     StationResponse updateStatus(Long id, StationStatus status);
+
+    StationStatsResponse getOwnerStats(Long ownerId);
 
     List<StationSearchResult> searchNearby(SearchNearbyRequest request);
 

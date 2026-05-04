@@ -37,7 +37,7 @@ export interface AvailableSlotResponse {
 export interface CheckAvailabilityRequest {
     stationId: number;
     chargerId: number;
-    portNumber: number;
+    portId: number;
     startTime: string; // "YYYY-MM-DDTHH:mm:ss"
     endTime: string;   // "YYYY-MM-DDTHH:mm:ss"
 }
@@ -59,6 +59,7 @@ export interface BookingResponse {
     userId: number;
     stationId: number;
     chargerId: number;
+    portId: number;
     portNumber: number;
     startTime: string; // "YYYY-MM-DDTHH:mm:ss"
     endTime: string;   // "YYYY-MM-DDTHH:mm:ss"

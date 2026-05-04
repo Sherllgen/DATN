@@ -49,8 +49,54 @@ export default function ChargingPage() {
                 }
             } catch (err: any) {
                 console.error("Failed to init charging session:", err);
-                Toast.error(err?.response?.data?.message || "Failed to initialize charging session");
-                router.back();
+                const errorCode = err?.response?.data?.code;
+                const errorMessage = err?.response?.data?.message || "Failed to initialize charging session";
+
+                switch (errorCode) {
+                    case 10008: // UNPAID_INVOICE_EXISTS
+                        Alert.alert(
+                            "Unpaid Invoice",
+                            "You have outstanding unpaid invoices. Please settle them before starting a new charging session.",
+                            [
+                                { text: "Go to Payment", onPress: () => router.replace("/(tabs)/payment") },
+                                { text: "Cancel", style: "cancel", onPress: () => router.back() }
+                            ]
+                        );
+                        break;
+                    case 7002: // PORT_NOT_AVAILABLE
+                        Alert.alert(
+                            "Port Unavailable",
+                            "This charging port is currently not available. Please try another port or come back later.",
+                            [{ text: "OK", onPress: () => router.back() }]
+                        );
+                        break;
+                    case 11003: // SESSION_ALREADY_EXISTS
+                        Alert.alert(
+                            "Port In Use",
+                            "A charging session is already in progress on this port.",
+                            [{ text: "OK", onPress: () => router.back() }]
+                        );
+                        break;
+                    case 7001: // PORT_NOT_FOUND
+                        Alert.alert(
+                            "Invalid Port",
+                            "The scanned QR code does not match any known charging port. Please try scanning again.",
+                            [{ text: "OK", onPress: () => router.back() }]
+                        );
+                        break;
+                    case 403: // FORBIDDEN or booking not owned
+                    case 1006:
+                        Alert.alert(
+                            "Access Denied",
+                            errorMessage,
+                            [{ text: "OK", onPress: () => router.back() }]
+                        );
+                        break;
+                    default:
+                        Toast.error(errorMessage);
+                        router.back();
+                        break;
+                }
             } finally {
                 setIsStarting(false);
             }

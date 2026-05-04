@@ -1,5 +1,9 @@
 package com.project.evgo.payment.internal;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -12,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
 import com.project.evgo.payment.response.InvoiceResponse;
+import com.project.evgo.payment.response.InvoiceStatsResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.enums.InvoicePurpose;
@@ -29,7 +34,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final InvoiceDtoConverter invoiceDtoConverter;
-    
+
     @Override
     public InvoiceResponse findByBookingId(Long bookingId) {
         Invoice invoice = invoiceRepository.findByBookingId(bookingId)
@@ -58,7 +63,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         invoice.setPurpose(InvoicePurpose.BOOKING);
         invoice.setStatus(InvoiceStatus.PENDING);
         // Generate a unique invoice number
-        invoice.setNumber("INV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase() + "-" + request.bookingId());
+        invoice.setNumber(
+                "INV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase() + "-" + request.bookingId());
 
         invoiceRepository.save(invoice);
         log.info("Invoice created for booking {}: {}", request.bookingId(), invoice.getNumber());
@@ -81,5 +87,38 @@ public class InvoiceServiceImpl implements InvoiceService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Invoice> invoices = invoiceRepository.findByUserIdAndStatus(userId, status, pageable);
         return PageResponse.of(invoices.map(invoiceDtoConverter::convert));
+    }
+
+    @Override
+    public InvoiceStatsResponse getStatsByBookingIds(java.util.List<Long> bookingIds) {
+        if (bookingIds == null || bookingIds.isEmpty()) {
+            return new InvoiceStatsResponse(java.math.BigDecimal.ZERO, 0.0);
+        }
+
+        java.math.BigDecimal totalRevenue = invoiceRepository.sumAmountByBookingIdInAndStatus(bookingIds,
+                InvoiceStatus.PAID);
+        if (totalRevenue == null)
+            totalRevenue = java.math.BigDecimal.ZERO;
+
+        return InvoiceStatsResponse.builder()
+                .totalRevenue(totalRevenue)
+                .revenueGrowth(0.0) // Future implementation
+                .build();
+    }
+
+    @Override
+    public Map<Integer, BigDecimal> getMonthlyRevenueByBookingIds(List<Long> bookingIds, int year) {
+        Map<Integer, BigDecimal> result = new HashMap<>();
+        if (bookingIds == null || bookingIds.isEmpty()) {
+            return result;
+        }
+        List<Object[]> rows = invoiceRepository.sumMonthlyRevenueByBookingIdsAndYear(
+                bookingIds, InvoiceStatus.PAID, year);
+        for (Object[] row : rows) {
+            int month = ((Number) row[0]).intValue();
+            BigDecimal revenue = row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO;
+            result.put(month, revenue);
+        }
+        return result;
     }
 }

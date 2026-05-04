@@ -102,7 +102,13 @@ public class OcppChargingEventListener {
         log.info("Received StopTransactionReceivedEvent: transactionId={}, meterStop={}, timestamp={}, reason={}",
                 event.transactionId(), event.meterStop(), event.timestamp(), event.reason());
 
-        Optional<ChargingSession> optionalSession = sessionRepository.findByTransactionId(event.transactionId());
+        // Look for the active session with this transactionId (CHARGING or SUSPENDED)
+        List<ChargingSessionStatus> activeStatuses = List.of(
+                ChargingSessionStatus.CHARGING,
+                ChargingSessionStatus.SUSPENDED_EV,
+                ChargingSessionStatus.SUSPENDED_EVSE);
+        Optional<ChargingSession> optionalSession = sessionRepository.findByTransactionIdAndStatusIn(
+                event.transactionId(), activeStatuses);
 
         if (optionalSession.isEmpty()) {
             log.warn("No session found for transactionId={}. Ignoring StopTransaction.", event.transactionId());
@@ -132,7 +138,7 @@ public class OcppChargingEventListener {
         log.info("Session {} set to FINISHING: totalKwh={}, reason={}", session.getId(), totalKwh, event.reason());
 
         eventPublisher.publishEvent(new ChargingSessionCompletedEvent(
-                session.getId(), session.getUserId(), session.getPortId(), totalKwh, event.reason()));
+                session.getId(), session.getUserId(), session.getPortId(), totalKwh, event.reason(), session.getBookingId()));
     }
 
     /**
@@ -175,8 +181,6 @@ public class OcppChargingEventListener {
         String status = event.status();
 
         // Handle SuspendedEV / SuspendedEVSE — update CHARGING or already-suspended session.
-        // A session may transition between suspended states (e.g., SUSPENDED_EV → SUSPENDED_EVSE),
-        // so we query for all active charging-phase statuses, not just CHARGING.
         if ("SuspendedEV".equals(status) || "SuspendedEVSE".equals(status)) {
             List<ChargingSessionStatus> activeStatuses = List.of(
                     ChargingSessionStatus.CHARGING,
@@ -257,7 +261,9 @@ public class OcppChargingEventListener {
             return;
         }
 
-        Optional<ChargingSession> optionalSession = sessionRepository.findByTransactionId(event.transactionId());
+        // Look for the active session with this transactionId.
+        Optional<ChargingSession> optionalSession = sessionRepository.findFirstByTransactionIdOrderByCreatedAtDesc(
+                event.transactionId());
         if (optionalSession.isEmpty()) {
             log.warn("No session found for transactionId={} on MeterValues. Ignoring.", event.transactionId());
             return;

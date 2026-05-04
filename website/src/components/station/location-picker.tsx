@@ -16,10 +16,15 @@ interface LocationPickerProps {
 const DEFAULT_CENTER: [number, number] = [10.7769, 106.7009]; // Ho Chi Minh City
 const DEFAULT_ZOOM = 13;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeafletMap = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeafletMarker = any;
+
 export function LocationPicker({ latitude, longitude, onLocationChange }: LocationPickerProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<any>(null);
-    const markerRef = useRef<any>(null);
+    const mapRef = useRef<LeafletMap>(null);
+    const markerRef = useRef<LeafletMarker>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [searching, setSearching] = useState(false);
     const [mapReady, setMapReady] = useState(false);
@@ -32,6 +37,7 @@ export function LocationPicker({ latitude, longitude, onLocationChange }: Locati
             const L = (await import("leaflet")).default;
 
             // Fix default marker icons for webpack/next.js
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             delete (L.Icon.Default.prototype as any)._getIconUrl;
             L.Icon.Default.mergeOptions({
                 iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
@@ -66,6 +72,7 @@ export function LocationPicker({ latitude, longitude, onLocationChange }: Locati
             }
 
             // Click to place marker
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             map.on("click", (e: any) => {
                 const { lat, lng } = e.latlng;
                 if (markerRef.current) {
@@ -101,7 +108,7 @@ export function LocationPicker({ latitude, longitude, onLocationChange }: Locati
                 markerRef.current = null;
             }
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Sync external coordinate changes to marker

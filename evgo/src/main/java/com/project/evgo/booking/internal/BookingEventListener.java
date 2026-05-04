@@ -2,14 +2,15 @@ package com.project.evgo.booking.internal;
 
 import com.project.evgo.booking.BookingConfirmedAndReadyForHardwareEvent;
 import com.project.evgo.booking.RequireRefundEvent;
-import com.project.evgo.booking.SendReserveNowCommandEvent;
+import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.payment.PaymentSuccessEvent;
+import com.project.evgo.charger.ChargerService;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
+import com.project.evgo.sharedkernel.events.ChargingSessionCompletedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,7 +33,8 @@ public class BookingEventListener {
     private final BookingRepository bookingRepository;
     private final StringRedisTemplate redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
-    
+    private final ChargerService chargerService;
+
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
 
     @EventListener
@@ -51,8 +53,8 @@ public class BookingEventListener {
             }
 
             // 2. Handle delayed IPN: Slot has been taken by another user
-            boolean hasOverlapDB = bookingRepository.existsByStationIdAndPortNumberAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
-                    booking.getStationId(), booking.getPortNumber(),
+            boolean hasOverlapDB = bookingRepository.existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                    booking.getPortId(),
                     booking.getStartTime(), booking.getEndTime(),
                     java.util.Arrays.asList(BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS)
             );
@@ -69,27 +71,38 @@ public class BookingEventListener {
             booking.setStatus(BookingStatus.CONFIRMED);
             bookingRepository.save(booking);
 
-            // 4. Delete Redis Keys in Batch
+            // 4. Delete Redis Keys in Batch (format must match BookingServiceImpl.generateLockKey)
             List<String> keysToDelete = new ArrayList<>();
             LocalDateTime current = booking.getStartTime();
-            
+
             while (current.isBefore(booking.getEndTime())) {
-                String timeStr = current.format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
-                keysToDelete.add(LOCK_PREFIX + booking.getStationId() + ":" + booking.getPortNumber() + ":" + timeStr);
-                current = current.plusMinutes(30); 
+                keysToDelete.add(LOCK_PREFIX + booking.getPortId() + ":" + current.toString());
+                current = current.plusMinutes(30);
             }
-            
+
             if (!keysToDelete.isEmpty()) {
-                redisTemplate.delete(keysToDelete); 
+                redisTemplate.delete(keysToDelete);
             }
             
             log.info("Booking {} confirmed and {} Redis locks deleted.", booking.getId(), keysToDelete.size());
 
-            // 5. Send hardware command 
+            // 5. Send hardware command — resolve portNumber from portId for OCPP
             LocalDateTime now = LocalDateTime.now();
             if (booking.getStartTime().isBefore(now.plusMinutes(10)) && booking.getStartTime().isAfter(now)) {
                 log.info("Booking {} starts soon (within 10m). Dispatching immediate ReserveNow.", booking.getId());
-                eventPublisher.publishEvent(new BookingConfirmedAndReadyForHardwareEvent(booking));
+
+                // Resolve portNumber from portId for hardware communication
+                Integer portNumber = chargerService.findPortById(booking.getPortId())
+                        .map(port -> port.getPortNumber())
+                        .orElse(0);
+
+                eventPublisher.publishEvent(new BookingConfirmedAndReadyForHardwareEvent(
+                        booking.getId(),
+                        booking.getChargerId(),
+                        portNumber,
+                        booking.getUserId(),
+                        booking.getEndTime()
+                ));
             }
         });
     }
@@ -100,17 +113,45 @@ public class BookingEventListener {
         ));
     }
 
+    /**
+     * When a charging session completes, transition the linked booking to COMPLETED.
+     * The bookingId is carried directly in the event (from sharedkernel),
+     * so no dependency on ChargingService is needed.
+     */
+    @EventListener
+    @Transactional
+    public void onChargingSessionCompleted(ChargingSessionCompletedEvent event) {
+        log.info("Received ChargingSessionCompletedEvent: sessionId={}", event.sessionId());
+
+        if (event.bookingId() == null) {
+            log.debug("No linked booking for sessionId={}. Nothing to update.", event.sessionId());
+            return;
+        }
+
+        Long bookingId = event.bookingId();
+        bookingRepository.findById(bookingId).ifPresent(booking -> {
+            if (booking.getStatus() == BookingStatus.IN_PROGRESS) {
+                booking.setStatus(BookingStatus.COMPLETED);
+                bookingRepository.save(booking);
+                log.info("Booking {} transitioned to COMPLETED after charging session {} finished.",
+                        bookingId, event.sessionId());
+            } else {
+                log.warn("Booking {} is in status {} (expected IN_PROGRESS). Skipping completion.",
+                        bookingId, booking.getStatus());
+            }
+        });
+    }
+
     // Spring automatic call this after transaction commit
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onBookingConfirmedReadyForHardware(BookingConfirmedAndReadyForHardwareEvent event) {
-        Booking booking = event.booking();
         eventPublisher.publishEvent(new SendReserveNowCommandEvent(
-                String.valueOf(booking.getChargerId()),
-                booking.getPortNumber(),
-                "user-" + booking.getUserId(),
-                booking.getEndTime(),
-                booking.getId().intValue()
+                String.valueOf(event.chargerId()),
+                event.portNumber(),
+                "user-" + event.userId(),
+                event.endTime(),
+                event.bookingId().intValue()
         ));
-        log.info("Hardware ReserveNow safely dispatched for booking {}", booking.getId());
+        log.info("Hardware ReserveNow safely dispatched for booking {}", event.bookingId());
     }
 }

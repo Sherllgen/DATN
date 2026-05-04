@@ -86,6 +86,15 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<VehicleResponse> findAllByIds(java.util.Set<Long> vehicleIds) {
+        if (vehicleIds == null || vehicleIds.isEmpty()) {
+            return List.of();
+        }
+        return vehicleDtoConverter.convert(vehicleRepository.findAllById(vehicleIds));
+    }
+
+    @Override
     @Transactional
     public VehicleResponse setVehicleInUse(Long vehicleId) {
         Long currentUserId = getCurrentUserId();

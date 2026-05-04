@@ -3,7 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -11,6 +11,7 @@ export default function QrScanPage() {
     const [facing, setFacing] = useState<CameraType>("back");
     const [permission, requestPermission] = useCameraPermissions();
     const [flashMode, setFlashMode] = useState<"off" | "on">("off");
+    const [scanned, setScanned] = useState(false);
     const isFocused = useIsFocused();
 
     if (!permission) {
@@ -35,7 +36,62 @@ export default function QrScanPage() {
         type: string;
         data: string;
     }) {
-        alert(`QR Code scanned!\nType: ${type}\nData: ${data}`);
+        if (scanned) return;
+        setScanned(true);
+        
+        let portId = data;
+        // Attempt to extract portId if it's a URL (e.g. https://evgo.app/charge?portId=123 or just passing JSON)
+        try {
+            if (data.includes("portId=")) {
+                const urlParams = new URL(data).searchParams;
+                const extracted = urlParams.get("portId");
+                if (extracted) {
+                    portId = extracted;
+                }
+            } else if (data.startsWith("{")) {
+                const parsed = JSON.parse(data);
+                if (parsed.portId) {
+                    portId = parsed.portId;
+                }
+            }
+        } catch (e) {
+            console.log("Error parsing QR data", e);
+        }
+
+        // Validate portId is a valid number
+        const portIdNum = Number(portId);
+        if (isNaN(portIdNum) || portIdNum <= 0) {
+            Alert.alert(
+                "Invalid QR Code",
+                "This QR code does not contain a valid charging port. Please scan a valid EV-Go QR code.",
+                [{ text: "OK", onPress: () => setScanned(false) }]
+            );
+            return;
+        }
+
+        // Show confirmation before starting
+        Alert.alert(
+            "Start Charging",
+            `Do you want to start charging on port #${portId}?`,
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                    onPress: () => setScanned(false)
+                },
+                {
+                    text: "Start",
+                    onPress: () => {
+                        router.push({
+                            pathname: "/charging",
+                            params: { portId: portId }
+                        });
+                        // Reset scanned state after a delay to allow scanning again if navigated back
+                        setTimeout(() => setScanned(false), 3000);
+                    }
+                }
+            ]
+        );
     }
 
     function toggleFlash() {
@@ -75,16 +131,6 @@ export default function QrScanPage() {
                                             color="white"
                                         />
                                     </TouchableOpacity>
-                                    <TouchableOpacity
-                                        // @ts-ignore - Dynamic route
-                                        onPress={() => router.push("/charging")}
-                                    >
-                                        <Feather
-                                            name="more-horizontal"
-                                            size={24}
-                                            color="white"
-                                        />
-                                    </TouchableOpacity>
                                 </View>
                             </View>
                         </SafeAreaView>
@@ -102,17 +148,6 @@ export default function QrScanPage() {
                         {/* Bottom Section */}
                         <View style={styles.bottomSection}>
                             <Text style={styles.scanText}>Recognize QR code</Text>
-                            <View style={styles.bottomButtons}>
-                                <TouchableOpacity style={styles.bottomButton}>
-                                    <View style={styles.iconCircle}>
-                                        <Ionicons
-                                            name="image-outline"
-                                            size={28}
-                                            color="white"
-                                        />
-                                    </View>
-                                </TouchableOpacity>
-                            </View>
                         </View>
                     </View>
                 </View>

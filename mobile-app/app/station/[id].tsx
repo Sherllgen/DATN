@@ -76,16 +76,6 @@ export default function StationDetailScreen() {
         );
     }
 
-    if (loading) {
-        return (
-            <GradientBackground preset="main" className="flex-1">
-                <SafeAreaView className="flex-1 items-center justify-center">
-                    <ActivityIndicator size="large" color="#00A452" />
-                </SafeAreaView>
-            </GradientBackground>
-        );
-    }
-
     if (!station) {
         return (
             <GradientBackground preset="main" className="flex-1">

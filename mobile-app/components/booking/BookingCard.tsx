@@ -143,7 +143,7 @@ const BookingCard = ({ booking, onCancel, onView, onPay }: BookingCardProps) => 
                 <View className="bg-[#00A452]/10 rounded-xl p-3 flex-row items-start border border-[#00A452]/5">
                     <Ionicons name="information-circle" size={18} color="#00A452" className="mr-2 mt-0.5" />
                     <Text className="text-secondary text-sm leading-5 flex-1">
-                        Insert the charger connection into your car to start charging. If you do not charge after 15 minutes from the time, this booking will be automatically cancelled.
+                        Ready to charge? Connect your vehicle and tap 'View' to start.
                     </Text>
                 </View>
             )}

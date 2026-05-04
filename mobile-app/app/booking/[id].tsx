@@ -136,7 +136,7 @@ export default function BookingDetailsScreen() {
                         icon={
                             <MaterialCommunityIcons name="ev-plug-type2" size={30} color={AppColors.secondary} />
                         }
-                        title={`${booking.connectorType || 'Unknown'} - Port ${booking.portNumber}`}
+                        title={`${booking.chargerName || 'Unknown'} - Port ${booking.portNumber}`}
                         titleClassName="text-secondary font-semibold text-base"
                     >
                         <View className="flex-row items-center flex-wrap gap-x-2 mt-2">
@@ -210,7 +210,7 @@ export default function BookingDetailsScreen() {
                                 style={{ marginTop: 2 }}
                             />
                             <Text className="flex-1 ml-3 text-secondary text-sm leading-5">
-                                Insert the charger connection into your car to start charging. If you do not charge after 15 minutes from the time, this booking will be automatically cancelled.
+                                Ready to charge? Connect your vehicle and tap 'View' to start.
                             </Text>
                         </View>
                     )}
@@ -223,7 +223,7 @@ export default function BookingDetailsScreen() {
                 <View className="px-6 pt-6 pb-12 gap-y-3">
                     {isUpcoming && (
                         <Button
-                            onPress={() => router.push({ pathname: '/charging', params: { portId: booking.portNumber.toString(), bookingId: booking.id.toString() } })}
+                            onPress={() => router.push({ pathname: '/charging', params: { portId: booking.portId.toString(), bookingId: booking.id.toString() } })}
                             className="w-full"
                             textClassName="font-semibold text-base"
                             style={{ height: 56 }}

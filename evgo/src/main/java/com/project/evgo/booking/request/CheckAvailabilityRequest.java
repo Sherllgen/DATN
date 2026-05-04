@@ -2,7 +2,6 @@ package com.project.evgo.booking.request;
 
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,9 +19,8 @@ public class CheckAvailabilityRequest {
     @NotNull(message = "Charger ID is required")
     private Long chargerId;
 
-    @NotNull(message = "Port number is required")
-    @Positive
-    private Integer portNumber;
+    @NotNull(message = "Port ID is required")
+    private Long portId;
 
     @NotNull(message = "Start time is required")
     @Future(message = "Start time must be in the future")

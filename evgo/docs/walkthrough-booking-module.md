@@ -13,6 +13,7 @@ The `booking` module handles the reservation of charging ports at stations.
 - `userId`: Identifier of the user booking
 - `stationId`: The station where the booking takes place
 - `portNumber`: Specific port reserved
+- `vehicleId`: Identifier of the vehicle (BookingResponse is enriched with brand and model details)
 - `startTime`, `endTime`: Duration of the booking
 - `status`: BookingStatus (e.g. PENDING, CONFIRMED, IN_PROGRESS, COMPLETED)
 
@@ -31,6 +32,7 @@ The `booking` module handles the reservation of charging ports at stations.
    - *ReserveNow*: Fires `SendReserveNowCommandEvent`. Port LED turns yellow/Reserved.
 4. **Charging & Notification**
    - User arrives, plugs in, and charges (managed by the `charging` module).
+   - When charging finishes, the `ChargingSessionCompletedEvent` triggers `BookingEventListener` to transition the booking status to `COMPLETED` cleanly without circular dependencies.
    - At T-15 mins before end (e.g. 09:45), `BookingScheduler` sends a *Soft Warning* push notification: "5 mins left until power cut".
 5. **Cut-off & Grace Period (T-10 mins before end)**
    - At T-10 mins (e.g. 09:50), `BookingScheduler` fires a *Hard Cut-off* (`SendRemoteStopCommandEvent`). Power is safely cut.
@@ -46,6 +48,7 @@ The `booking` module handles the reservation of charging ports at stations.
 ✅ **[NEW] Create & Cancel Booking**: Create PENDING bookings, cancel CONFIRMED bindings (> 2h before).
 ✅ **[NEW] Get Bookings by Status**: Retrieves paginated list of bookings.
 ✅ **[NEW] Payment Success Listener**: Updates booking status and deletes the Redis lock.
+✅ **[NEW] Charging Completed Listener**: Updates booking status to COMPLETED (decoupled from charging module).
 ✅ **[NEW] Scheduler Job 1 (Redis Cleanup)**: Cleans stuck Redis lock keys every minute.
 ✅ **[NEW] Scheduler Job 2 (Pre-arrival Hardware Lock)**: At T-10 mins before booking start. Sends `RemoteStop` for overstays, then `ReserveNow` for arriving user.
 ✅ **[NEW] Scheduler Job 3 (Soft Warning)**: At T-15 mins before booking end. Sends push notification.
@@ -80,7 +83,22 @@ The `booking` module handles the reservation of charging ports at stations.
 - The Redis locking mechanism uses the consecutive key format `evgo:booking:lock:{stationId}:{portNumber}:{intervalStart}` mapped exactly per 30-min block with an 8-minute TTL.
 - Scheduler jobs strictly use 1-minute time windows (e.g. `[now+9min, now+10min]`) to fire correctly and reliably.
 
-## 8. Sequence Diagram: Robust Booking Flow
+## 8. Application Events
+
+### Events Published by Booking Module
+| Event | Payload | When |
+|-------|---------|------|
+| `BookingCreatedEvent` | `bookingId, userId, amount` | A new PENDING booking is saved to DB. (Used by Payment to generate Invoice). |
+| `SendRemoteStopCommandEvent` | `sessionId, chargePointId, transactionId, reason` | BookingScheduler T-10m checks overstay and forces hardware cut-off. |
+| `SendReserveNowCommandEvent` | `chargePointId, connectorId, idTag, expiryDate, reservationId` | BookingScheduler T-10m reserves the hardware port for the arriving user. |
+
+### Events Consumed by Booking Module
+| Event | Source | Handler | Action |
+|-------|--------|---------|--------|
+| `PaymentSuccessEvent` | `payment` | `BookingEventListener.onPaymentSuccess()` | Marks booking as CONFIRMED, deletes Redis lock. |
+| `ChargingSessionCompletedEvent` | `charging` | `BookingEventListener.onChargingCompleted()` | Marks booking as COMPLETED if a matching session finishes. |
+
+## 9. Sequence Diagram: Robust Booking Flow
 
 ```mermaid
 sequenceDiagram
