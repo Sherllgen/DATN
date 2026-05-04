@@ -17,7 +17,9 @@ public interface ChargingSessionRepository extends JpaRepository<ChargingSession
 
     List<ChargingSession> findByUserId(Long userId);
     
-    Optional<ChargingSession> findByTransactionId(Integer transactionId);
+    Optional<ChargingSession> findFirstByTransactionIdOrderByCreatedAtDesc(Integer transactionId);
+
+    Optional<ChargingSession> findByTransactionIdAndStatusIn(Integer transactionId, List<ChargingSessionStatus> statuses);
     
     Optional<ChargingSession> findByBookingId(Long bookingId);
 

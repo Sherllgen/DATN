@@ -131,16 +131,6 @@ export default function QrScanPage() {
                                             color="white"
                                         />
                                     </TouchableOpacity>
-                                    <TouchableOpacity
-                                        // @ts-ignore - Dynamic route
-                                        onPress={() => router.push("/charging")}
-                                    >
-                                        <Feather
-                                            name="more-horizontal"
-                                            size={24}
-                                            color="white"
-                                        />
-                                    </TouchableOpacity>
                                 </View>
                             </View>
                         </SafeAreaView>
@@ -158,17 +148,6 @@ export default function QrScanPage() {
                         {/* Bottom Section */}
                         <View style={styles.bottomSection}>
                             <Text style={styles.scanText}>Recognize QR code</Text>
-                            <View style={styles.bottomButtons}>
-                                <TouchableOpacity style={styles.bottomButton}>
-                                    <View style={styles.iconCircle}>
-                                        <Ionicons
-                                            name="image-outline"
-                                            size={28}
-                                            color="white"
-                                        />
-                                    </View>
-                                </TouchableOpacity>
-                            </View>
                         </View>
                     </View>
                 </View>
