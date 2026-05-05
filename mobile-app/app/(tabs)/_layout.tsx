@@ -159,7 +159,7 @@ export default function TabLayout() {
             tabBarPosition="bottom"
             tabBar={(props) => <CustomTabBar {...props} />}
             screenOptions={{
-                swipeEnabled: true,
+                swipeEnabled: false,
                 lazy: true,
                 tabBarActiveTintColor: "#fff",
                 tabBarInactiveTintColor: "#9BA1A6",

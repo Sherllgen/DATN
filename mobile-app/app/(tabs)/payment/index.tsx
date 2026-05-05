@@ -7,14 +7,14 @@ import { getMyInvoices, payInvoice } from '@/apis/invoiceApi';
 import { InvoiceResponse } from '@/types/invoice.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '@/contexts/auth.store';
+import { useUserStore } from '@/contexts/user.store';
 import GuestPlaceholder from '@/components/auth/GuestPlaceholder';
 
 type TabType = 'UNPAID' | 'PAID';
 
 export default function PaymentPage() {
     const router = useRouter();
-    const { accessToken } = useAuthStore();
+    const { user } = useUserStore();
     const [activeTab, setActiveTab] = useState<TabType>('UNPAID');
     const [invoices, setInvoices] = useState<InvoiceResponse[]>([]);
     const [page, setPage] = useState(0);
@@ -48,15 +48,15 @@ export default function PaymentPage() {
     }, []);
 
     useEffect(() => {
-        if (accessToken) {
+        if (user) {
             fetchInvoices(activeTab, 0);
         }
-    }, [activeTab, fetchInvoices, accessToken]);
+    }, [activeTab, fetchInvoices, user]);
 
     // Listen to AppState to refresh UNPAID invoices when returning from ZaloPay
     useEffect(() => {
         const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
-            if (nextAppState === 'active' && activeTab === 'UNPAID') {
+            if (nextAppState === 'active' && activeTab === 'UNPAID' && user) {
                 // Background refresh when coming back to the app
                 fetchInvoices('UNPAID', 0, true);
             }
@@ -65,7 +65,7 @@ export default function PaymentPage() {
         return () => {
             subscription.remove();
         };
-    }, [activeTab, fetchInvoices]);
+    }, [activeTab, fetchInvoices, user]);
 
     const handleRefresh = () => {
         setIsRefreshing(true);
@@ -125,10 +125,10 @@ export default function PaymentPage() {
         );
     };
 
-    if (!accessToken) {
+    if (!user) {
         return (
-            <GradientBackground preset="main">
-                <SafeAreaView className="flex-1 pt-4" edges={["top", "left", "right"]}>
+            <GradientBackground preset="main" dismissKeyboard={false}>
+                <SafeAreaView style={{ flex: 1 }} className="pt-4" edges={["top", "left", "right"]}>
                     <View className="flex-row items-center mb-2 px-4">
                         <Text className="text-white font-bold text-2xl">Payment History</Text>
                     </View>
@@ -143,8 +143,8 @@ export default function PaymentPage() {
     }
 
     return (
-        <GradientBackground preset="main">
-            <SafeAreaView className="flex-1 pt-4" edges={["top", "left", "right"]}>
+        <GradientBackground preset="main" dismissKeyboard={false}>
+            <SafeAreaView style={{ flex: 1 }} className="pt-4" edges={["top", "left", "right"]}>
                 {/* Header Title */}
                 <View className="flex-row items-center mb-2 px-4">
                     <Text className="text-white font-bold text-2xl">Payment History</Text>
@@ -181,6 +181,7 @@ export default function PaymentPage() {
                 </View>
 
                 <FlatList
+                    style={{ flex: 1 }}
                     className="px-4"
                     data={invoices}
                     keyExtractor={(item) => item.id.toString()}

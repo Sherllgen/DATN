@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Alert, Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import { useAuthStore } from "@/contexts/auth.store";
 export default function QrScanPage() {
     const [facing, setFacing] = useState<CameraType>("back");
     const [permission, requestPermission] = useCameraPermissions();
@@ -82,6 +82,25 @@ export default function QrScanPage() {
                 {
                     text: "Start",
                     onPress: () => {
+                        const { accessToken } = useAuthStore.getState();
+                        if (!accessToken) {
+                            Alert.alert(
+                                "Login Required",
+                                "You must be logged in to start charging.",
+                                [
+                                    { text: "Cancel", style: "cancel", onPress: () => setScanned(false) },
+                                    { 
+                                        text: "Log In", 
+                                        onPress: () => {
+                                            router.push("/auth/login");
+                                            setScanned(false);
+                                        } 
+                                    }
+                                ]
+                            );
+                            return;
+                        }
+                        
                         router.push({
                             pathname: "/charging",
                             params: { portId: portId }

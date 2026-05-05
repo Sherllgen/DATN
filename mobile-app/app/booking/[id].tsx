@@ -210,21 +210,25 @@ export default function BookingDetailsScreen() {
                                 style={{ marginTop: 2 }}
                             />
                             <Text className="flex-1 ml-3 text-secondary text-sm leading-5">
-                                Ready to charge? Connect your vehicle and tap 'View' to start.
+                                Ready to charge? Connect your vehicle and tap 'Start Charging' to begin your charging session.
                             </Text>
                         </View>
                     )}
 
                     {/* Bottom Padding for scroll when button is present */}
-                    {isUpcoming && <View style={{ height: 100 }} />}
+                    {isUpcoming && <View style={{ height: 20 }} />}
                 </ScrollView>
 
                 {/* Bottom Fixed Action */}
-                <View className="px-6 pt-6 pb-12 gap-y-3">
+                <View className="px-6 pt-3 pb-12 flex-row items-center gap-x-3">
                     {isUpcoming && (
                         <Button
-                            onPress={() => router.push({ pathname: '/charging', params: { portId: booking.portId.toString(), bookingId: booking.id.toString() } })}
-                            className="w-full"
+                            onPress={() => router.push({ 
+                                pathname: '/charging', 
+                                params: { portId: booking.portId.toString(), bookingId: booking.id.toString() } 
+                            })}
+                            // Thay w-full thành flex-1 để chiếm 50% chiều ngang
+                            className="flex-1" 
                             textClassName="font-semibold text-base"
                             style={{ height: 56 }}
                             variant="primary"
@@ -232,9 +236,11 @@ export default function BookingDetailsScreen() {
                             Start Charging
                         </Button>
                     )}
+                    
                     <Button
                         onPress={() => console.log("Cancel Booking", booking.id)}
-                        className="w-full"
+                        // Thay w-full thành flex-1
+                        className="flex-1"
                         textClassName="font-semibold text-base"
                         style={{ height: 56 }}
                         variant={isUpcoming ? "danger" : "outline"}

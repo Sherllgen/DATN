@@ -9,12 +9,12 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { getMyBookings } from "@/apis/bookingApi";
 import { BookingResponse, BookingStatus } from "@/types/booking.types";
 import { getInvoiceByBookingId, createZaloPayOrder } from "@/apis/paymentApi";
-import { useAuthStore } from "@/contexts/auth.store";
+import { useUserStore } from "@/contexts/user.store";
 import GuestPlaceholder from "@/components/auth/GuestPlaceholder";
 
 export default function BookingPage() {
     const router = useRouter();
-    const { accessToken } = useAuthStore();
+    const { user } = useUserStore();
     const [activeTab, setActiveTab] = useState<TabName>("Upcoming");
     const [bookings, setBookings] = useState<BookingResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -36,10 +36,10 @@ export default function BookingPage() {
 
     useFocusEffect(
         useCallback(() => {
-            if (accessToken) {
+            if (user) {
                 fetchBookings();
             }
-        }, [fetchBookings, accessToken])
+        }, [fetchBookings, user])
     );
 
     const filteredBookings = bookings.filter((booking) => {
@@ -74,7 +74,7 @@ export default function BookingPage() {
         }
     };
 
-    if (!accessToken) {
+    if (!user) {
         return (
             <GradientBackground preset="main">
                 <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>

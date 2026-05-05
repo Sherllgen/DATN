@@ -7,6 +7,7 @@ import { Station, StationStatus } from "@/types/station.types";
 import ChargerTypeTag from "@/components/station/ChargerTypeTag";
 import Button from "@/components/ui/Button";
 import { useUserStore } from "@/contexts/user.store";
+import { useAuthStore } from "@/contexts/auth.store";
 
 interface InfoTabProps {
     station: Station;
@@ -40,6 +41,19 @@ const InfoTab = ({ station }: InfoTabProps) => {
     const unpaidCount = useUserStore((state) => state.unpaidCount) || 0;
 
     const handleBookPress = () => {
+        const { accessToken } = useAuthStore.getState();
+        if (!accessToken) {
+            Alert.alert(
+                "Login Required",
+                "You must be logged in to book a charging slot.",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Log In", onPress: () => router.push("/auth/login") }
+                ]
+            );
+            return;
+        }
+
         if (unpaidCount > 0) {
             Alert.alert("Action Blocked", "Please settle your unpaid invoices before booking a slot.");
             return;
