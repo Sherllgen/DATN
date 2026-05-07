@@ -6,15 +6,15 @@ export const validatePassword = (password: string) => {
     const errors: string[] = [];
 
     if (password.length < 8) {
-        errors.push("Mật khẩu phải có ít nhất 8 ký tự");
+        errors.push("Password must be at least 8 characters");
     }
 
     if (!/[0-9]/.test(password)) {
-        errors.push("Mật khẩu phải chứa ít nhất một  số");
+        errors.push("Password must contain at least one number");
     }
 
     if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-        errors.push("Mật khẩu phải chứa ít nhất một ký tự đặc biệt");
+        errors.push("Password must contain at least one special character");
     }
 
     return errors;

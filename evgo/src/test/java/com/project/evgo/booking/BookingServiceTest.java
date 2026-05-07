@@ -31,7 +31,9 @@ import com.project.evgo.sharedkernel.dto.PageResponse;
 import com.project.evgo.booking.response.BookingResponse;
 import com.project.evgo.booking.response.BookingStatsResponse;
 import com.project.evgo.booking.response.OwnerBookingSummaryResponse;
+import com.project.evgo.booking.response.MonthlyChartEntry;
 import com.project.evgo.payment.response.InvoiceStatsResponse;
+import com.project.evgo.station.response.PriceSettingResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -346,5 +348,192 @@ class BookingServiceTest {
         assertThatThrownBy(() -> bookingService.startBookingSession(1L))
                 .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    @DisplayName("findById_ValidId_ReturnsBooking")
+    void findById_ValidId_ReturnsBooking() {
+        Booking booking = new Booking();
+        booking.setId(1L);
+        BookingResponse response = BookingResponse.builder().id(1L).build();
+        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+        when(converter.toResponse(any(Optional.class))).thenReturn(Optional.of(response));
+
+        Optional<BookingResponse> result = bookingService.findById(1L);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("findByUserId_ValidUserId_ReturnsBookings")
+    void findByUserId_ValidUserId_ReturnsBookings() {
+        Booking booking = new Booking();
+        booking.setId(1L);
+        BookingResponse response = BookingResponse.builder().id(1L).build();
+        when(bookingRepository.findByUserId(1L)).thenReturn(List.of(booking));
+        when(converter.toResponseList(any())).thenReturn(List.of(response));
+
+        List<BookingResponse> result = bookingService.findByUserId(1L);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("findByPortId_ValidPortId_ReturnsBookings")
+    void findByPortId_ValidPortId_ReturnsBookings() {
+        Booking booking = new Booking();
+        booking.setId(1L);
+        BookingResponse response = BookingResponse.builder().id(1L).build();
+        when(bookingRepository.findByPortId(1L)).thenReturn(List.of(booking));
+        when(converter.toResponseList(any())).thenReturn(List.of(response));
+
+        List<BookingResponse> result = bookingService.findByPortId(1L);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("checkAvailability_HasOverlapDB_ThrowsException")
+    void checkAvailability_HasOverlapDB_ThrowsException() {
+        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 100L,
+                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+
+        when(bookingRepository.existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
+                anyLong(), any(), any(), any())).thenReturn(true);
+
+        assertThatThrownBy(() -> bookingService.checkAvailability(req))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+    }
+
+    @Test
+    @DisplayName("createBooking_Success_ReturnsBooking")
+    void createBooking_Success_ReturnsBooking() {
+        CreateBookingRequest req = new CreateBookingRequest(1L, 1L, 1L, 1L,
+                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusHours(2));
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(anyString())).thenReturn("1"); // Match current userId
+        
+        PriceSettingResponse priceResponse = PriceSettingResponse.builder()
+                .bookingFee(java.math.BigDecimal.valueOf(100))
+                .build();
+        when(priceSettingService.getActivePriceSetting(1L)).thenReturn(priceResponse);
+        
+        Booking saved = new Booking();
+        saved.setId(10L);
+        when(bookingRepository.save(any(Booking.class))).thenReturn(saved);
+        
+        BookingResponse res = BookingResponse.builder().id(10L).build();
+        when(converter.toResponse(any(Booking.class))).thenReturn(res);
+
+        BookingResponse result = bookingService.createBooking(req);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(10L);
+        verify(invoiceService).createInvoice(any());
+    }
+
+    @Test
+    @DisplayName("getBookingsByStatus_CanceledStatus_ReturnsPaginatedList")
+    void getBookingsByStatus_CanceledStatus_ReturnsPaginatedList() {
+        Booking booking = new Booking();
+        Page<Booking> page = new PageImpl<>(List.of(booking));
+        when(bookingRepository.findByStatus(eq(BookingStatus.CANCELLED), any(PageRequest.class)))
+                .thenReturn(page);
+        when(converter.toResponse(any(Booking.class))).thenReturn(BookingResponse.builder().build());
+
+        PageResponse<BookingResponse> res = bookingService.getBookingsByStatus("CANCELED", 0, 10);
+
+        assertThat(res).isNotNull();
+    }
+
+    @Test
+    @DisplayName("getBookingsByStatus_InvalidStatus_ReturnsPaginatedList")
+    void getBookingsByStatus_InvalidStatus_ReturnsPaginatedList() {
+        Booking booking = new Booking();
+        Page<Booking> page = new PageImpl<>(List.of(booking));
+        when(bookingRepository.findByStatus(eq(BookingStatus.PENDING), any(PageRequest.class)))
+                .thenReturn(page);
+        when(converter.toResponse(any(Booking.class))).thenReturn(BookingResponse.builder().build());
+
+        PageResponse<BookingResponse> res = bookingService.getBookingsByStatus("INVALID_STATUS", 0, 10);
+
+        assertThat(res).isNotNull();
+    }
+
+    @Test
+    @DisplayName("cancelBooking_AlreadyCanceled_ThrowsException")
+    void cancelBooking_AlreadyCanceled_ThrowsException() {
+        Booking booking = new Booking();
+        booking.setId(1L);
+        booking.setStatus(BookingStatus.CANCELLED);
+
+        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.cancelBooking(1L))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
+    }
+
+    @Test
+    @DisplayName("cancelBooking_InvalidStatus_ThrowsException")
+    void cancelBooking_InvalidStatus_ThrowsException() {
+        Booking booking = new Booking();
+        booking.setId(1L);
+        booking.setStatus(BookingStatus.IN_PROGRESS);
+
+        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.cancelBooking(1L))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
+    }
+
+    @Test
+    @DisplayName("getOwnerMonthlyChart_WithStations_ReturnsChart")
+    void getOwnerMonthlyChart_WithStations_ReturnsChart() {
+        Long ownerId = 1L;
+        List<Long> stationIds = List.of(100L);
+        when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(stationIds);
+        when(bookingRepository.findIdsByStationIdIn(stationIds)).thenReturn(List.of(10L));
+        
+        Object[] row = {1, 5L}; // Month 1, 5 bookings
+        when(bookingRepository.countMonthlyByStationIdsAndStatusAndYear(eq(stationIds), eq(BookingStatus.COMPLETED), org.mockito.ArgumentMatchers.anyInt()))
+            .thenReturn(java.util.Collections.singletonList(row));
+            
+        when(invoiceService.getMonthlyRevenueByBookingIds(any(), org.mockito.ArgumentMatchers.anyInt()))
+            .thenReturn(java.util.Map.of(1, java.math.BigDecimal.valueOf(500)));
+            
+        List<MonthlyChartEntry> result = bookingService.getOwnerMonthlyChart(ownerId);
+        
+        assertThat(result).hasSize(12);
+        assertThat(result.get(0).getBookings()).isEqualTo(5L);
+        assertThat(result.get(0).getRevenue()).isEqualTo(java.math.BigDecimal.valueOf(500));
+    }
+
+    @Test
+    @DisplayName("getOwnerMonthlyChart_NoStations_ReturnsEmptyChart")
+    void getOwnerMonthlyChart_NoStations_ReturnsEmptyChart() {
+        Long ownerId = 1L;
+        when(stationService.getStationIdsByOwnerId(ownerId)).thenReturn(List.of());
+        
+        List<MonthlyChartEntry> result = bookingService.getOwnerMonthlyChart(ownerId);
+        
+        assertThat(result).hasSize(12);
+        assertThat(result.get(0).getBookings()).isEqualTo(0L);
+        assertThat(result.get(0).getRevenue()).isEqualTo(java.math.BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("hasUpcomingBookingOnPort_ReturnsBoolean")
+    void hasUpcomingBookingOnPort_ReturnsBoolean() {
+        when(bookingRepository.existsByPortIdAndStatusAndStartTimeAfter(anyLong(), any(), any()))
+            .thenReturn(true);
+            
+        boolean result = bookingService.hasUpcomingBookingOnPort(1L, LocalDateTime.now());
+        
+        assertThat(result).isTrue();
     }
 }

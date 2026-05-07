@@ -61,7 +61,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 }
             }
 
-            setError("Không thể tải thông tin người dùng. Vui lòng thử lại.");
+            setError("Failed to load user information. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div className="space-y-4 text-center">
                     <LoadingSpinner size="lg" />
                     <p className="text-muted-foreground">
-                        Đang tải thông tin người dùng...
+                        Loading user information...
                     </p>
                 </div>
             </div>
@@ -101,10 +101,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex justify-center items-center min-h-screen">
                 <div className="space-y-4 p-6 max-w-md text-center">
                     <div className="text-destructive text-5xl">⚠️</div>
-                    <h2 className="font-semibold text-2xl">Có lỗi xảy ra</h2>
+                    <h2 className="font-semibold text-2xl">An error occurred</h2>
                     <p className="text-muted-foreground">{error}</p>
                     <Button onClick={handleLogout}>
-                        Đăng nhập lại
+                        Login again
                     </Button>
                 </div>
             </div>

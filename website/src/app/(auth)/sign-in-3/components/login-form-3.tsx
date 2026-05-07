@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import Link from "next/link";
 import Image from "next/image";
-import { loginAction } from "../actions";
+import { loginAction, type LoginActionResult } from "../actions";
 import { useActionState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/contexts/user.store";
@@ -20,13 +20,18 @@ export function LoginForm3({
     const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
     const setUser = useUserStore((state) => state.setUser);
-    const [state, formAction, isPending] = useActionState(
-        async (prevState: any, formData: FormData) => {
-            const result = await loginAction(formData);
-            return result;
+    const [state, formAction, isPending] = useActionState<LoginActionResult, FormData>(
+        async (prevState, formData) => {
+            return await loginAction(formData);
         },
         { success: false, message: "" }
     );
+
+    useEffect(() => {
+        if (state.success && state.redirect) {
+            router.replace(state.redirect);
+        }
+    }, [state, router]);
 
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
