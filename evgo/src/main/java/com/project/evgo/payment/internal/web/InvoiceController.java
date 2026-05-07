@@ -48,6 +48,18 @@ public class InvoiceController {
                 .build());
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Get invoice by ID", description = "Fetches a specific invoice by its ID")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceById(@PathVariable Long id) {
+        InvoiceResponse response = invoiceService.findById(id);
+
+        return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(response)
+                .build());
+    }
+
     @PostMapping
     @Operation(summary = "Create invoice", description = "Creates a new invoice")
     public ResponseEntity<ApiResponse<Void>> createInvoice(@RequestBody InvoiceCreatedRequest request) {

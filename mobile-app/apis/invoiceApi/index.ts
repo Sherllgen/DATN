@@ -24,3 +24,10 @@ export const getInvoiceBySessionId = async (sessionId: number): Promise<InvoiceR
     );
     return res.data.data;
 };
+
+export const getInvoiceById = async (id: number): Promise<InvoiceResponse> => {
+    const res = await axiosInstance.get<ApiResponse<InvoiceResponse>>(
+        `${API_BACKEND_URL}/api/v1/invoices/${id}`
+    );
+    return res.data.data;
+};

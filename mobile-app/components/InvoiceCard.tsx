@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { InvoiceResponse } from '@/types/invoice.types';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 interface InvoiceCardProps {
     invoice: InvoiceResponse;
@@ -10,9 +11,14 @@ interface InvoiceCardProps {
 
 export const InvoiceCard: React.FC<InvoiceCardProps> = ({ invoice, onPayAction }) => {
     const isUnpaid = invoice.status === 'PENDING';
+    const router = useRouter();
 
     return (
-        <View className="bg-[#1A2634] rounded-2xl p-4 mb-4 border border-white/5 shadow-lg">
+        <TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={() => router.push({ pathname: '/invoice/[id]', params: { id: invoice.id } } as any)}
+            className="bg-[#1A2634] rounded-2xl p-4 mb-4 border border-white/5 shadow-lg"
+        >
             {/* Header: Status and ID */}
             <View className="flex-row justify-between items-center mb-3">
                 <Text className="text-white/60 font-medium text-sm">
@@ -67,7 +73,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({ invoice, onPayAction }
                     <Text className="text-white font-bold text-base ml-2">Pay Now</Text>
                 </TouchableOpacity>
             )}
-        </View>
+        </TouchableOpacity>
     );
 };
 
