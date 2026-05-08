@@ -192,63 +192,79 @@ class StationServiceTest {
                 verify(stationRepository).save(any(Station.class));
             }
         }
+    }
+
+    // ==================== COMMON EXCEPTION TESTS ====================
+
+    @Nested
+    @DisplayName("Common Exception Tests")
+    class CommonExceptionTests {
 
         @Test
-        @DisplayName("Should throw FORBIDDEN when user is not the owner")
-        void update_NotOwner_ThrowsForbidden() {
+        @DisplayName("Should throw FORBIDDEN when user is not the owner for modifying operations")
+        void modifyOperations_NotOwner_ThrowsForbidden() {
             // Given
-            UpdateStationRequest request = new UpdateStationRequest(
-                    "Updated Station",
-                    "Updated description",
-                    "Updated Address",
-                    10.999,
-                    106.999,
-                    List.of(),
-                    null);
+            UpdateStationRequest updateReq = new UpdateStationRequest(
+                    "Updated Station", "Description", "Address", 10.0, 106.0, List.of(), null);
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OTHER_OWNER_ID);
                 when(stationRepository.findByIdAndDeletedAtIsNull(STATION_ID))
                         .thenReturn(Optional.of(testStation));
 
-                // When & Then
-                assertThatThrownBy(() -> stationService.update(STATION_ID, request))
+                // Update
+                assertThatThrownBy(() -> stationService.update(STATION_ID, updateReq))
                         .isInstanceOf(AppException.class)
-                        .satisfies(ex -> {
-                            AppException appEx = (AppException) ex;
-                            assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_OWNED);
-                        });
+                        .satisfies(ex -> assertThat(((AppException) ex).getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_OWNED));
+
+                // Delete
+                assertThatThrownBy(() -> stationService.delete(STATION_ID))
+                        .isInstanceOf(AppException.class)
+                        .satisfies(ex -> assertThat(((AppException) ex).getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_OWNED));
+
+                // Update Status
+                assertThatThrownBy(() -> stationService.updateStatus(STATION_ID, StationStatus.ACTIVE))
+                        .isInstanceOf(AppException.class)
+                        .satisfies(ex -> assertThat(((AppException) ex).getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_OWNED));
 
                 verify(stationRepository, never()).save(any());
             }
         }
 
         @Test
-        @DisplayName("Should throw NOT_FOUND when station does not exist")
-        void update_StationNotFound_ThrowsNotFound() {
+        @DisplayName("Should throw NOT_FOUND when station does not exist for modifying operations")
+        void modifyOperations_StationNotFound_ThrowsNotFound() {
             // Given
-            UpdateStationRequest request = new UpdateStationRequest(
-                    "Updated Station",
-                    "Updated description",
-                    "Updated Address",
-                    10.999,
-                    106.999,
-                    List.of(),
-                    null);
+            UpdateStationRequest updateReq = new UpdateStationRequest(
+                    "Updated Station", "Description", "Address", 10.0, 106.0, List.of(), null);
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
                 when(stationRepository.findByIdAndDeletedAtIsNull(STATION_ID))
                         .thenReturn(Optional.empty());
 
-                // When & Then
-                assertThatThrownBy(() -> stationService.update(STATION_ID, request))
+                // Update
+                assertThatThrownBy(() -> stationService.update(STATION_ID, updateReq))
                         .isInstanceOf(AppException.class)
-                        .satisfies(ex -> {
-                            AppException appEx = (AppException) ex;
-                            assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_FOUND);
-                        });
+                        .satisfies(ex -> assertThat(((AppException) ex).getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_FOUND));
+
+                // Delete
+                assertThatThrownBy(() -> stationService.delete(STATION_ID))
+                        .isInstanceOf(AppException.class)
+                        .satisfies(ex -> assertThat(((AppException) ex).getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_FOUND));
+
+                // Update Status
+                assertThatThrownBy(() -> stationService.updateStatus(STATION_ID, StationStatus.ACTIVE))
+                        .isInstanceOf(AppException.class)
+                        .satisfies(ex -> assertThat(((AppException) ex).getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_FOUND));
             }
+        }
+
+        @Test
+        @DisplayName("Should throw exception when update request is null")
+        void update_NullRequest_ThrowsException() {
+            assertThatThrownBy(() -> stationService.update(STATION_ID, null))
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -338,46 +354,6 @@ class StationServiceTest {
                 verify(stationRepository).save(argThat(station -> station.getDeletedAt() != null));
             }
         }
-
-        @Test
-        @DisplayName("Should throw FORBIDDEN when user is not the owner")
-        void delete_NotOwner_ThrowsForbidden() {
-            // Given
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OTHER_OWNER_ID);
-                when(stationRepository.findByIdAndDeletedAtIsNull(STATION_ID))
-                        .thenReturn(Optional.of(testStation));
-
-                // When & Then
-                assertThatThrownBy(() -> stationService.delete(STATION_ID))
-                        .isInstanceOf(AppException.class)
-                        .satisfies(ex -> {
-                            AppException appEx = (AppException) ex;
-                            assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_OWNED);
-                        });
-
-                verify(stationRepository, never()).save(any());
-            }
-        }
-
-        @Test
-        @DisplayName("Should throw NOT_FOUND when station does not exist")
-        void delete_StationNotFound_ThrowsNotFound() {
-            // Given
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
-                when(stationRepository.findByIdAndDeletedAtIsNull(STATION_ID))
-                        .thenReturn(Optional.empty());
-
-                // When & Then
-                assertThatThrownBy(() -> stationService.delete(STATION_ID))
-                        .isInstanceOf(AppException.class)
-                        .satisfies(ex -> {
-                            AppException appEx = (AppException) ex;
-                            assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_FOUND);
-                        });
-            }
-        }
     }
 
     // ==================== UPDATE STATUS TESTS ====================
@@ -405,107 +381,24 @@ class StationServiceTest {
                 verify(stationRepository).save(argThat(station -> station.getStatus() == StationStatus.ACTIVE));
             }
         }
-
-        @Test
-        @DisplayName("Should throw FORBIDDEN when user is not the owner")
-        void updateStatus_NotOwner_ThrowsForbidden() {
-            // Given
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OTHER_OWNER_ID);
-                when(stationRepository.findByIdAndDeletedAtIsNull(STATION_ID))
-                        .thenReturn(Optional.of(testStation));
-
-                // When & Then
-                assertThatThrownBy(() -> stationService.updateStatus(STATION_ID, StationStatus.ACTIVE))
-                        .isInstanceOf(AppException.class)
-                        .satisfies(ex -> {
-                            AppException appEx = (AppException) ex;
-                            assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_OWNED);
-                        });
-            }
-        }
-
-        @Test
-        @DisplayName("Should throw NOT_FOUND when station does not exist")
-        void updateStatus_StationNotFound_ThrowsNotFound() {
-            // Given
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
-                when(stationRepository.findByIdAndDeletedAtIsNull(STATION_ID))
-                        .thenReturn(Optional.empty());
-
-                // When & Then
-                assertThatThrownBy(() -> stationService.updateStatus(STATION_ID, StationStatus.ACTIVE))
-                        .isInstanceOf(AppException.class)
-                        .satisfies(ex -> {
-                            AppException appEx = (AppException) ex;
-                            assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_FOUND);
-                        });
-            }
-        }
     }
 
-    // ==================== EDGE CASE TESTS ====================
+    // ==================== COMPREHENSIVE CREATE TESTS ====================
 
     @Nested
-    @DisplayName("Edge Case Tests")
-    class EdgeCaseTests {
+    @DisplayName("Comprehensive Create Station Tests")
+    class ComprehensiveCreateTests {
 
         @Test
-        @DisplayName("Should throw exception when update request is null")
-        void update_NullRequest_ThrowsException() {
-            // When & Then
-            assertThatThrownBy(() -> stationService.update(STATION_ID, null))
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        @DisplayName("Should handle station with empty imageUrls list")
-        void create_EmptyImageUrls_Success() {
+        @DisplayName("Should comprehensively test creation edge cases (status, empty images, no opening hours)")
+        void create_ComprehensiveEdgeCases_Success() {
             // Given
             CreateStationRequest request = new CreateStationRequest(
-                    "New Station",
-                    "Description",
-                    "New Address",
-                    10.123,
-                    106.456,
-                    List.of(), // Empty image list
-                    null); // Added openingHours
+                    "New Station", "Desc", "Address", 10.0, 106.0, List.of(), null);
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
-                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong()))
-                        .thenReturn(false);
-                when(stationRepository.save(any(Station.class))).thenReturn(testStation);
-                when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
-
-                // When
-                StationResponse result = stationService.create(request);
-
-                // Then
-                assertThat(result).isNotNull();
-                verify(stationRepository)
-                        .save(argThat(station -> station.getImageUrls() != null && station.getImageUrls().isEmpty()));
-            }
-        }
-
-        @Test
-        @DisplayName("Should set status to PENDING when creating new station")
-        void create_NewStation_StatusIsPending() {
-            // Given
-            CreateStationRequest request = new CreateStationRequest(
-                    "New Station",
-                    "Description",
-                    "New Address",
-                    10.123,
-                    106.456,
-                    List.of("https://example.com/image.jpg"),
-                    null); // Added openingHours
-
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
-                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong()))
-                        .thenReturn(false);
+                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong())).thenReturn(false);
                 when(stationRepository.save(any(Station.class))).thenReturn(testStation);
                 when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
 
@@ -513,7 +406,11 @@ class StationServiceTest {
                 stationService.create(request);
 
                 // Then
-                verify(stationRepository).save(argThat(station -> station.getStatus() == StationStatus.PENDING));
+                verify(stationRepository).save(argThat(station -> 
+                    station.getStatus() == StationStatus.PENDING &&
+                    station.getImageUrls() != null && station.getImageUrls().isEmpty() &&
+                    (station.getOpeningHours() == null || station.getOpeningHours().isEmpty())
+                ));
             }
         }
     }
@@ -525,26 +422,19 @@ class StationServiceTest {
     class OpeningHoursTests {
 
         @Test
-        @DisplayName("Should create station with opening hours")
-        void create_WithOpeningHours_Success() {
-            // Given
-            List<StationOpeningHoursRequest> openingHours = List.of(
+        @DisplayName("Should comprehensively create and update opening hours scenarios")
+        void openingHours_ComprehensiveTests() {
+            // Scenario 1: Mixed Open/Closed Days
+            List<StationOpeningHoursRequest> mixedHours = List.of(
                     new StationOpeningHoursRequest(DayOfWeek.MONDAY, LocalTime.of(7, 0), LocalTime.of(22, 0), true),
                     new StationOpeningHoursRequest(DayOfWeek.SUNDAY, null, null, false));
 
-            CreateStationRequest request = new CreateStationRequest(
-                    "Station with Hours",
-                    "Description",
-                    "Address",
-                    10.123,
-                    106.456,
-                    List.of(),
-                    openingHours);
+            CreateStationRequest createReq = new CreateStationRequest(
+                    "Station with Hours", "Desc", "Address", 10.123, 106.456, List.of(), mixedHours);
 
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
-                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong()))
-                        .thenReturn(false);
+                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong())).thenReturn(false);
                 when(stationRepository.save(any(Station.class))).thenAnswer(i -> {
                     Station s = i.getArgument(0);
                     s.setId(1L);
@@ -552,123 +442,32 @@ class StationServiceTest {
                 });
                 when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
 
-                // When
-                StationResponse result = stationService.create(request);
+                stationService.create(createReq);
 
-                // Then
-                assertThat(result).isNotNull();
-                verify(stationRepository).save(argThat(station -> station.getOpeningHours() != null &&
-                        station.getOpeningHours().size() == 2));
-            }
-        }
-
-        @Test
-        @DisplayName("Should create station without opening hours (24/7 default)")
-        void create_WithoutOpeningHours_Success() {
-            // Given
-            CreateStationRequest request = new CreateStationRequest(
-                    "24/7 Station",
-                    "Description",
-                    "Address",
-                    10.123,
-                    106.456,
-                    List.of(),
-                    null);
-
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
-                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong()))
-                        .thenReturn(false);
-                when(stationRepository.save(any(Station.class))).thenReturn(testStation);
-                when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
-
-                // When
-                StationResponse result = stationService.create(request);
-
-                // Then
-                assertThat(result).isNotNull();
-                verify(stationRepository).save(
-                        argThat(station -> station.getOpeningHours() == null || station.getOpeningHours().isEmpty()));
-            }
-        }
-
-        @Test
-        @DisplayName("Should update station opening hours")
-        void update_WithOpeningHours_ReplacesExisting() {
-            // Given
-            List<StationOpeningHoursRequest> newOpeningHours = List.of(
-                    new StationOpeningHoursRequest(DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(20, 0), true));
-
-            UpdateStationRequest request = new UpdateStationRequest(
-                    "Updated Station",
-                    "Updated Description",
-                    "Updated Address",
-                    10.999,
-                    106.999,
-                    List.of(),
-                    newOpeningHours);
-
-            testStation.setOpeningHours(new ArrayList<>()); // Existing empty list
-
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
-                when(stationRepository.findByIdAndDeletedAtIsNull(STATION_ID))
-                        .thenReturn(Optional.of(testStation));
-                when(stationRepository.existsByNameAndOwnerIdAndIdNotAndDeletedAtIsNull(
-                        anyString(), anyLong(), anyLong())).thenReturn(false);
-                when(stationRepository.save(any(Station.class))).thenReturn(testStation);
-                when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
-
-                // When
-                StationResponse result = stationService.update(STATION_ID, request);
-
-                // Then
-                assertThat(result).isNotNull();
-                verify(stationRepository).save(argThat(station -> station.getOpeningHours() != null &&
-                        station.getOpeningHours().size() == 1));
-            }
-        }
-
-        @Test
-        @DisplayName("Should handle opening hours with isOpen=false (closed day)")
-        void create_WithClosedDay_Success() {
-            // Given - Sunday is closed
-            List<StationOpeningHoursRequest> openingHours = List.of(
-                    new StationOpeningHoursRequest(DayOfWeek.SUNDAY, null, null, false));
-
-            CreateStationRequest request = new CreateStationRequest(
-                    "Station Closed Sunday",
-                    "Description",
-                    "Address",
-                    10.123,
-                    106.456,
-                    List.of(),
-                    openingHours);
-
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(OWNER_ID);
-                when(stationRepository.existsByNameAndOwnerIdAndDeletedAtIsNull(anyString(), anyLong()))
-                        .thenReturn(false);
-                when(stationRepository.save(any(Station.class))).thenAnswer(i -> {
-                    Station s = i.getArgument(0);
-                    s.setId(1L);
-                    return s;
-                });
-                when(stationDtoConverter.convert(any(Station.class))).thenReturn(testStationResponse);
-
-                // When
-                StationResponse result = stationService.create(request);
-
-                // Then
-                assertThat(result).isNotNull();
+                // Verify saved correctly
                 verify(stationRepository).save(argThat(station -> {
-                    if (station.getOpeningHours() == null || station.getOpeningHours().isEmpty()) {
-                        return false;
-                    }
-                    var sundayHour = station.getOpeningHours().get(0);
-                    return sundayHour.getDayOfWeek() == DayOfWeek.SUNDAY &&
-                            Boolean.FALSE.equals(sundayHour.getIsOpen());
+                    if (station.getOpeningHours() == null || station.getOpeningHours().size() != 2) return false;
+                    boolean hasClosedSunday = station.getOpeningHours().stream()
+                            .anyMatch(h -> h.getDayOfWeek() == DayOfWeek.SUNDAY && !h.getIsOpen());
+                    return hasClosedSunday;
                 }));
+
+                // Scenario 2: Update replaces existing hours
+                when(stationRepository.findByIdAndDeletedAtIsNull(STATION_ID)).thenReturn(Optional.of(testStation));
+                when(stationRepository.existsByNameAndOwnerIdAndIdNotAndDeletedAtIsNull(anyString(), anyLong(), anyLong())).thenReturn(false);
+                doReturn(testStation).when(stationRepository).save(any(Station.class));
+                
+                UpdateStationRequest updateReq = new UpdateStationRequest(
+                        "Updated", "Desc", "Addr", 10.0, 106.0, List.of(),
+                        List.of(new StationOpeningHoursRequest(DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(20, 0), true)));
+                
+                testStation.setOpeningHours(new ArrayList<>());
+                stationService.update(STATION_ID, updateReq);
+                
+                verify(stationRepository).save(argThat(station -> 
+                    station.getId() != null && station.getId().equals(STATION_ID) &&
+                    station.getOpeningHours() != null && station.getOpeningHours().size() == 1
+                ));
             }
         }
     }

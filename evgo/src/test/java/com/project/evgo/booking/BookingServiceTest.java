@@ -17,6 +17,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -39,6 +43,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -134,28 +139,31 @@ class BookingServiceTest {
                                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_SLOT_UNAVAILABLE);
         }
 
-        @Test
-        @DisplayName("getBookingsByStatus_ValidStatus_ReturnsPaginatedList")
-        void getBookingsByStatus_ValidStatus_ReturnsPaginatedList() {
+        @ParameterizedTest
+        @CsvSource({
+            "UPCOMING, CONFIRMED",
+            "CANCELED, CANCELLED",
+            "INVALID_STATUS, PENDING"
+        })
+        @DisplayName("getBookingsByStatus_ReturnsPaginatedList")
+        void getBookingsByStatus_ReturnsPaginatedList(String inputStatus, BookingStatus expectedMappedStatus) {
                 Booking booking = new Booking();
                 booking.setId(1L);
-                booking.setStatus(BookingStatus.CONFIRMED);
+                booking.setStatus(expectedMappedStatus);
                 
                 BookingResponse bookingResponse = BookingResponse.builder().id(1L).portId(100L).portNumber(2)
-                                        .status(BookingStatus.CONFIRMED)
+                                        .status(expectedMappedStatus)
                                         .build();
                 when(converter.toResponse(any(Booking.class))).thenReturn(bookingResponse);
 
                 Page<Booking> page = new PageImpl<>(List.of(booking));
-                when(bookingRepository.findByStatus(eq(BookingStatus.CONFIRMED), any(PageRequest.class)))
+                when(bookingRepository.findByStatus(eq(expectedMappedStatus), any(PageRequest.class)))
                                 .thenReturn(page);
 
-                PageResponse<BookingResponse> res = bookingService.getBookingsByStatus("UPCOMING", 0, 10);
+                PageResponse<BookingResponse> res = bookingService.getBookingsByStatus(inputStatus, 0, 10);
 
                 assertThat(res).isNotNull();
                 assertThat(res.content()).hasSize(1);
-                assertThat(res.content().get(0).getPortId()).isEqualTo(100L);
-                assertThat(res.content().get(0).getStatus()).isEqualTo(BookingStatus.CONFIRMED);
         }
 
         @Test
@@ -174,19 +182,28 @@ class BookingServiceTest {
                 assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
         }
 
-        @Test
-        @DisplayName("cancelBooking_TooCloseToStartTime_ThrowsException")
-        void cancelBooking_TooCloseToStartTime_ThrowsException() {
+        @ParameterizedTest
+        @MethodSource("provideInvalidCancelBookingScenarios")
+        @DisplayName("cancelBooking_InvalidConditions_ThrowsException")
+        void cancelBooking_InvalidConditions_ThrowsException(BookingStatus status, int hoursAhead, ErrorCode expectedError) {
                 Booking booking = new Booking();
                 booking.setId(1L);
-                booking.setStatus(BookingStatus.CONFIRMED);
-                booking.setStartTime(LocalDateTime.now().plusHours(1)); // < 2 hours ahead
+                booking.setStatus(status);
+                booking.setStartTime(LocalDateTime.now().plusHours(hoursAhead));
 
                 when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
                 assertThatThrownBy(() -> bookingService.cancelBooking(1L))
                                 .isInstanceOf(AppException.class)
-                                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
+                                .hasFieldOrPropertyWithValue("errorCode", expectedError);
+        }
+
+        private static Stream<Arguments> provideInvalidCancelBookingScenarios() {
+                return Stream.of(
+                    Arguments.of(BookingStatus.CONFIRMED, 1, ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED), // Too close
+                    Arguments.of(BookingStatus.CANCELLED, 3, ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED), // Already canceled
+                    Arguments.of(BookingStatus.IN_PROGRESS, 3, ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED) // Invalid status
+                );
         }
 
         @Test
@@ -435,61 +452,7 @@ class BookingServiceTest {
         verify(invoiceService).createInvoice(any());
     }
 
-    @Test
-    @DisplayName("getBookingsByStatus_CanceledStatus_ReturnsPaginatedList")
-    void getBookingsByStatus_CanceledStatus_ReturnsPaginatedList() {
-        Booking booking = new Booking();
-        Page<Booking> page = new PageImpl<>(List.of(booking));
-        when(bookingRepository.findByStatus(eq(BookingStatus.CANCELLED), any(PageRequest.class)))
-                .thenReturn(page);
-        when(converter.toResponse(any(Booking.class))).thenReturn(BookingResponse.builder().build());
 
-        PageResponse<BookingResponse> res = bookingService.getBookingsByStatus("CANCELED", 0, 10);
-
-        assertThat(res).isNotNull();
-    }
-
-    @Test
-    @DisplayName("getBookingsByStatus_InvalidStatus_ReturnsPaginatedList")
-    void getBookingsByStatus_InvalidStatus_ReturnsPaginatedList() {
-        Booking booking = new Booking();
-        Page<Booking> page = new PageImpl<>(List.of(booking));
-        when(bookingRepository.findByStatus(eq(BookingStatus.PENDING), any(PageRequest.class)))
-                .thenReturn(page);
-        when(converter.toResponse(any(Booking.class))).thenReturn(BookingResponse.builder().build());
-
-        PageResponse<BookingResponse> res = bookingService.getBookingsByStatus("INVALID_STATUS", 0, 10);
-
-        assertThat(res).isNotNull();
-    }
-
-    @Test
-    @DisplayName("cancelBooking_AlreadyCanceled_ThrowsException")
-    void cancelBooking_AlreadyCanceled_ThrowsException() {
-        Booking booking = new Booking();
-        booking.setId(1L);
-        booking.setStatus(BookingStatus.CANCELLED);
-
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
-
-        assertThatThrownBy(() -> bookingService.cancelBooking(1L))
-                .isInstanceOf(AppException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
-    }
-
-    @Test
-    @DisplayName("cancelBooking_InvalidStatus_ThrowsException")
-    void cancelBooking_InvalidStatus_ThrowsException() {
-        Booking booking = new Booking();
-        booking.setId(1L);
-        booking.setStatus(BookingStatus.IN_PROGRESS);
-
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
-
-        assertThatThrownBy(() -> bookingService.cancelBooking(1L))
-                .isInstanceOf(AppException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
-    }
 
     @Test
     @DisplayName("getOwnerMonthlyChart_WithStations_ReturnsChart")

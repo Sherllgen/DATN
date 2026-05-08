@@ -129,50 +129,6 @@ class ChargerServiceTest {
             assertThat(result.getName()).isEqualTo("Test Charger");
             verify(chargerRepository).save(any(Charger.class));
         }
-
-        @Test
-        @DisplayName("Should throw FORBIDDEN when user is not station owner")
-        void createCharger_NotOwner_ThrowsForbidden() {
-            // Given
-            CreateChargerRequest request = new CreateChargerRequest();
-            request.setName("New Charger");
-            request.setMaxPower(50.0);
-            request.setStationId(STATION_ID);
-
-            doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationValidator).verifyOwnership(STATION_ID);
-
-            // When & Then
-            assertThatThrownBy(() -> chargerService.createCharger(request))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_OWNED);
-                    });
-
-            verify(chargerRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Should throw NOT_FOUND when station does not exist")
-        void createCharger_StationNotFound_ThrowsNotFound() {
-            // Given
-            CreateChargerRequest request = new CreateChargerRequest();
-            request.setName("New Charger");
-            request.setMaxPower(50.0);
-            request.setStationId(STATION_ID);
-
-            doThrow(new AppException(ErrorCode.STATION_NOT_FOUND))
-                    .when(stationValidator).verifyOwnership(STATION_ID);
-
-            // When & Then
-            assertThatThrownBy(() -> chargerService.createCharger(request))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.STATION_NOT_FOUND);
-                    });
-        }
     }
 
     // ==================== UPDATE CHARGER TESTS ====================
@@ -200,45 +156,6 @@ class ChargerServiceTest {
             verify(chargerRepository).save(any(Charger.class));
         }
 
-        @Test
-        @DisplayName("Should throw FORBIDDEN when user is not station owner")
-        void updateCharger_NotOwner_ThrowsForbidden() {
-            // Given
-            when(chargerRepository.findById(CHARGER_ID))
-                    .thenReturn(Optional.of(testCharger));
-            doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationValidator).verifyOwnership(STATION_ID);
-
-            // When & Then
-            assertThatThrownBy(
-                    () -> chargerService.updateCharger(CHARGER_ID,
-                            new UpdateChargerRequest("Updated", 100.0, ConnectorType.VINFAST_STD)))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.CHARGER_NOT_OWNED);
-                    });
-
-            verify(chargerRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Should throw NOT_FOUND when charger does not exist")
-        void updateCharger_ChargerNotFound_ThrowsNotFound() {
-            // Given
-            when(chargerRepository.findById(CHARGER_ID))
-                    .thenReturn(Optional.empty());
-
-            // When & Then
-            assertThatThrownBy(
-                    () -> chargerService.updateCharger(CHARGER_ID,
-                            new UpdateChargerRequest("Updated", 100.0, ConnectorType.VINFAST_STD)))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.CHARGER_NOT_FOUND);
-                    });
-        }
     }
 
     // ==================== DELETE CHARGER TESTS ====================
@@ -262,25 +179,6 @@ class ChargerServiceTest {
             verify(chargerRepository).delete(testCharger);
         }
 
-        @Test
-        @DisplayName("Should throw FORBIDDEN when user is not station owner")
-        void deleteCharger_NotOwner_ThrowsForbidden() {
-            // Given
-            when(chargerRepository.findById(CHARGER_ID))
-                    .thenReturn(Optional.of(testCharger));
-            doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationValidator).verifyOwnership(STATION_ID);
-
-            // When & Then
-            assertThatThrownBy(() -> chargerService.deleteCharger(CHARGER_ID))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.CHARGER_NOT_OWNED);
-                    });
-
-            verify(chargerRepository, never()).delete(any());
-        }
     }
 
     // ==================== CREATE PORT TESTS ====================
@@ -310,27 +208,6 @@ class ChargerServiceTest {
             verify(portRepository).save(any(Port.class));
         }
 
-        @Test
-        @DisplayName("Should throw FORBIDDEN when user is not charger's station owner")
-        void createPort_ChargerNotOwned_ThrowsForbidden() {
-            // Given
-            CreatePortRequest request = new CreatePortRequest(1);
-
-            when(chargerRepository.findById(CHARGER_ID))
-                    .thenReturn(Optional.of(testCharger));
-            doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationValidator).verifyOwnership(STATION_ID);
-
-            // When & Then
-            assertThatThrownBy(() -> chargerService.createPort(CHARGER_ID, request))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.CHARGER_NOT_OWNED);
-                    });
-
-            verify(portRepository, never()).save(any());
-        }
     }
 
     // ==================== UPDATE PORT TESTS ====================
@@ -357,25 +234,6 @@ class ChargerServiceTest {
             verify(portRepository).save(any(Port.class));
         }
 
-        @Test
-        @DisplayName("Should throw FORBIDDEN when user is not port's charger's station owner")
-        void updatePortStatus_NotOwner_ThrowsForbidden() {
-            // Given
-            when(portRepository.findById(PORT_ID))
-                    .thenReturn(Optional.of(testPort));
-            doThrow(new AppException(ErrorCode.STATION_NOT_OWNED))
-                    .when(stationValidator).verifyOwnership(STATION_ID);
-
-            // When & Then
-            assertThatThrownBy(() -> chargerService.updatePortStatus(PORT_ID, PortStatus.CHARGING))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.CHARGER_NOT_OWNED);
-                    });
-
-            verify(portRepository, never()).save(any());
-        }
     }
 
     // ==================== DELETE PORT TESTS ====================
@@ -399,20 +257,64 @@ class ChargerServiceTest {
             verify(portRepository).delete(testPort);
         }
 
-        @Test
-        @DisplayName("Should throw NOT_FOUND when port does not exist")
-        void deletePort_PortNotFound_ThrowsNotFound() {
-            // Given
-            when(portRepository.findById(PORT_ID))
-                    .thenReturn(Optional.empty());
+    }
 
-            // When & Then
+    @Nested
+    @DisplayName("Exception Grouped Tests")
+    class ExceptionGroupedTests {
+        @Test
+        @DisplayName("Should throw STATION_NOT_OWNED or CHARGER_NOT_OWNED for all modifying operations")
+        void modifyOperations_NotOwner_ThrowsForbidden() {
+            // Setup Create Charger
+            CreateChargerRequest createReq = new CreateChargerRequest();
+            createReq.setStationId(STATION_ID);
+            doThrow(new AppException(ErrorCode.STATION_NOT_OWNED)).when(stationValidator).verifyOwnership(STATION_ID);
+
+            assertThatThrownBy(() -> chargerService.createCharger(createReq))
+                    .isInstanceOf(AppException.class).hasFieldOrPropertyWithValue("errorCode", ErrorCode.STATION_NOT_OWNED);
+
+            // Setup common mock for update/delete
+            when(chargerRepository.findById(CHARGER_ID)).thenReturn(Optional.of(testCharger));
+            when(portRepository.findById(PORT_ID)).thenReturn(Optional.of(testPort));
+
+            UpdateChargerRequest updateReq = new UpdateChargerRequest("Updated", 100.0, ConnectorType.VINFAST_STD);
+            assertThatThrownBy(() -> chargerService.updateCharger(CHARGER_ID, updateReq))
+                    .isInstanceOf(AppException.class).hasFieldOrPropertyWithValue("errorCode", ErrorCode.CHARGER_NOT_OWNED);
+
+            assertThatThrownBy(() -> chargerService.deleteCharger(CHARGER_ID))
+                    .isInstanceOf(AppException.class).hasFieldOrPropertyWithValue("errorCode", ErrorCode.CHARGER_NOT_OWNED);
+
+            CreatePortRequest portReq = new CreatePortRequest(1);
+            assertThatThrownBy(() -> chargerService.createPort(CHARGER_ID, portReq))
+                    .isInstanceOf(AppException.class).hasFieldOrPropertyWithValue("errorCode", ErrorCode.CHARGER_NOT_OWNED);
+
+            assertThatThrownBy(() -> chargerService.updatePortStatus(PORT_ID, PortStatus.CHARGING))
+                    .isInstanceOf(AppException.class).hasFieldOrPropertyWithValue("errorCode", ErrorCode.CHARGER_NOT_OWNED);
+        }
+
+        @Test
+        @DisplayName("Should throw NOT_FOUND for invalid IDs")
+        void modifyOperations_InvalidId_ThrowsNotFound() {
+            // Create Charger with invalid Station
+            CreateChargerRequest createReq = new CreateChargerRequest();
+            createReq.setStationId(STATION_ID);
+            doThrow(new AppException(ErrorCode.STATION_NOT_FOUND)).when(stationValidator).verifyOwnership(STATION_ID);
+
+            assertThatThrownBy(() -> chargerService.createCharger(createReq))
+                    .isInstanceOf(AppException.class).hasFieldOrPropertyWithValue("errorCode", ErrorCode.STATION_NOT_FOUND);
+
+            // Charger Not Found
+            when(chargerRepository.findById(CHARGER_ID)).thenReturn(Optional.empty());
+            UpdateChargerRequest updateReq = new UpdateChargerRequest("Updated", 100.0, ConnectorType.VINFAST_STD);
+            
+            assertThatThrownBy(() -> chargerService.updateCharger(CHARGER_ID, updateReq))
+                    .isInstanceOf(AppException.class).hasFieldOrPropertyWithValue("errorCode", ErrorCode.CHARGER_NOT_FOUND);
+
+            // Port Not Found
+            when(portRepository.findById(PORT_ID)).thenReturn(Optional.empty());
+
             assertThatThrownBy(() -> chargerService.deletePort(PORT_ID))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.PORT_NOT_FOUND);
-                    });
+                    .isInstanceOf(AppException.class).hasFieldOrPropertyWithValue("errorCode", ErrorCode.PORT_NOT_FOUND);
         }
     }
 
