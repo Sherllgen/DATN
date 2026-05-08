@@ -25,16 +25,22 @@ export function LocationPicker({ latitude, longitude, onLocationChange }: Locati
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<LeafletMap>(null);
     const markerRef = useRef<LeafletMarker>(null);
+    const initializingRef = useRef(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [searching, setSearching] = useState(false);
     const [mapReady, setMapReady] = useState(false);
 
     // Initialize map
     useEffect(() => {
-        if (!mapContainerRef.current || mapRef.current) return;
+        let isMounted = true;
+        if (!mapContainerRef.current || mapRef.current || initializingRef.current) return;
 
         const initMap = async () => {
             const L = (await import("leaflet")).default;
+            if (!isMounted || mapRef.current) return;
+
+            const container = mapContainerRef.current;
+            if (!container || (container as any)._leaflet_id) return;
 
             // Fix default marker icons for webpack/next.js
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +58,7 @@ export function LocationPicker({ latitude, longitude, onLocationChange }: Locati
                 isNaN(initialLng) ? DEFAULT_CENTER[1] : initialLng,
             ];
 
-            const map = L.map(mapContainerRef.current!, {
+            const map = L.map(container, {
                 center,
                 zoom: DEFAULT_ZOOM,
             });
@@ -99,9 +105,12 @@ export function LocationPicker({ latitude, longitude, onLocationChange }: Locati
             document.head.appendChild(link);
         }
 
+        initializingRef.current = true;
         initMap();
 
         return () => {
+            isMounted = false;
+            initializingRef.current = false;
             if (mapRef.current) {
                 mapRef.current.remove();
                 mapRef.current = null;

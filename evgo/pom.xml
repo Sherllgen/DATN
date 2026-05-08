@@ -281,12 +281,20 @@
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.11</version>
 				<configuration>
-					<!-- Chỉ quét mã nguồn trong thư mục booking -->
+					<!-- Quét mã nguồn các module đã có Unit Test -->
 					<includes>
 						<include>com/project/evgo/booking/**</include>
+						<include>com/project/evgo/charger/**</include>
+						<include>com/project/evgo/charging/**</include>
+						<include>com/project/evgo/notification/**</include>
+						<include>com/project/evgo/ocpp/**</include>
+						<include>com/project/evgo/payment/**</include>
+						<include>com/project/evgo/review/**</include>
+						<include>com/project/evgo/station/**</include>
 					</includes>
 					<!-- Bỏ qua các class rác (chỉ chứa get/set) không cần test -->
 					<excludes>
+						<exclude>**/internal/web/**</exclude>
 						<exclude>**/request/**</exclude>
 						<exclude>**/response/**</exclude>
 						<exclude>**/dto/**</exclude>
@@ -317,8 +325,13 @@
 									<element>PACKAGE</element>
 									<includes>
 										<include>com.project.evgo.booking.*</include>
-										<include>com.project.evgo.booking.internal.*</include>
-										<include>com.project.evgo.booking.internal.web.*</include>
+										<include>com.project.evgo.charger.*</include>
+										<include>com.project.evgo.charging.*</include>
+										<include>com.project.evgo.notification.*</include>
+										<include>com.project.evgo.ocpp.*</include>
+										<include>com.project.evgo.payment.*</include>
+										<include>com.project.evgo.review.*</include>
+										<include>com.project.evgo.station.*</include>
 									</includes>
 									<limits>
 										<limit>

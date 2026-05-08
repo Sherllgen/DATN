@@ -52,7 +52,6 @@ public interface ChargerService {
 
     /**
      * Process a BootNotification from an OCPP charge point.
-     * Updates charger metadata and status, publishes ChargePointBootedEvent.
      *
      * @param chargerId the database ID of the charger
      * @return the updated ChargerResponse, or empty if charger not found

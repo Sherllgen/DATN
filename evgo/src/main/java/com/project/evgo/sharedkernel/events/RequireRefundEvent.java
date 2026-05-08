@@ -1,4 +1,4 @@
-package com.project.evgo.booking;
+package com.project.evgo.sharedkernel.events;
 
 import java.math.BigDecimal;
 

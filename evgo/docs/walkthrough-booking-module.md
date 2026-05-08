@@ -88,7 +88,6 @@ The `booking` module handles the reservation of charging ports at stations.
 ### Events Published by Booking Module
 | Event | Payload | When |
 |-------|---------|------|
-| `BookingCreatedEvent` | `bookingId, userId, amount` | A new PENDING booking is saved to DB. (Used by Payment to generate Invoice). |
 | `SendRemoteStopCommandEvent` | `sessionId, chargePointId, transactionId, reason` | BookingScheduler T-10m checks overstay and forces hardware cut-off. |
 | `SendReserveNowCommandEvent` | `chargePointId, connectorId, idTag, expiryDate, reservationId` | BookingScheduler T-10m reserves the hardware port for the arriving user. |
 

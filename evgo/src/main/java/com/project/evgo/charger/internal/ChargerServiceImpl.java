@@ -1,6 +1,5 @@
 package com.project.evgo.charger.internal;
 
-import com.project.evgo.charger.ChargePointBootedEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.request.CreateChargerRequest;
 import com.project.evgo.charger.request.CreatePortRequest;
@@ -14,7 +13,6 @@ import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.StationOwnershipValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +33,6 @@ public class ChargerServiceImpl implements ChargerService {
     private final PortRepository portRepository;
     private final StationOwnershipValidator stationValidator;
     private final ChargerDtoConverter converter;
-    private final ApplicationEventPublisher eventPublisher;
 
     // ==================== READ OPERATIONS ====================
 
@@ -218,8 +215,6 @@ public class ChargerServiceImpl implements ChargerService {
 
         Charger saved = chargerRepository.save(charger);
         log.info("BootNotification processed for charge point ID: {}", saved.getId());
-
-        eventPublisher.publishEvent(new ChargePointBootedEvent(saved.getId()));
 
         return Optional.of(converter.toChargerResponse(saved));
     }

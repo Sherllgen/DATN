@@ -60,7 +60,7 @@ erDiagram
 
 > [!NOTE]
 > IPN `/api/v1/zalopay/callback` không yêu cầu JWT Auth nhưng tính hợp lệ được xác thực bằng chữ ký số qua HMAC-SHA256 (bằng KEY2).
-> Thực thể `Invoice` KHÔNG được sinh ra trực tiếp bởi logic của các Controller module khác. Thay vào đó, nó được sinh ra thông qua `PaymentModuleListener` (Spring Modulith Event-Driven) lắng nghe sự kiện `BookingCreatedEvent` (từ module booking), và `ChargingInvoiceListener` lắng nghe `ChargingSessionCompletedEvent` (từ module charging) để tự động xuất hóa đơn sạc. Ngoài ra, module còn có `IdleFeeListener` để tính phí chiếm chỗ tự động thông qua sự kiện `CableUnpluggedEvent`.
+> Thực thể `Invoice` dành cho phí đặt trước (Booking) được sinh ra trực tiếp (Synchronous) bằng cách gọi `InvoiceService` từ trong `BookingServiceImpl.createBooking()`. Đối với hóa đơn sạc và phí chiếm chỗ, hệ thống vẫn dùng Event-Driven: `ChargingInvoiceListener` lắng nghe `ChargingSessionCompletedEvent` để xuất hóa đơn sạc, và `IdleFeeListener` lắng nghe `CableUnpluggedEvent` để tính phí chiếm chỗ. Sự kiện `PaymentSuccessEvent` được bắn ra sau khi nhận IPN ZaloPay thành công để `BookingEventListener` cập nhật trạng thái đặt chỗ sang CONFIRMED và đẩy lệnh xuống phần cứng.
 
 ---
 
@@ -91,7 +91,6 @@ public interface ZaloPayService {
 ### Events Consumed by Payment Module
 | Event | Source | Handler | Action |
 |-------|--------|---------|--------|
-| `BookingCreatedEvent` | `booking` | `PaymentModuleListener.onBookingCreated()` | Generates a new PENDING Invoice for the booking. |
 | `ChargingSessionCompletedEvent` | `charging` | `ChargingInvoiceListener.onChargingCompleted()` | Generates a new PENDING Invoice for the completed charging session. |
 | `CableUnpluggedEvent` | `charging` | `IdleFeeListener.onCableUnplugged()` | Calculates and generates an idle fee invoice if the user overstayed the grace period. |
 
