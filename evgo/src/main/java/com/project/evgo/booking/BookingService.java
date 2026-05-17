@@ -47,7 +47,6 @@ public interface BookingService {
     void cancelBooking(Long id);
 
     /**
-     * Transition a CONFIRMED booking to IN_PROGRESS when charging starts.
      * Called by the charging module when a user starts a charging session from a booking.
      */
     void startBookingSession(Long bookingId);
@@ -60,4 +59,9 @@ public interface BookingService {
      * @return true if another booking exists on the port after the given time
      */
     boolean hasUpcomingBookingOnPort(Long portId, LocalDateTime after);
+
+    /**
+     * Reverts an IN_PROGRESS booking back to CONFIRMED status.
+     */
+    void revertBookingToConfirmed(Long bookingId);
 }

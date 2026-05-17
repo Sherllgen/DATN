@@ -76,6 +76,21 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    @Transactional
+    public void cancelInvoiceByBookingId(Long bookingId) {
+        invoiceRepository.findByBookingId(bookingId).ifPresent(invoice -> {
+            if (invoice.getStatus() == InvoiceStatus.PENDING) {
+                invoice.setStatus(InvoiceStatus.CANCELLED);
+                invoiceRepository.save(invoice);
+                log.info("Invoice {} cancelled for booking {}", invoice.getNumber(), bookingId);
+            } else {
+                log.debug("Invoice {} for booking {} is already {} — skipping cancellation.",
+                        invoice.getNumber(), bookingId, invoice.getStatus());
+            }
+        });
+    }
+
+    @Override
     public InvoiceResponse findById(Long invoiceId) {
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));

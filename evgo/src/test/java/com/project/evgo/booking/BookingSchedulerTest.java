@@ -8,6 +8,7 @@ import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
+import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +51,9 @@ class BookingSchedulerTest {
 
     @Mock
     private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private InvoiceService invoiceService;
 
     @InjectMocks
     private BookingScheduler bookingScheduler;
@@ -164,7 +168,7 @@ class BookingSchedulerTest {
     }
 
     @Test
-    @DisplayName("cleanupStalePendingBookings: Should cancel PENDING bookings older than 12 mins")
+    @DisplayName("cleanupStalePendingBookings: Should cancel PENDING bookings older than 12 mins and cancel their invoices")
     void cleanupStalePendingBookings_OldPending_CancelsThem() {
         Booking stale = new Booking();
         stale.setId(100L);
@@ -175,8 +179,11 @@ class BookingSchedulerTest {
 
         bookingScheduler.cleanupStalePendingBookings();
 
+        // B2: Booking status must be CANCELLED
         assertThat(stale.getStatus()).isEqualTo(BookingStatus.CANCELLED);
         verify(bookingRepository).save(stale);
+        // B2: Linked PENDING invoice must also be cancelled so user is not blocked
+        verify(invoiceService).cancelInvoiceByBookingId(100L);
     }
 
     private Booking buildBooking(Long id, BookingStatus status, Long chargerId, Long portId,

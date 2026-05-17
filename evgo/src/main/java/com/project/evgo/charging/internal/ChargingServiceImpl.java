@@ -188,6 +188,7 @@ public class ChargingServiceImpl implements ChargingService {
             session.setEndTime(LocalDateTime.now());
             sessionRepository.save(session);
             chargerService.internalUpdatePortStatus(session.getPortId(), PortStatus.AVAILABLE);
+            bookingService.revertBookingToConfirmed(session.getBookingId());
             return;
         }
 
@@ -202,6 +203,8 @@ public class ChargingServiceImpl implements ChargingService {
 
     //-------------------------- Cron jobs --------------------------------------------------------
 
+    // If a session is stuck in PREPARING for more than 3 minutes, it will be cleaned up and set to INTERRUPTED
+    // The linked booking will be reverted to CONFIRMED so the user can re-attempt charging
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void cleanupStuckPreparingSessions() {
@@ -216,6 +219,7 @@ public class ChargingServiceImpl implements ChargingService {
             session.setEndTime(LocalDateTime.now());
             sessionRepository.save(session);
             chargerService.internalUpdatePortStatus(session.getPortId(), PortStatus.AVAILABLE);
+            bookingService.revertBookingToConfirmed(session.getBookingId());
         }
     }
 }

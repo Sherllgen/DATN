@@ -6,6 +6,7 @@ import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
+import com.project.evgo.payment.InvoiceService;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class BookingScheduler {
     private final BookingRepository bookingRepository;
     private final BookingService bookingService;
     private final ChargerService chargerService;
+    private final InvoiceService invoiceService;
     private final ApplicationEventPublisher eventPublisher;
     private final StringRedisTemplate redisTemplate;
 
@@ -78,6 +80,7 @@ public class BookingScheduler {
     // (8 min for Redis Lock + 4 min safety buffer for payment latency)
     // ============================================================
     @Scheduled(fixedRate = 60000)
+    @Transactional
     public void cleanupStalePendingBookings() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(12);
         List<Booking> staleBookings = bookingRepository.findByStatusAndCreatedAtBefore(
@@ -87,7 +90,9 @@ public class BookingScheduler {
             for (Booking booking : staleBookings) {
                 booking.setStatus(BookingStatus.CANCELLED);
                 bookingRepository.save(booking);
-                log.info("Cancelled stale PENDING booking: {}", booking.getId());
+                //Cancel any linked PENDING invoice so the user is not blocked from future bookings.
+                invoiceService.cancelInvoiceByBookingId(booking.getId());
+                log.info("Cancelled stale PENDING booking {} and its linked invoice.", booking.getId());
             }
         }
     }

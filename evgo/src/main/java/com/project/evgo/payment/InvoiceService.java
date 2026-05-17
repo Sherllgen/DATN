@@ -23,6 +23,8 @@ public interface InvoiceService {
 
     boolean hasUnpaidInvoices(Long userId);
 
+    void cancelInvoiceByBookingId(Long bookingId);
+
     InvoiceStatsResponse getStatsByBookingIds(List<Long> bookingIds);
 
     Map<Integer, BigDecimal> getMonthlyRevenueByBookingIds(List<Long> bookingIds, int year);

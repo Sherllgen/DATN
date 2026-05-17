@@ -11,6 +11,7 @@ import com.project.evgo.payment.response.InvoiceStatsResponse;
 import com.project.evgo.station.StationService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +49,7 @@ import com.project.evgo.sharedkernel.dto.PageResponse;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class BookingServiceImpl implements BookingService {
 
@@ -148,8 +150,14 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
-        InvoiceCreatedRequest req = new InvoiceCreatedRequest(saved.getId(), currentUserId, estimatedCost);
-        invoiceService.createInvoice(req);
+        // B4: Never create a PENDING invoice for 0 VND — it would permanently block the user
+        // from starting a new charging session (hasUnpaidInvoices check) without any way to pay.
+        if (estimatedCost.compareTo(BigDecimal.ZERO) > 0) {
+            InvoiceCreatedRequest req = new InvoiceCreatedRequest(saved.getId(), currentUserId, estimatedCost);
+            invoiceService.createInvoice(req);
+        } else {
+            log.warn("Booking {} has zero estimated cost — no invoice created.", saved.getId());
+        }
 
         return converter.toResponse(saved);
     }
@@ -290,6 +298,10 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+
+        // Cancel the linked PENDING invoice so the user is not left with unpayable debt.
+        invoiceService.cancelInvoiceByBookingId(id);
+        log.info("Booking {} cancelled and linked invoice cancelled.", id);
     }
 
     @Override
@@ -311,6 +323,23 @@ public class BookingServiceImpl implements BookingService {
     public boolean hasUpcomingBookingOnPort(Long portId, LocalDateTime after) {
         return bookingRepository.existsByPortIdAndStatusAndStartTimeAfter(
                 portId, BookingStatus.CONFIRMED, after);
+    }
+
+    @Override
+    @Transactional
+    public void revertBookingToConfirmed(Long bookingId) {
+        if (bookingId == null) {
+            return;
+        }
+        bookingRepository.findById(bookingId).ifPresent(booking -> {
+            if (booking.getStatus() == BookingStatus.IN_PROGRESS) {
+                booking.setStatus(BookingStatus.CONFIRMED);
+                bookingRepository.save(booking);
+                log.info("Booking {} reverted from IN_PROGRESS to CONFIRMED after INTERRUPTED session.", bookingId);
+            } else {
+                log.debug("Booking {} is {} — no revert needed.", bookingId, booking.getStatus());
+            }
+        });
     }
 
     // splits the duration into 30-minute blocks
