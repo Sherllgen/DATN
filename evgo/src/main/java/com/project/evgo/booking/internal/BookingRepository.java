@@ -79,6 +79,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("year") int year);
 
 
-    boolean existsByPortIdAndStatusAndStartTimeAfter(
-            Long portId, BookingStatus status, LocalDateTime after);
+    @Query("SELECT DISTINCT b.portId FROM Booking b WHERE b.portId IN :portIds AND b.status = :status AND b.startTime > :after")
+    List<Long> findPortIdsWithUpcomingBookings(
+            @Param("portIds") List<Long> portIds,
+            @Param("status") BookingStatus status,
+            @Param("after") LocalDateTime after);
 }

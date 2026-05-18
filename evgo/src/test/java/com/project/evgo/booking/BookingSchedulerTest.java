@@ -141,8 +141,8 @@ class BookingSchedulerTest {
                 .thenReturn(List.of(booking));
 
         // Another booking follows on the same port (now uses portId only)
-        when(bookingService.hasUpcomingBookingOnPort(eq(100L), any()))
-                .thenReturn(true);
+        when(bookingService.getPortsWithUpcomingBookings(any(), any()))
+                .thenReturn(List.of(100L));
 
         bookingScheduler.processBookings();
 
@@ -162,8 +162,8 @@ class BookingSchedulerTest {
                 .thenReturn(List.of(booking));
 
         // No upcoming booking on this port (now uses portId only)
-        when(bookingService.hasUpcomingBookingOnPort(eq(100L), any()))
-                .thenReturn(false);
+        when(bookingService.getPortsWithUpcomingBookings(any(), any()))
+                .thenReturn(List.of());
 
         bookingScheduler.processBookings();
 
@@ -174,8 +174,8 @@ class BookingSchedulerTest {
     }
 
     @Test
-    @DisplayName("cleanupStalePendingBookings: Should cancel PENDING bookings older than 12 mins and cancel their invoices")
-    void cleanupStalePendingBookings_OldPending_CancelsThem() {
+    @DisplayName("cleanupStalePendingBookings: Should call cancelStalePendingBooking on service for stale PENDING bookings")
+    void cleanupStalePendingBookings_OldPending_CallsService() {
         Booking stale = new Booking();
         stale.setId(100L);
         stale.setStatus(BookingStatus.PENDING);
@@ -185,11 +185,7 @@ class BookingSchedulerTest {
 
         bookingScheduler.cleanupStalePendingBookings();
 
-        // B2: Booking status must be CANCELLED
-        assertThat(stale.getStatus()).isEqualTo(BookingStatus.CANCELLED);
-        verify(bookingRepository).save(stale);
-        // B2: Linked PENDING invoice must also be cancelled so user is not blocked
-        verify(invoiceService).cancelInvoiceByBookingId(100L);
+        verify(bookingService).cancelStalePendingBooking(100L);
     }
 
     @Test

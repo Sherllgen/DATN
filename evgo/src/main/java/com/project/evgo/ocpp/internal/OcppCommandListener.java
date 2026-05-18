@@ -9,6 +9,7 @@ import com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -43,6 +44,7 @@ public class OcppCommandListener {
      * <p>
      * OCPP 1.6 §6.12 — Payload: {@code { "transactionId": <int> }}
      */
+    @Async
     @EventListener
     public void onRemoteStop(SendRemoteStopCommandEvent event) {
         log.info("Received SendRemoteStopCommandEvent: sessionId={}, chargePointId={}, transactionId={}, reason={}",
@@ -94,6 +96,7 @@ public class OcppCommandListener {
      * }
      * </pre>
      */
+    @Async
     @EventListener
     public void onReserveNow(SendReserveNowCommandEvent event) {
         log.info("Received SendReserveNowCommandEvent: chargePointId={}, connectorId={}, idTag={}, expiry={}, reservationId={}",
@@ -141,6 +144,7 @@ public class OcppCommandListener {
      * Per OCPP 1.6 §6.5:
      * <pre>{ "idTag": "&lt;string max20&gt;", "connectorId": &lt;int&gt; }</pre>
      */
+    @Async
     @EventListener
     public void onChargingRemoteStart(SendRemoteStartCommandEvent event) {
         log.info("Received charging.SendRemoteStartCommandEvent: sessionId={}, chargePointId={}, connectorId={}, idTag={}",

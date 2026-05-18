@@ -306,6 +306,18 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    public void cancelStalePendingBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking != null && booking.getStatus() == BookingStatus.PENDING) {
+            booking.setStatus(BookingStatus.CANCELLED);
+            bookingRepository.save(booking);
+            invoiceService.cancelInvoiceByBookingId(bookingId);
+            log.info("Cancelled stale PENDING booking {} and its linked invoice.", bookingId);
+        }
+    }
+
+    @Override
+    @Transactional
     public void startBookingSession(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
@@ -320,9 +332,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public boolean hasUpcomingBookingOnPort(Long portId, LocalDateTime after) {
-        return bookingRepository.existsByPortIdAndStatusAndStartTimeAfter(
-                portId, BookingStatus.CONFIRMED, after);
+    public List<Long> getPortsWithUpcomingBookings(List<Long> portIds, LocalDateTime after) {
+        if (portIds == null || portIds.isEmpty()) return List.of();
+        return bookingRepository.findPortIdsWithUpcomingBookings(portIds, BookingStatus.CONFIRMED, after);
     }
 
     @Override

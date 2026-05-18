@@ -47,4 +47,9 @@ public interface ChargingService {
     ChargingSessionResponse startCharging(StartChargingRequest request, Long userId);
 
     void stopCharging(StopChargingRequest request, Long userId);
+
+    /**
+     * Called by the system scheduler to clean up a charging session that is stuck in PREPARING.
+     */
+    void cleanupStuckPreparingSession(Long sessionId);
 }

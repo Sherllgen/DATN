@@ -489,14 +489,4 @@ class BookingServiceTest {
         assertThat(result.get(0).getRevenue()).isEqualTo(java.math.BigDecimal.ZERO);
     }
 
-    @Test
-    @DisplayName("hasUpcomingBookingOnPort_ReturnsBoolean")
-    void hasUpcomingBookingOnPort_ReturnsBoolean() {
-        when(bookingRepository.existsByPortIdAndStatusAndStartTimeAfter(anyLong(), any(), any()))
-            .thenReturn(true);
-            
-        boolean result = bookingService.hasUpcomingBookingOnPort(1L, LocalDateTime.now());
-        
-        assertThat(result).isTrue();
-    }
 }
