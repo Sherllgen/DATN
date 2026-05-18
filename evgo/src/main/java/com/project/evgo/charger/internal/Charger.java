@@ -62,6 +62,9 @@ public class Charger {
     @Column(name = "firmware_version")
     private String firmwareVersion;
 
+    @Column(name = "ocpp_password")
+    private String ocppPassword;
+
     @Column(name = "last_heartbeat")
     private Instant lastHeartbeat;
 

@@ -13,6 +13,7 @@ import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.station.StationOwnershipValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class ChargerServiceImpl implements ChargerService {
     private final PortRepository portRepository;
     private final StationOwnershipValidator stationValidator;
     private final ChargerDtoConverter converter;
+    private final PasswordEncoder passwordEncoder;
 
     // ==================== READ OPERATIONS ====================
 
@@ -238,5 +240,20 @@ public class ChargerServiceImpl implements ChargerService {
             portRepository.save(port);
             log.debug("Internal port status update for port ID: {} to {}", portId, status);
         });
+    }
+
+    @Override
+    public boolean validateOcppPassword(Long chargerId, String rawPassword) {
+        Optional<Charger> optionalCharger = chargerRepository.findById(chargerId);
+        if (optionalCharger.isEmpty()) {
+            log.warn("OCPP password validation failed: charger {} not found", chargerId);
+            return false;
+        }
+        String storedHash = optionalCharger.get().getOcppPassword();
+        if (storedHash == null || storedHash.isBlank()) {
+            log.warn("OCPP password validation failed: charger {} has no password set", chargerId);
+            return false;
+        }
+        return passwordEncoder.matches(rawPassword, storedHash);
     }
 }

@@ -7,6 +7,8 @@ import com.project.evgo.booking.BookingService;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.payment.ZaloPayService;
+import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class BookingScheduler {
     private final BookingService bookingService;
     private final ChargerService chargerService;
     private final InvoiceService invoiceService;
+    private final ZaloPayService zaloPayService;
     private final ApplicationEventPublisher eventPublisher;
     private final StringRedisTemplate redisTemplate;
 
@@ -237,5 +240,36 @@ public class BookingScheduler {
         return chargerService.findPortById(portId)
                 .map(PortResponse::getPortNumber)
                 .orElse(0);
+    }
+
+    // ============================================================
+    // Job 5: ZaloPay IPN Polling Fallback
+    // Runs every 5 minutes. Queries PENDING invoices older than 15
+    // minutes against the ZaloPay gateway to recover missed callbacks.
+    // ============================================================
+    @Scheduled(fixedRate = 300000)
+    public void pollZaloPayPendingInvoices() {
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(15);
+        List<InvoiceResponse> staleInvoices = invoiceService.findPendingOlderThan(threshold);
+
+        if (staleInvoices.isEmpty()) {
+            return;
+        }
+
+        log.info("ZaloPay fallback poll: found {} stale PENDING invoice(s)", staleInvoices.size());
+        for (InvoiceResponse invoice : staleInvoices) {
+            try {
+                String appTransId = invoiceService.getLatestAppTransId(invoice.getId());
+                if (appTransId == null) {
+                    log.warn("No transaction found for invoiceId={}, skipping fallback poll", invoice.getId());
+                    continue;
+                }
+                zaloPayService.queryOrderStatus(appTransId);
+                log.info("ZaloPay fallback poll completed for invoiceId={}, appTransId={}",
+                        invoice.getId(), appTransId);
+            } catch (Exception e) {
+                log.error("ZaloPay fallback poll failed for invoiceId={}: {}", invoice.getId(), e.getMessage());
+            }
+        }
     }
 }

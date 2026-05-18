@@ -9,7 +9,10 @@ import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.payment.ZaloPayService;
+import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
+import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,6 +57,9 @@ class BookingSchedulerTest {
 
     @Mock
     private InvoiceService invoiceService;
+
+    @Mock
+    private ZaloPayService zaloPayService;
 
     @InjectMocks
     private BookingScheduler bookingScheduler;
@@ -184,6 +190,38 @@ class BookingSchedulerTest {
         verify(bookingRepository).save(stale);
         // B2: Linked PENDING invoice must also be cancelled so user is not blocked
         verify(invoiceService).cancelInvoiceByBookingId(100L);
+    }
+
+    @Test
+    @DisplayName("pollZaloPayPendingInvoices: Should call queryOrderStatus for each stale PENDING invoice")
+    void pollZaloPayPendingInvoices_ShouldQueryGatewayForStaleInvoices() {
+        InvoiceResponse staleInvoice = InvoiceResponse.builder()
+                .id(55L)
+                .status(InvoiceStatus.PENDING)
+                .build();
+
+        when(invoiceService.findPendingOlderThan(any())).thenReturn(List.of(staleInvoice));
+        when(invoiceService.getLatestAppTransId(55L)).thenReturn("260518_abc12345");
+
+        bookingScheduler.pollZaloPayPendingInvoices();
+
+        verify(zaloPayService).queryOrderStatus("260518_abc12345");
+    }
+
+    @Test
+    @DisplayName("pollZaloPayPendingInvoices: Should skip invoice with no transaction")
+    void pollZaloPayPendingInvoices_NoTransaction_Skips() {
+        InvoiceResponse staleInvoice = InvoiceResponse.builder()
+                .id(99L)
+                .status(InvoiceStatus.PENDING)
+                .build();
+
+        when(invoiceService.findPendingOlderThan(any())).thenReturn(List.of(staleInvoice));
+        when(invoiceService.getLatestAppTransId(99L)).thenReturn(null);
+
+        bookingScheduler.pollZaloPayPendingInvoices();
+
+        verify(zaloPayService, never()).queryOrderStatus(any());
     }
 
     private Booking buildBooking(Long id, BookingStatus status, Long chargerId, Long portId,

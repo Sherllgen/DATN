@@ -1,10 +1,12 @@
 package com.project.evgo.payment.internal;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +36,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final InvoiceDtoConverter invoiceDtoConverter;
+    private final TransactionRepository transactionRepository;
 
     @Override
     public InvoiceResponse findByBookingId(Long bookingId) {
@@ -135,5 +138,19 @@ public class InvoiceServiceImpl implements InvoiceService {
             result.put(month, revenue);
         }
         return result;
+    }
+    @Override
+    public List<InvoiceResponse> findPendingOlderThan(LocalDateTime threshold) {
+        List<Invoice> stale = invoiceRepository.findByStatusAndCreatedAtBefore(InvoiceStatus.PENDING, threshold);
+        return stale.stream()
+                .map(invoiceDtoConverter::convert)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getLatestAppTransId(Long invoiceId) {
+        return transactionRepository.findFirstByInvoiceIdOrderByCreatedAtDesc(invoiceId)
+                .map(Transaction::getAppTransId)
+                .orElse(null);
     }
 }

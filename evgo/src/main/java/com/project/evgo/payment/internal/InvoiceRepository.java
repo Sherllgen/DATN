@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +25,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByUserId(Long userId);
 
     boolean existsByUserIdAndStatus(Long userId, InvoiceStatus status);
+
+    List<Invoice> findByStatusAndCreatedAtBefore(InvoiceStatus status, LocalDateTime threshold);
 
     Page<Invoice> findByUserIdAndStatus(Long userId, InvoiceStatus status, Pageable pageable);
 
