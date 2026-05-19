@@ -239,4 +239,5 @@ public class ChargerServiceImpl implements ChargerService {
             log.debug("Internal port status update for port ID: {} to {}", portId, status);
         });
     }
+
 }

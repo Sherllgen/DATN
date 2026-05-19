@@ -6,6 +6,9 @@ import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.booking.BookingService;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
+import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.payment.ZaloPayService;
+import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +17,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -36,6 +38,8 @@ public class BookingScheduler {
     private final BookingRepository bookingRepository;
     private final BookingService bookingService;
     private final ChargerService chargerService;
+    private final InvoiceService invoiceService;
+    private final ZaloPayService zaloPayService;
     private final ApplicationEventPublisher eventPublisher;
     private final StringRedisTemplate redisTemplate;
 
@@ -85,9 +89,7 @@ public class BookingScheduler {
 
         if (!staleBookings.isEmpty()) {
             for (Booking booking : staleBookings) {
-                booking.setStatus(BookingStatus.CANCELLED);
-                bookingRepository.save(booking);
-                log.info("Cancelled stale PENDING booking: {}", booking.getId());
+                bookingService.cancelStalePendingBooking(booking.getId());
             }
         }
     }
@@ -97,7 +99,6 @@ public class BookingScheduler {
     // Runs every 60 seconds. Consolidates 3 previous jobs into 1 query.
     // ============================================================
     @Scheduled(fixedRate = 60000)
-    @Transactional
     public void processBookings() {
         LocalDateTime now = LocalDateTime.now();
         
@@ -120,6 +121,18 @@ public class BookingScheduler {
                 endWindowFrom, endWindowTo
         );
 
+        // Pre-fetch ports with upcoming bookings for hard cutoff candidates
+        List<Long> hardCutoffPortIds = bookings.stream()
+                .filter(b -> b.getStatus() == BookingStatus.IN_PROGRESS &&
+                             b.getEndTime().isAfter(startWindowFrom) &&
+                             b.getEndTime().isBefore(startWindowTo))
+                .map(Booking::getPortId)
+                .distinct()
+                .toList();
+
+        List<Long> portsWithNextBooking = hardCutoffPortIds.isEmpty() ? List.of() :
+                bookingService.getPortsWithUpcomingBookings(hardCutoffPortIds, startWindowFrom);
+
         for (Booking booking : bookings) {
             if (booking.getStatus() == BookingStatus.CONFIRMED) {
                 // Check if it's the start window for hardware lock
@@ -137,7 +150,7 @@ public class BookingScheduler {
                 }
                 // Check if it's the hard cutoff window (T-10)
                 if (booking.getEndTime().isAfter(startWindowFrom) && booking.getEndTime().isBefore(startWindowTo)) {
-                    handleHardCutoff(booking);
+                    handleHardCutoff(booking, portsWithNextBooking.contains(booking.getPortId()));
                 }
             }
         }
@@ -187,12 +200,9 @@ public class BookingScheduler {
         log.info("Soft warning sent: booking={}, userId={}", booking.getId(), booking.getUserId());
     }
 
-    private void handleHardCutoff(Booking booking) {
-        // Issue 3: Only hard-cutoff if another booking follows on the same port.
+    private void handleHardCutoff(Booking booking, boolean hasNextBooking) {
+        // Only hard-cutoff if another booking follows on the same port.
         // If no upcoming booking exists, let the user keep charging.
-        boolean hasNextBooking = bookingService.hasUpcomingBookingOnPort(
-                booking.getPortId(), booking.getEndTime());
-
         if (!hasNextBooking) {
             log.info("No upcoming booking on portId={}. Allowing session to continue past booking end time.",
                     booking.getPortId());
@@ -232,5 +242,36 @@ public class BookingScheduler {
         return chargerService.findPortById(portId)
                 .map(PortResponse::getPortNumber)
                 .orElse(0);
+    }
+
+    // ============================================================
+    // Job 5: ZaloPay IPN Polling Fallback
+    // Runs every 5 minutes. Queries PENDING invoices older than 15
+    // minutes against the ZaloPay gateway to recover missed callbacks.
+    // ============================================================
+    @Scheduled(fixedRate = 300000)
+    public void pollZaloPayPendingInvoices() {
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(15);
+        List<InvoiceResponse> staleInvoices = invoiceService.findPendingOlderThan(threshold);
+
+        if (staleInvoices.isEmpty()) {
+            return;
+        }
+
+        log.info("ZaloPay fallback poll: found {} stale PENDING invoice(s)", staleInvoices.size());
+        for (InvoiceResponse invoice : staleInvoices) {
+            try {
+                String appTransId = invoiceService.getLatestAppTransId(invoice.getId());
+                if (appTransId == null) {
+                    log.warn("No transaction found for invoiceId={}, skipping fallback poll", invoice.getId());
+                    continue;
+                }
+                zaloPayService.queryOrderStatus(appTransId);
+                log.info("ZaloPay fallback poll completed for invoiceId={}, appTransId={}",
+                        invoice.getId(), appTransId);
+            } catch (Exception e) {
+                log.error("ZaloPay fallback poll failed for invoiceId={}: {}", invoice.getId(), e.getMessage());
+            }
+        }
     }
 }

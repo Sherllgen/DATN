@@ -13,11 +13,13 @@ import java.net.URI;
 import java.util.Map;
 
 /**
- * Validates the charger ID exists in the database before allowing
- * the WebSocket handshake to complete.
+ * Validates OCPP WebSocket handshake requests.
  * <p>
- * Rejects connections with HTTP 403 if the charger ID is invalid
- * (non-numeric) or does not exist in the database.
+ * Performs check before allowing the connection:
+ * <ol>
+ *   <li>The charger ID extracted from the URL path must exist in the database.</li>
+ * </ol>
+ * Rejects with HTTP 403 on any failure (no leak of whether the ID exists).
  */
 @Component
 @Slf4j
@@ -34,7 +36,7 @@ public class OcppHandshakeInterceptor implements HandshakeInterceptor {
         String path = uri.getPath();
         String chargePointId = path.substring(path.lastIndexOf('/') + 1);
 
-        // Validate numeric ID
+        // Step 1: Validate numeric charger ID
         Long chargerId;
         try {
             chargerId = Long.parseLong(chargePointId);
@@ -42,10 +44,9 @@ public class OcppHandshakeInterceptor implements HandshakeInterceptor {
             log.warn("OCPP handshake rejected: invalid charge point ID '{}'", chargePointId);
             return false;
         }
-
-        // Validate charger exists in DB
+        // Step 2: Validate charger exists
         if (chargerService.findById(chargerId).isEmpty()) {
-            log.warn("OCPP handshake rejected: charge point ID {} not found in database", chargerId);
+            log.warn("OCPP handshake rejected: charger {} not found", chargerId);
             return false;
         }
 

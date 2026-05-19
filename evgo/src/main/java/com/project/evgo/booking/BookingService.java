@@ -47,17 +47,25 @@ public interface BookingService {
     void cancelBooking(Long id);
 
     /**
-     * Transition a CONFIRMED booking to IN_PROGRESS when charging starts.
+     * Called by the system scheduler to cancel a stale PENDING booking
+     */
+    void cancelStalePendingBooking(Long bookingId);
+
+    /**
      * Called by the charging module when a user starts a charging session from a booking.
      */
     void startBookingSession(Long bookingId);
 
     /**
-     * Check whether there is an upcoming CONFIRMED booking on the same port
-     * starting after the given time. Used by the scheduler to decide whether
-     * to hard-cutoff a current session or let it continue.
+     * Bulk check whether there is an upcoming CONFIRMED booking on the given ports
+     * starting after the given time.
      *
-     * @return true if another booking exists on the port after the given time
+     * @return list of portIds that have upcoming bookings
      */
-    boolean hasUpcomingBookingOnPort(Long portId, LocalDateTime after);
+    List<Long> getPortsWithUpcomingBookings(List<Long> portIds, LocalDateTime after);
+
+    /**
+     * Reverts an IN_PROGRESS booking back to CONFIRMED status.
+     */
+    void revertBookingToConfirmed(Long bookingId);
 }

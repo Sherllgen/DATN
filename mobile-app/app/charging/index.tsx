@@ -48,7 +48,7 @@ export default function ChargingPage() {
                     setActiveSession(session);
                 }
             } catch (err: any) {
-                console.error("Failed to init charging session:", err);
+                console.log("Failed to init charging session:", err);
                 const errorCode = err?.response?.data?.code;
                 const errorMessage = err?.response?.data?.message || "Failed to initialize charging session";
 
@@ -190,7 +190,7 @@ export default function ChargingPage() {
                             await stopCharging({ sessionId: activeSession.id! });
                             // State isStopping remains true to indicate we're waiting for the station to fully stop and invoice to be generated.
                         } catch (err: unknown) {
-                            console.error("Failed to stop charging:", err);
+                            console.log("Failed to stop charging:", err);
                             const error = err as any;
                             Toast.error(error?.response?.data?.message || "Failed to stop charging");
                             setIsStopping(false);

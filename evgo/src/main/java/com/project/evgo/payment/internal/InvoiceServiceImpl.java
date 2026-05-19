@@ -1,10 +1,12 @@
 package com.project.evgo.payment.internal;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +36,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final InvoiceDtoConverter invoiceDtoConverter;
+    private final TransactionRepository transactionRepository;
 
     @Override
     public InvoiceResponse findByBookingId(Long bookingId) {
@@ -73,6 +76,21 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     public boolean hasUnpaidInvoices(Long userId) {
         return invoiceRepository.existsByUserIdAndStatus(userId, InvoiceStatus.PENDING);
+    }
+
+    @Override
+    @Transactional
+    public void cancelInvoiceByBookingId(Long bookingId) {
+        invoiceRepository.findByBookingId(bookingId).ifPresent(invoice -> {
+            if (invoice.getStatus() == InvoiceStatus.PENDING) {
+                invoice.setStatus(InvoiceStatus.CANCELLED);
+                invoiceRepository.save(invoice);
+                log.info("Invoice {} cancelled for booking {}", invoice.getNumber(), bookingId);
+            } else {
+                log.debug("Invoice {} for booking {} is already {} — skipping cancellation.",
+                        invoice.getNumber(), bookingId, invoice.getStatus());
+            }
+        });
     }
 
     @Override
@@ -120,5 +138,19 @@ public class InvoiceServiceImpl implements InvoiceService {
             result.put(month, revenue);
         }
         return result;
+    }
+    @Override
+    public List<InvoiceResponse> findPendingOlderThan(LocalDateTime threshold) {
+        List<Invoice> stale = invoiceRepository.findByStatusAndCreatedAtBefore(InvoiceStatus.PENDING, threshold);
+        return stale.stream()
+                .map(invoiceDtoConverter::convert)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getLatestAppTransId(Long invoiceId) {
+        return transactionRepository.findFirstByInvoiceIdOrderByCreatedAtDesc(invoiceId)
+                .map(Transaction::getAppTransId)
+                .orElse(null);
     }
 }

@@ -47,8 +47,7 @@ public interface ChargerService {
 
     long countAvailableByStationId(Long stationId);
 
-    // -------------------------------------OCPP
-    // operations-------------------------------------
+    // -------------------------------------OCPP Operations-------------------------------------
 
     /**
      * Process a BootNotification from an OCPP charge point.
@@ -67,4 +66,5 @@ public interface ChargerService {
     void updateHeartbeat(Long chargerId);
 
     void internalUpdatePortStatus(Long portId, PortStatus status);
+
 }

@@ -1,39 +1,57 @@
-import { useAuthStore } from "@/contexts/auth.store";
-import axios from "axios";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import * as SecureStore from "expo-secure-store";
+import { router } from "expo-router";
+import { useAuthStore, SECURE_KEY_ACCESS_TOKEN, SECURE_KEY_REFRESH_TOKEN } from "@/contexts/auth.store";
+
+const API_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 const axiosInstance = axios.create({
     withCredentials: true,
 });
 
-// REQUEST INTERCEPTOR — gắn token & log yêu cầu
+// REQUEST INTERCEPTOR
+// Attach the current in-memory access token to every outgoing request.
 axiosInstance.interceptors.request.use(
     async (config) => {
         const accessToken = useAuthStore.getState().accessToken;
-
         if (accessToken) {
-            console.log("accessToken: ", accessToken);
-
             config.headers.Authorization = `Bearer ${accessToken}`;
         }
 
-        // Log request
         console.log("AXIOS REQUEST:", {
             method: config.method?.toUpperCase(),
             url: config.baseURL ? `${config.baseURL}${config.url}` : config.url,
-            headers: config.headers,
             params: config.params,
-            data: config.data,
         });
 
         return config;
     },
     (error) => {
-        console.error("REQUEST ERROR:", error);
+        console.log("REQUEST ERROR:", error);
         return Promise.reject(error);
     }
 );
 
-// RESPONSE INTERCEPTOR — log lỗi chi tiết
+// 401 AUTO-REFRESH STATE
+// Ensures only ONE refresh call is in-flight at a time. Every other request that
+// receives a 401 while a refresh is pending queues itself and resolves/rejects
+// together once the refresh completes.
+let isRefreshing = false;
+type QueueEntry = { resolve: (token: string) => void; reject: (err: unknown) => void };
+let failedQueue: QueueEntry[] = [];
+
+function processQueue(error: unknown, token: string | null) {
+    failedQueue.forEach(({ resolve, reject }) => {
+        if (error) {
+            reject(error);
+        } else {
+            resolve(token!);
+        }
+    });
+    failedQueue = [];
+}
+
+// RESPONSE INTERCEPTOR
 axiosInstance.interceptors.response.use(
     (response) => {
         console.log("AXIOS RESPONSE:", {
@@ -43,21 +61,69 @@ axiosInstance.interceptors.response.use(
         });
         return response;
     },
-    (error) => {
+    async (error: AxiosError) => {
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+        // Skip cancelled requests immediately
+        if (error.code === "ERR_CANCELED") {
+            return Promise.reject(error);
+        }
+
+        // 401 Unauthorized: attempt token refresh
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            // If a refresh is already in-flight, queue this request
+            if (isRefreshing) {
+                return new Promise<string>((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then((newToken) => {
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                    return axiosInstance(originalRequest);
+                });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+                // Read refresh token from secure storage
+                const storedRefreshToken = await SecureStore.getItemAsync(SECURE_KEY_REFRESH_TOKEN);
+
+                if (!storedRefreshToken) {
+                    throw new Error("No refresh token stored");
+                }
+
+                const refreshRes = await axios.post(
+                    `${API_BACKEND_URL}/api/v1/auth/refresh`,
+                    { refreshToken: storedRefreshToken },
+                    { withCredentials: true }
+                );
+
+                const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+                    refreshRes.data.data;
+
+                // Persist new tokens atomically
+                await useAuthStore.getState().saveTokens(newAccessToken, newRefreshToken);
+
+                // Drain the queue with the new token
+                processQueue(null, newAccessToken);
+
+                // Retry the original request with the new access token
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+                return axiosInstance(originalRequest);
+            } catch (refreshError) {
+                // Refresh failed — force logout and redirect to login
+                processQueue(refreshError, null);
+                await useAuthStore.getState().logout();
+                router.replace("/auth/login");
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
+        }
+
+        // ── All other errors: log and reject ────────────────────────────────
         if (axios.isAxiosError(error)) {
-            // Skip logging for cancelled requests
-            if (error.code === 'ERR_CANCELED') {
-                console.log('Request canceled', error.message);
-                return Promise.reject(error);
-            }
-
-            // Do not show a red screen error for normal 401 Unauthorized responses
-            if (error.response?.status === 401) {
-                console.log("AXIOS 401 Unauthorized:", error.config?.url);
-                return Promise.reject(error);
-            }
-
-            console.error("AXIOS ERROR DETAILS:", {
+            console.log("AXIOS ERROR DETAILS:", {
                 message: error.message,
                 code: error.code,
                 config: {
@@ -65,21 +131,17 @@ axiosInstance.interceptors.response.use(
                     url: error.config?.baseURL
                         ? `${error.config.baseURL}${error.config.url}`
                         : error.config?.url,
-                    headers: error.config?.headers,
-                    data: error.config?.data,
                 },
                 response: error.response
                     ? {
-                        status: error.response.status,
-                        statusText: error.response.statusText,
-                        data: error.response.data, // JSON error từ backend
-                        headers: error.response.headers,
-                    }
+                          status: error.response.status,
+                          statusText: error.response.statusText,
+                          data: error.response.data,
+                      }
                     : "No response received (Network error)",
-                request: !!error.request,
             });
         } else {
-            console.error("UNKNOWN ERROR:", error);
+            console.log("UNKNOWN ERROR:", error);
         }
 
         return Promise.reject(error);

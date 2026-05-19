@@ -6,7 +6,7 @@ import AppHeader from "@/components/ui/AppHeader";
 import BookingTabs, { TabName } from "@/components/booking/BookingTabs";
 import BookingCard from "@/components/booking/BookingCard";
 import { useRouter, useFocusEffect } from "expo-router";
-import { getMyBookings } from "@/apis/bookingApi";
+import { getMyBookings, cancelBooking } from "@/apis/bookingApi";
 import { BookingResponse, BookingStatus } from "@/types/booking.types";
 import { getInvoiceByBookingId, createZaloPayOrder } from "@/apis/paymentApi";
 import { useUserStore } from "@/contexts/user.store";
@@ -19,6 +19,7 @@ export default function BookingPage() {
     const [bookings, setBookings] = useState<BookingResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isPaying, setIsPaying] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     const fetchBookings = useCallback(async () => {
         try {
@@ -58,7 +59,7 @@ export default function BookingPage() {
             const order = await createZaloPayOrder({
                 invoiceId: invoice.id,
                 userId: booking.userId,
-                amount: booking.totalPrice || 0,
+                amount: invoice.totalCost,
                 description: `EV-Go Booking ${booking.id}`
             });
 
@@ -72,6 +73,41 @@ export default function BookingPage() {
         } finally {
             setIsPaying(false);
         }
+    };
+
+    const handleCancel = (booking: BookingResponse) => {
+        Alert.alert(
+            "Cancel Booking",
+            "Are you sure you want to cancel this booking? This action cannot be undone.",
+            [
+                { text: "Keep Booking", style: "cancel" },
+                {
+                    text: "Yes, Cancel",
+                    style: "destructive",
+                    onPress: async () => {
+                        if (isCancelling) return;
+                        try {
+                            setIsCancelling(true);
+                            await cancelBooking(booking.id);
+                            Alert.alert("Success", "Your booking has been cancelled.");
+                            await fetchBookings();
+                        } catch (err: any) {
+                            const errorCode = err?.response?.data?.message;
+                            if (errorCode === "BOOKING_CANCELLATION_NOT_ALLOWED") {
+                                Alert.alert(
+                                    "Cannot Cancel",
+                                    "This booking can no longer be cancelled. Cancellations must be made more than 2 hours before the scheduled start time."
+                                );
+                            } else {
+                                Alert.alert("Error", errorCode || "Unable to cancel booking. Please try again.");
+                            }
+                        } finally {
+                            setIsCancelling(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     if (!user) {
@@ -122,7 +158,7 @@ export default function BookingPage() {
                             <BookingCard
                                 key={booking.id}
                                 booking={booking}
-                                onCancel={() => { }}
+                                onCancel={() => handleCancel(booking)}
                                 onView={() => router.push(`/booking/${booking.id}` as any)}
                                 onPay={() => handlePayNow(booking)}
                             />

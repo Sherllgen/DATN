@@ -11,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -188,6 +187,7 @@ public class ChargingServiceImpl implements ChargingService {
             session.setEndTime(LocalDateTime.now());
             sessionRepository.save(session);
             chargerService.internalUpdatePortStatus(session.getPortId(), PortStatus.AVAILABLE);
+            bookingService.revertBookingToConfirmed(session.getBookingId());
             return;
         }
 
@@ -200,22 +200,22 @@ public class ChargingServiceImpl implements ChargingService {
                 session.getId(), chargePointId, session.getTransactionId(), "User Requested"));
     }
 
-    //-------------------------- Cron jobs --------------------------------------------------------
+    //-------------------------- Cron jobs helper --------------------------------------------------------
 
-    @Scheduled(fixedRate = 60000)
+    // If a session is stuck in PREPARING for more than 3 minutes, it will be cleaned up and set to INTERRUPTED
+    // The linked booking will be reverted to CONFIRMED so the user can re-attempt charging
+    @Override
     @Transactional
-    public void cleanupStuckPreparingSessions() {
-        LocalDateTime threshold = LocalDateTime.now().minusMinutes(3);
-        List<ChargingSession> stuckSessions = sessionRepository.findByStatusAndCreatedAtBefore(
-                ChargingSessionStatus.PREPARING, threshold);
-
-        for (ChargingSession session : stuckSessions) {
-            log.warn("Session {} stuck in PREPARING since {}. Cleaning up and setting to INTERRUPTED.", 
+    public void cleanupStuckPreparingSession(Long sessionId) {
+        ChargingSession session = sessionRepository.findById(sessionId).orElse(null);
+        if (session != null && session.getStatus() == ChargingSessionStatus.PREPARING) {
+            log.warn("Session {} stuck in PREPARING since {}. Cleaning up and setting to INTERRUPTED.",
                     session.getId(), session.getCreatedAt());
             session.setStatus(ChargingSessionStatus.INTERRUPTED);
             session.setEndTime(LocalDateTime.now());
             sessionRepository.save(session);
             chargerService.internalUpdatePortStatus(session.getPortId(), PortStatus.AVAILABLE);
+            bookingService.revertBookingToConfirmed(session.getBookingId());
         }
     }
 }

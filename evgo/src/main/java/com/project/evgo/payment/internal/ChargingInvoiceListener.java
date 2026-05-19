@@ -75,6 +75,13 @@ public class ChargingInvoiceListener {
         BigDecimal totalCost = event.totalKwh().multiply(chargingRatePerKwh)
                 .setScale(2, RoundingMode.HALF_UP);
 
+        //Never create a PENDING invoice for 0 VND
+        if (totalCost.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("Charging session {} produced zero cost ({}kWh × {}VND/kWh) — no invoice created.",
+                    event.sessionId(), event.totalKwh(), chargingRatePerKwh);
+            return;
+        }
+
         Invoice invoice = new Invoice();
         invoice.setChargingSessionId(event.sessionId());
         invoice.setUserId(event.userId());

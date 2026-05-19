@@ -9,6 +9,7 @@ import {
     StationFilterParams,
     PaginatedResponse,
     FilterMetadata,
+    PriceSettingResponse,
 } from "@/types/station.types";
 
 const API_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -144,5 +145,15 @@ export const getStationMetadata = async (): Promise<FilterMetadata> => {
         `${API_BACKEND_URL}/api/v1/stations/metadata`
     );
 
+    return res.data.data;
+};
+
+/**
+ * Get the active pricing configuration for a station.
+ */
+export const getActivePriceSetting = async (stationId: number): Promise<PriceSettingResponse> => {
+    const res = await axiosInstance.get<ApiResponse<PriceSettingResponse>>(
+        `${API_BACKEND_URL}/api/v1/stations/${stationId}/pricing`
+    );
     return res.data.data;
 };

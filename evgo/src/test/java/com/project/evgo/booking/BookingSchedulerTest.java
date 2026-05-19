@@ -8,7 +8,11 @@ import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
 import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
+import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.payment.ZaloPayService;
+import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
+import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +54,12 @@ class BookingSchedulerTest {
 
     @Mock
     private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private InvoiceService invoiceService;
+
+    @Mock
+    private ZaloPayService zaloPayService;
 
     @InjectMocks
     private BookingScheduler bookingScheduler;
@@ -131,8 +141,8 @@ class BookingSchedulerTest {
                 .thenReturn(List.of(booking));
 
         // Another booking follows on the same port (now uses portId only)
-        when(bookingService.hasUpcomingBookingOnPort(eq(100L), any()))
-                .thenReturn(true);
+        when(bookingService.getPortsWithUpcomingBookings(any(), any()))
+                .thenReturn(List.of(100L));
 
         bookingScheduler.processBookings();
 
@@ -152,8 +162,8 @@ class BookingSchedulerTest {
                 .thenReturn(List.of(booking));
 
         // No upcoming booking on this port (now uses portId only)
-        when(bookingService.hasUpcomingBookingOnPort(eq(100L), any()))
-                .thenReturn(false);
+        when(bookingService.getPortsWithUpcomingBookings(any(), any()))
+                .thenReturn(List.of());
 
         bookingScheduler.processBookings();
 
@@ -164,8 +174,8 @@ class BookingSchedulerTest {
     }
 
     @Test
-    @DisplayName("cleanupStalePendingBookings: Should cancel PENDING bookings older than 12 mins")
-    void cleanupStalePendingBookings_OldPending_CancelsThem() {
+    @DisplayName("cleanupStalePendingBookings: Should call cancelStalePendingBooking on service for stale PENDING bookings")
+    void cleanupStalePendingBookings_OldPending_CallsService() {
         Booking stale = new Booking();
         stale.setId(100L);
         stale.setStatus(BookingStatus.PENDING);
@@ -175,8 +185,39 @@ class BookingSchedulerTest {
 
         bookingScheduler.cleanupStalePendingBookings();
 
-        assertThat(stale.getStatus()).isEqualTo(BookingStatus.CANCELLED);
-        verify(bookingRepository).save(stale);
+        verify(bookingService).cancelStalePendingBooking(100L);
+    }
+
+    @Test
+    @DisplayName("pollZaloPayPendingInvoices: Should call queryOrderStatus for each stale PENDING invoice")
+    void pollZaloPayPendingInvoices_ShouldQueryGatewayForStaleInvoices() {
+        InvoiceResponse staleInvoice = InvoiceResponse.builder()
+                .id(55L)
+                .status(InvoiceStatus.PENDING)
+                .build();
+
+        when(invoiceService.findPendingOlderThan(any())).thenReturn(List.of(staleInvoice));
+        when(invoiceService.getLatestAppTransId(55L)).thenReturn("260518_abc12345");
+
+        bookingScheduler.pollZaloPayPendingInvoices();
+
+        verify(zaloPayService).queryOrderStatus("260518_abc12345");
+    }
+
+    @Test
+    @DisplayName("pollZaloPayPendingInvoices: Should skip invoice with no transaction")
+    void pollZaloPayPendingInvoices_NoTransaction_Skips() {
+        InvoiceResponse staleInvoice = InvoiceResponse.builder()
+                .id(99L)
+                .status(InvoiceStatus.PENDING)
+                .build();
+
+        when(invoiceService.findPendingOlderThan(any())).thenReturn(List.of(staleInvoice));
+        when(invoiceService.getLatestAppTransId(99L)).thenReturn(null);
+
+        bookingScheduler.pollZaloPayPendingInvoices();
+
+        verify(zaloPayService, never()).queryOrderStatus(any());
     }
 
     private Booking buildBooking(Long id, BookingStatus status, Long chargerId, Long portId,
