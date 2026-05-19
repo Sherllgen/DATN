@@ -32,7 +32,6 @@ export default function StationQuickInfo({
     onBook,
     onNavigate,
 }: StationQuickInfoProps) {
-    const { accessToken } = useAuthStore();
     const unpaidCount = useUserStore((state) => state.unpaidCount) || 0;
 
     if (!station) return null;
@@ -46,6 +45,7 @@ export default function StationQuickInfo({
                 : "occupied";
 
     const handleBookPress = () => {
+        const { accessToken } = useAuthStore.getState();
         if (!accessToken) {
             Alert.alert(
                 "Login Required",

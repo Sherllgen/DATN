@@ -12,7 +12,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { useAuthStore } from "@/contexts/auth.store";
 
 import GradientBackground from "@/components/ui/GradientBackground";
 import Button from "@/components/ui/Button";

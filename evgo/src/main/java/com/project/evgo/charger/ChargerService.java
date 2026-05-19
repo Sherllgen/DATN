@@ -67,8 +67,4 @@ public interface ChargerService {
 
     void internalUpdatePortStatus(Long portId, PortStatus status);
 
-    /**
-     * Validates the OCPP Basic Auth password for a given charger.
-     */
-    boolean validateOcppPassword(Long chargerId, String rawPassword);
 }

@@ -34,7 +34,7 @@ export default function LoginScreen() {
     const router = useRouter();
 
     const setUser = useUserStore((s) => s.setUser);
-    const setAccessToken = useAuthStore((s) => s.setAccessToken);
+    const saveTokens = useAuthStore((s) => s.saveTokens);
 
     // Google OAuth với expo-auth-session/providers/google
     const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
@@ -57,7 +57,7 @@ export default function LoginScreen() {
         try {
             const res = await loginApi(username, password);
             if (res.status === 200) {
-                setAccessToken(res.data.accessToken);
+                await saveTokens(res.data.accessToken, res.data.refreshToken);
                 setUser(res.data.user);
                 router.replace("/(tabs)/home");
             }

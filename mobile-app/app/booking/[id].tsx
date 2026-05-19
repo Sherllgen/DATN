@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, Image, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Image, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from "@expo/vector-icons";
@@ -8,7 +8,7 @@ import GradientBackground from "@/components/ui/GradientBackground";
 import ListItemCard from "@/components/ui/ListItemCard";
 import Button from "@/components/ui/Button";
 import { AppColors } from "@/constants/theme";
-import { getBookingById } from "@/apis/bookingApi";
+import { getBookingById, cancelBooking } from "@/apis/bookingApi";
 import { BookingResponse, BookingStatus } from "@/types/booking.types";
 
 const parseUTCDate = (dateString: string) => {
@@ -40,6 +40,7 @@ export default function BookingDetailsScreen() {
     const router = useRouter();
     const [booking, setBooking] = useState<BookingResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     useEffect(() => {
         const fetchBooking = async () => {
@@ -86,6 +87,44 @@ export default function BookingDetailsScreen() {
     const isUpcoming = booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.PENDING;
     const { dateStr, timeStr } = formatDateTime(booking.startTime);
     const durationStr = formatDuration(booking.startTime, booking.endTime);
+
+    const handleCancel = () => {
+        Alert.alert(
+            "Cancel Booking",
+            "Are you sure you want to cancel this booking? This action cannot be undone.",
+            [
+                { text: "Keep Booking", style: "cancel" },
+                {
+                    text: "Yes, Cancel",
+                    style: "destructive",
+                    onPress: async () => {
+                        if (isCancelling || !booking) return;
+                        try {
+                            setIsCancelling(true);
+                            await cancelBooking(booking.id);
+                            Alert.alert(
+                                "Booking Cancelled",
+                                "Your booking has been successfully cancelled.",
+                                [{ text: "OK", onPress: () => router.back() }]
+                            );
+                        } catch (err: any) {
+                            const errorCode = err?.response?.data?.message;
+                            if (errorCode === "BOOKING_CANCELLATION_NOT_ALLOWED") {
+                                Alert.alert(
+                                    "Cannot Cancel",
+                                    "This booking can no longer be cancelled. Cancellations must be made more than 2 hours before the scheduled start time."
+                                );
+                            } else {
+                                Alert.alert("Error", errorCode || "Unable to cancel booking. Please try again.");
+                            }
+                        } finally {
+                            setIsCancelling(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     return (
         <GradientBackground preset="main" dismissKeyboard={false}>
@@ -238,15 +277,14 @@ export default function BookingDetailsScreen() {
                     )}
                     
                     <Button
-                        onPress={() => console.log("Cancel Booking", booking.id)}
-                        // Thay w-full thành flex-1
+                        onPress={handleCancel}
                         className="flex-1"
                         textClassName="font-semibold text-base"
                         style={{ height: 56 }}
                         variant={isUpcoming ? "danger" : "outline"}
-                        disabled={!isUpcoming}
+                        disabled={!isUpcoming || isCancelling}
                     >
-                        Cancel Booking
+                        {isCancelling ? "Cancelling..." : "Cancel Booking"}
                     </Button>
                 </View>
             </SafeAreaView>

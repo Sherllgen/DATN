@@ -102,3 +102,14 @@ export const getBookingById = async (id: string | number): Promise<BookingRespon
     );
     return res.data.data;
 };
+
+/**
+ * Cancel a booking by ID.
+ * Backend enforces the rule: cancellation is only allowed for CONFIRMED/PENDING bookings
+ * that are more than 2 hours before the start time.
+ */
+export const cancelBooking = async (bookingId: number): Promise<void> => {
+    await axiosInstance.post<ApiResponse<void>>(
+        `${API_BACKEND_URL}/api/v1/bookings/${bookingId}/cancel`
+    );
+};

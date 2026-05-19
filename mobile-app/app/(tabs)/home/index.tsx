@@ -61,13 +61,18 @@ export default function HomePage() {
                         const completedSessions = pageResponse.content;
                         setRecentSessions(completedSessions);
                         if (completedSessions.length > 0) {
-                            setLastSession(completedSessions[0]);
-                            invoiceApi.getInvoiceBySessionId(completedSessions[0].id)
-                                .then(inv => setLastSessionCost(inv.totalCost))
-                                .catch(err => {
-                                    console.log("Failed to fetch invoice for last session");
-                                    setLastSessionCost(null);
-                                });
+                            const last = completedSessions[0];
+                            setLastSession(last);
+                            if (last.invoiceId) {
+                                invoiceApi.getInvoiceBySessionId(last.id)
+                                    .then(inv => setLastSessionCost(inv.totalCost))
+                                    .catch(err => {
+                                        console.log("Failed to fetch invoice for last session");
+                                        setLastSessionCost(null);
+                                    });
+                            } else {
+                                setLastSessionCost(0);
+                            }
                         } else {
                             setLastSession(null);
                             setLastSessionCost(null);
@@ -119,7 +124,7 @@ export default function HomePage() {
             });
             setStations(results);
         } catch (error) {
-            console.error("Error fetching stations:", error);
+            console.log("Error fetching stations:", error);
             setStations([]);
         } finally {
             setLoading(false);

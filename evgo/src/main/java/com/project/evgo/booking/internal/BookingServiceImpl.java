@@ -291,9 +291,11 @@ public class BookingServiceImpl implements BookingService {
             throw new AppException(ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
         }
 
-        if (LocalDateTime.now().plusHours(2).isAfter(booking.getStartTime()) ||
-                LocalDateTime.now().plusHours(2).isEqual(booking.getStartTime())) {
-            throw new AppException(ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
+        if (booking.getStatus() == BookingStatus.CONFIRMED) {
+            if (LocalDateTime.now().plusHours(2).isAfter(booking.getStartTime()) ||
+                    LocalDateTime.now().plusHours(2).isEqual(booking.getStartTime())) {
+                throw new AppException(ErrorCode.BOOKING_CANCELLATION_NOT_ALLOWED);
+            }
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
