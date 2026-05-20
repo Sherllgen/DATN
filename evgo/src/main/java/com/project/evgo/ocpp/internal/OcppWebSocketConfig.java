@@ -29,6 +29,7 @@ public class OcppWebSocketConfig implements WebSocketConfigurer {
         registry.addHandler(ocppWebSocketHandler, "/ocpp/*")
                 .setHandshakeHandler(handshakeHandler)
                 .addInterceptors(ocppHandshakeInterceptor)
-                .setAllowedOrigins("*");
+                // .setAllowedOrigins("*");
+                .setAllowedOriginPatterns("*");
     }
 }
