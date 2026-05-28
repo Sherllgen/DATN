@@ -68,4 +68,9 @@ public interface BookingService {
      * Reverts an IN_PROGRESS booking back to CONFIRMED status.
      */
     void revertBookingToConfirmed(Long bookingId);
+
+    /**
+     * Transitions a no-show CONFIRMED booking to EXPIRED status.
+     */
+    void expireBooking(Long bookingId);
 }

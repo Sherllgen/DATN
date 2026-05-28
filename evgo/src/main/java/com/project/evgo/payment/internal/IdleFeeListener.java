@@ -4,11 +4,13 @@ import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.ChargerResponse;
 import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.events.CableUnpluggedEvent;
+import com.project.evgo.sharedkernel.events.SendPushNotificationEvent;
 import com.project.evgo.sharedkernel.enums.InvoicePurpose;
 import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 import com.project.evgo.station.PriceSettingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +37,7 @@ public class IdleFeeListener {
     private final InvoiceRepository invoiceRepository;
     private final ChargerService chargerService;
     private final PriceSettingService priceSettingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @ApplicationModuleListener
     public void onCableUnplugged(CableUnpluggedEvent event) {
@@ -102,5 +105,17 @@ public class IdleFeeListener {
         invoiceRepository.save(invoice);
         log.info("Created idle fee invoice for session={}: number={}, idleFee={} ({}min idle)",
                 event.sessionId(), invoice.getNumber(), idleFee, idleMinutes);
+
+        // Notify the user immediately so they are aware of the pending idle fee
+        String notificationBody = String.format(
+                "An idle overstay fee of %,.0f VND has been charged for %d minute(s) of idle time after your session.",
+                idleFee, idleMinutes);
+        eventPublisher.publishEvent(new SendPushNotificationEvent(
+                event.userId(),
+                "Idle Overstay Fee",
+                notificationBody
+        ));
+        log.info("Idle fee push notification dispatched for userId={}, sessionId={}",
+                event.userId(), event.sessionId());
     }
 }

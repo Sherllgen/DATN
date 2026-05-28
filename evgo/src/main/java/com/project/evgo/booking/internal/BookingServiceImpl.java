@@ -60,7 +60,7 @@ public class BookingServiceImpl implements BookingService {
     private final StringRedisTemplate redisTemplate;
     private final StationService stationService;
 
-    private static final long LOCK_TTL_MINUTES = 8;
+    private static final long LOCK_TTL_MINUTES = 13;
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
 
     @Override
@@ -356,6 +356,25 @@ public class BookingServiceImpl implements BookingService {
         });
     }
 
+    @Override
+    @Transactional
+    public void expireBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking == null) {
+            log.warn("Tried to expire bookingId={} but it no longer exists.", bookingId);
+            return;
+        }
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            // Guard: booking may have been cancelled or transitioned since the scheduler queried.
+            log.debug("Skipping expire for bookingId={} — current status is {}.", bookingId, booking.getStatus());
+            return;
+        }
+        booking.setStatus(BookingStatus.EXPIRED);
+        bookingRepository.save(booking);
+        log.info("Expired no-show booking {} (endTime={}) — no charging session was ever started.",
+                bookingId, booking.getEndTime());
+    }
+
     // splits the duration into 30-minute blocks
     private List<LocalDateTime> getIntervals(LocalDateTime startTime, LocalDateTime endTime) {
         List<LocalDateTime> intervals = new ArrayList<>();
@@ -371,3 +390,4 @@ public class BookingServiceImpl implements BookingService {
         return LOCK_PREFIX + portId + ":" + intervalStart.toString();
     }
 }
+

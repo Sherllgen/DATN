@@ -108,14 +108,14 @@ class BookingServiceTest {
 
 
                 when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
+                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(13L), eq(TimeUnit.MINUTES)))
                                 .thenReturn(true);
 
                 // When
                 bookingService.checkAvailability(req);
 
                 // Then
-                verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(8L),
+                verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(13L),
                                 eq(TimeUnit.MINUTES));
         }
     @Test
@@ -130,7 +130,7 @@ class BookingServiceTest {
 
 
                 when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
+                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(13L), eq(TimeUnit.MINUTES)))
                                 .thenReturn(false);
 
                 // When / Then

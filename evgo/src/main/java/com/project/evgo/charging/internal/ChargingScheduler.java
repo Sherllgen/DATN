@@ -21,8 +21,10 @@ public class ChargingScheduler {
     private final ChargingSessionRepository sessionRepository;
     private final ChargingService chargingService;
 
-    // If a session is stuck in PREPARING for more than 3 minutes, it will be cleaned up and set to INTERRUPTED
-    // The linked booking will be reverted to CONFIRMED so the user can re-attempt charging
+    // ============================================================
+    // Job 1: Clean up PREPARING sessions stuck for > 3 minutes.
+    // Reverts the linked booking to CONFIRMED so the user can retry.
+    // ============================================================
     @Scheduled(fixedRate = 60000)
     public void cleanupStuckPreparingSessions() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(3);

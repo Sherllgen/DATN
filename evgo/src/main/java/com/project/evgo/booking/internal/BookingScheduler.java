@@ -79,7 +79,7 @@ public class BookingScheduler {
 
     // ============================================================
     // Job 2: Cancel PENDING bookings older than 12 minutes
-    // (8 min for Redis Lock + 4 min safety buffer for payment latency)
+    // (13 min Redis Lock TTL — 1 min buffer = scheduler runs at minute 12)
     // ============================================================
     @Scheduled(fixedRate = 60000)
     public void cleanupStalePendingBookings() {
@@ -90,6 +90,31 @@ public class BookingScheduler {
         if (!staleBookings.isEmpty()) {
             for (Booking booking : staleBookings) {
                 bookingService.cancelStalePendingBooking(booking.getId());
+            }
+        }
+    }
+
+    // ============================================================
+    // Job 3: Expire no-show CONFIRMED bookings.
+    // A booking is a "no-show" when its endTime has passed and no
+    // ChargingSession was ever linked to it.
+    // ============================================================
+    @Scheduled(fixedRate = 60000)
+    public void expireUnusedBookings() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Booking> noShowBookings = bookingRepository.findExpiredConfirmedBookingsWithNoSession(now);
+
+        if (noShowBookings.isEmpty()) {
+            return;
+        }
+
+        log.info("Found {} no-show CONFIRMED booking(s) past endTime — expiring.", noShowBookings.size());
+
+        for (Booking booking : noShowBookings) {
+            try {
+                bookingService.expireBooking(booking.getId());
+            } catch (Exception e) {
+                log.error("Failed to expire no-show bookingId={}: {}", booking.getId(), e.getMessage());
             }
         }
     }
