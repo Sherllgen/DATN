@@ -1,5 +1,6 @@
 package com.project.evgo.review.internal;
 
+import com.project.evgo.sharedkernel.events.ReviewPostedEvent;
 import com.project.evgo.review.ReviewService;
 import com.project.evgo.review.request.CreateReviewRequest;
 import com.project.evgo.review.request.UpdateReviewRequest;
@@ -10,6 +11,7 @@ import com.project.evgo.sharedkernel.enums.ErrorCode;
 import com.project.evgo.sharedkernel.exceptions.AppException;
 import com.project.evgo.user.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ReviewDtoConverter converter;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public Optional<ReviewResponse> findById(Long id) {
@@ -90,6 +93,7 @@ public class ReviewServiceImpl implements ReviewService {
         reviewToSave.setUpdatedAt(java.time.LocalDateTime.now());
 
         Review saved = reviewRepository.save(reviewToSave);
+        eventPublisher.publishEvent(new ReviewPostedEvent(stationId));
         return converter.toResponse(saved, userId);
     }
 
@@ -106,6 +110,7 @@ public class ReviewServiceImpl implements ReviewService {
         review.setUpdatedAt(java.time.LocalDateTime.now());
 
         Review saved = reviewRepository.save(review);
+        eventPublisher.publishEvent(new ReviewPostedEvent(saved.getStationId()));
         return converter.toResponse(saved, SecurityUtil.getCurrentUserId());
     }
 
@@ -117,7 +122,9 @@ public class ReviewServiceImpl implements ReviewService {
 
         validateOwnership(review);
 
+        Long stationId = review.getStationId();
         reviewRepository.delete(review);
+        eventPublisher.publishEvent(new ReviewPostedEvent(stationId));
     }
 
     private void validateOwnership(Review review) {

@@ -1,6 +1,7 @@
 package com.project.evgo.ocpp.internal;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -21,6 +22,12 @@ public class OcppWebSocketConfig implements WebSocketConfigurer {
     private final OcppWebSocketHandler ocppWebSocketHandler;
     private final OcppHandshakeInterceptor ocppHandshakeInterceptor;
 
+    /**
+     * Allowed origin for the OCPP WebSocket endpoint.
+     */
+    @Value("${app.ocpp.allowed-origin:*}")
+    private String ocppAllowedOrigin;
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         DefaultHandshakeHandler handshakeHandler = new DefaultHandshakeHandler();
@@ -29,7 +36,6 @@ public class OcppWebSocketConfig implements WebSocketConfigurer {
         registry.addHandler(ocppWebSocketHandler, "/ocpp/*")
                 .setHandshakeHandler(handshakeHandler)
                 .addInterceptors(ocppHandshakeInterceptor)
-                // .setAllowedOrigins("*");
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(ocppAllowedOrigin);
     }
 }
