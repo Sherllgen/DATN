@@ -36,7 +36,6 @@ public class OcppHandshakeInterceptor implements HandshakeInterceptor {
         String path = uri.getPath();
         String chargePointId = path.substring(path.lastIndexOf('/') + 1);
 
-        // Step 1: Validate numeric charger ID
         Long chargerId;
         try {
             chargerId = Long.parseLong(chargePointId);
@@ -44,7 +43,6 @@ public class OcppHandshakeInterceptor implements HandshakeInterceptor {
             log.warn("OCPP handshake rejected: invalid charge point ID '{}'", chargePointId);
             return false;
         }
-        // Step 2: Validate charger exists
         if (chargerService.findById(chargerId).isEmpty()) {
             log.warn("OCPP handshake rejected: charger {} not found", chargerId);
             return false;

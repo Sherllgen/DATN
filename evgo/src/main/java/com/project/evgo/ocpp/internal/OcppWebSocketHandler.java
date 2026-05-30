@@ -51,12 +51,10 @@ public class OcppWebSocketHandler extends TextWebSocketHandler {
 
         try {
             OcppMessage ocppMessage = messageParser.parse(rawPayload);
-            // handle call from charger point
             if (ocppMessage instanceof OcppCall call) {
                 log.info("Received CALL from {}: action={}, messageId={}", chargePointId, call.action(),
                         call.messageId());
 
-                // Route to registered action handler
                 Optional<OcppCallResult> result = actionRouter.route(chargePointId, call);
 
                 if (result.isPresent()) {
@@ -64,15 +62,12 @@ public class OcppWebSocketHandler extends TextWebSocketHandler {
                     session.sendMessage(new TextMessage(responseJson));
                     log.debug("Sent CALLRESULT to {}: {}", chargePointId, responseJson);
                 } else {
-                    // No handler registered — send NOT_IMPLEMENTED error
                     OcppCallError error = actionRouter.createNotImplementedError(call);
                     String errorJson = messageParser.serialize(error);
                     session.sendMessage(new TextMessage(errorJson));
                     log.warn("No handler for action '{}' from {}", call.action(), chargePointId);
                 }
-            } 
-            // handle call result from charger point
-            else if (ocppMessage instanceof OcppCallResult callResult) {
+            } else if (ocppMessage instanceof OcppCallResult callResult) {
                 log.info("Received CALLRESULT from {}: messageId={}", chargePointId, callResult.messageId());
                 PendingCommandManager.PendingCommand cmd = pendingCommandManager.pop(callResult.messageId());
                 if (cmd != null && "ReserveNow".equals(cmd.action())) {

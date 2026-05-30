@@ -41,8 +41,6 @@ public class OcppCommandListener {
     /**
      * Handles {@link SendRemoteStopCommandEvent} by sending a
      * {@code RemoteStopTransaction.req} OCPP CALL to the charge point.
-     * <p>
-     * OCPP 1.6 §6.12 — Payload: {@code { "transactionId": <int> }}
      */
     @Async
     @EventListener
@@ -85,16 +83,6 @@ public class OcppCommandListener {
     /**
      * Handles {@link SendReserveNowCommandEvent} by sending a
      * {@code ReserveNow.req} OCPP CALL to the charge point.
-     * <p>
-     * OCPP 1.6 §6.11 — Payload:
-     * <pre>
-     * {
-     *   "connectorId":   &lt;int&gt;,
-     *   "expiryDate":    "&lt;ISO-8601&gt;",
-     *   "idTag":         "&lt;string max20&gt;",
-     *   "reservationId": &lt;int&gt;
-     * }
-     * </pre>
      */
     @Async
     @EventListener
@@ -140,9 +128,6 @@ public class OcppCommandListener {
     /**
      * Handles {@link com.project.evgo.sharedkernel.events.SendRemoteStartCommandEvent} from the Charging module.
      * Sends a {@code RemoteStartTransaction.req} to the charge point.
-     * <p>
-     * Per OCPP 1.6 §6.5:
-     * <pre>{ "idTag": "&lt;string max20&gt;", "connectorId": &lt;int&gt; }</pre>
      */
     @Async
     @EventListener

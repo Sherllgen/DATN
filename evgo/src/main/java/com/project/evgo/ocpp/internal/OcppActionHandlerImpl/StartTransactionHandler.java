@@ -76,7 +76,6 @@ public class StartTransactionHandler implements OcppActionHandler {
             log.warn("Could not parse chargePointId '{}' as Long", chargePointId);
         }
 
-        // Publish event for Charging module
         eventPublisher.publishEvent(new StartTransactionReceivedEvent(
                 chargePointId,
                 connectorId,
@@ -88,7 +87,6 @@ public class StartTransactionHandler implements OcppActionHandler {
                 reservationId
         ));
 
-        // Create StartTransaction.conf
         ObjectNode confPayload = objectMapper.createObjectNode();
         ObjectNode idTagInfo = objectMapper.createObjectNode();
         idTagInfo.put("status", "Accepted");

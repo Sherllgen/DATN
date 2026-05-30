@@ -29,25 +29,19 @@ import com.project.evgo.station.response.PriceSettingResponse;
 
 /**
  * Manages Server-Sent Event (SSE) connections for real-time charging session monitoring.
- * Connection lifecycle:
- * <ul>
- *   <li>{@link #subscribe(Long, Long)} — resolves + caches rate, creates emitter, starts heartbeat, registers cleanup callbacks</li>
- *   <li>{@link #pushUpdate(Long, Integer, LocalDateTime)} — calculates cost from cached rate and sends update</li>
- *   <li>Cleanup happens automatically via onCompletion/onTimeout/onError callbacks, which also evict the cached rate and cancel the heartbeat</li>
- * </ul>
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ChargingMonitorService {
 
-    /** SSE timeout: 30 minutes. */
+    // SSE timeout: 30 minutes
     private static final long SSE_TIMEOUT_MS = 30 * 60 * 1000L;
 
-    /** Heartbeat interval in seconds. Keeps SSE connections alive through proxies. */
+    // Heartbeat interval in seconds
     private static final long HEARTBEAT_INTERVAL_SECONDS = 30;
 
-    /** Redis key prefix matching {@code OcppChargingEventListener.REDIS_METER_KEY_PREFIX}. */
+    // Redis key prefix
     private static final String REDIS_METER_KEY_PREFIX = "evgo:charging:meter:";
 
     private final ChargingSessionRepository sessionRepository;
@@ -55,32 +49,16 @@ public class ChargingMonitorService {
     private final PriceSettingService priceSettingService;
     private final StringRedisTemplate redisTemplate;
 
-    /** Thread-safe registry: sessionId → active SseEmitter. */
+    // Thread-safe registry: sessionId → active SseEmitter
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
-    /**
-     * Thread-safe cache: sessionId → resolved chargingRatePerKwh.
-     * <p>
-     * Populated once during {@link #subscribe(Long, Long)} and evicted on emitter cleanup.
-     * Avoids 3–4 DB queries per MeterValues tick.
-     */
+    // Thread-safe cache: sessionId → resolved chargingRatePerKwh
     private final Map<Long, BigDecimal> sessionRateCache = new ConcurrentHashMap<>();
 
-    /**
-     * Thread-safe registry: sessionId → scheduled heartbeat task.
-     * <p>
-     * Each entry is cancelled when the corresponding emitter is cleaned up,
-     * preventing thread leaks from orphaned scheduled tasks.
-     */
+    // Thread-safe registry: sessionId → scheduled heartbeat task
     private final Map<Long, ScheduledFuture<?>> heartbeatTasks = new ConcurrentHashMap<>();
 
-    /**
-     * Shared single-thread scheduler for all SSE heartbeats.
-     * <p>
-     * Uses a single daemon thread to send lightweight comment events across all active sessions.
-     * A single thread is sufficient because sending an SSE comment is non-blocking I/O and
-     * completes in microseconds. The daemon flag ensures the thread does not prevent JVM shutdown.
-     */
+    // Shared single-thread scheduler for all SSE heartbeats
     private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "sse-heartbeat");
         t.setDaemon(true);
@@ -89,16 +67,6 @@ public class ChargingMonitorService {
 
     /**
      * Subscribe to real-time updates for a charging session.
-     * <p>
-     * Resolves the charging rate per kWh ONCE by navigating
-     * {@code portId → chargerId → stationId → activePriceSetting}, then caches the result
-     * for the lifetime of this SSE connection. Creates an {@link SseEmitter} with a 30-minute
-     * timeout, starts a periodic heartbeat, and registers cleanup callbacks that evict both
-     * the emitter, the cached rate, and cancel the heartbeat task.
-     *
-     * @param sessionId the charging session ID
-     * @param portId    the port ID used to resolve the charging rate
-     * @return the SSE emitter for the client to consume
      */
     public SseEmitter subscribe(Long sessionId, Long portId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
@@ -143,13 +111,7 @@ public class ChargingMonitorService {
     }
 
     /**
-     * Overloaded subscribe for backward compatibility and cases where portId is not known at call site.
-     * <p>
-     * Resolves the portId from the session in the database. Prefer {@link #subscribe(Long, Long)}
-     * when the portId is already available to avoid an extra DB lookup.
-     *
-     * @param sessionId the charging session ID
-     * @return the SSE emitter for the client to consume
+     * Overloaded subscribe for backward compatibility.
      */
     public SseEmitter subscribe(Long sessionId) {
         Optional<ChargingSession> optionalSession = sessionRepository.findById(sessionId);
@@ -158,19 +120,7 @@ public class ChargingMonitorService {
     }
 
     /**
-     * Polling fallback — returns the latest known meter snapshot for a session.
-     * <p>
-     * Priority order for meter data:
-     * <ol>
-     *   <li><b>DB totalKwh</b> — used when the session is completed (set by StopTransaction handler).</li>
-     *   <li><b>Redis</b> — reads {@code evgo:charging:meter:{sessionId}} written by
-     *       {@code OcppChargingEventListener.onMeterValues} on every OCPP MeterValues tick.
-     *       This gives the most recent in-progress meter reading without hitting the DB.</li>
-     *   <li><b>Zero fallback</b> — if no MeterValues have been received yet (session just started).</li>
-     * </ol>
-     *
-     * @param sessionId the charging session ID
-     * @return a {@link ChargingMonitorResponse} snapshot of the current session state
+     * Returns the latest known meter snapshot for a session.
      */
     public ChargingMonitorResponse getLatestMeterSnapshot(Long sessionId) {
         ChargingSession session = sessionRepository.findById(sessionId)
@@ -226,19 +176,6 @@ public class ChargingMonitorService {
 
     /**
      * Push a real-time meter update to the subscribed SSE client.
-     * <p>
-     * Calculates:
-     * <ul>
-     *   <li>consumedKwh = (currentMeterValue - meterStart) / 1000</li>
-     *   <li>estimatedCost = consumedKwh × chargingRatePerKwh (from cache)</li>
-     * </ul>
-     * The charging rate is read from the {@code sessionRateCache} (populated during subscribe),
-     * <p>
-     * If no emitter is registered for the session (no client connected), silently returns.
-     *
-     * @param sessionId         the charging session ID
-     * @param currentMeterValue the current meter reading in Wh from the charge point
-     * @param timestamp         the timestamp of the meter sample
      */
     public void pushUpdate(ChargingSession session, Integer currentMeterValue, LocalDateTime timestamp) {
         Long sessionId = session.getId();
@@ -312,16 +249,6 @@ public class ChargingMonitorService {
 
     /**
      * Start a periodic heartbeat for the given session.
-     * <p>
-     * Sends an invisible SSE comment event ({@code :heartbeat\n\n}) every
-     * {@value #HEARTBEAT_INTERVAL_SECONDS} seconds. SSE comment events are ignored by
-     * {@code EventSource} listeners on the client but keep the underlying TCP connection
-     * alive through intermediate proxies (ALB, Nginx, CDN) that may terminate idle connections
-     * after 60–120 seconds of inactivity.
-     * <p>
-     * Any previous heartbeat for this session is cancelled before starting a new one (reconnect scenario).
-     *
-     * @param sessionId the charging session ID
      */
     private void startHeartbeat(Long sessionId) {
         cancelHeartbeat(sessionId); // Cancel any previous heartbeat for this session
@@ -349,10 +276,6 @@ public class ChargingMonitorService {
 
     /**
      * Cancel and remove the heartbeat task for the given session.
-     * <p>
-     * Safe to call multiple times — no-ops if no task exists for the session.
-     *
-     * @param sessionId the charging session ID
      */
     private void cancelHeartbeat(Long sessionId) {
         ScheduledFuture<?> task = heartbeatTasks.remove(sessionId);
@@ -368,11 +291,6 @@ public class ChargingMonitorService {
 
     /**
      * Retrieve the cached charging rate for a session.
-     * Falls back to resolving from DB if the cache entry is missing (defensive).
-     *
-     * @param sessionId the charging session ID
-     * @param portId    the port ID (used for fallback resolution)
-     * @return the charging rate per kWh
      */
     private BigDecimal getCachedRate(Long sessionId, Long portId) {
         BigDecimal cachedRate = sessionRateCache.get(sessionId);
@@ -388,14 +306,7 @@ public class ChargingMonitorService {
     }
 
     /**
-     * Resolve the charging rate per kWh by navigating:
-     * portId → chargerId → stationId → active PriceSetting.
-     * <p>
-     * This method performs 3 DB queries. It should only be called ONCE per session
-     * (during subscribe or on cache miss). The result is cached in {@code sessionRateCache}.
-     *
-     * @param portId the port ID from the charging session
-     * @return charging rate per kWh, or BigDecimal.ZERO if resolution fails
+     * Resolve the charging rate per kWh.
      */
     private BigDecimal resolveChargingRate(Long portId) {
         try {
@@ -428,7 +339,6 @@ public class ChargingMonitorService {
 
     /**
      * Send a final status update before completing the SSE connection.
-     * Uses the cached rate if available; falls back to DB resolution otherwise.
      */
     private void sendFinalUpdate(Long sessionId, ChargingSession session, SseEmitter emitter) {
         try {
@@ -455,8 +365,7 @@ public class ChargingMonitorService {
     }
 
     /**
-     * Safely complete and remove an emitter and its cached rate from the registries.
-     * Also cancels the heartbeat task for this session.
+     * Safely complete and remove an emitter.
      */
     private void completeEmitter(Long sessionId, SseEmitter emitter) {
         emitters.remove(sessionId, emitter);

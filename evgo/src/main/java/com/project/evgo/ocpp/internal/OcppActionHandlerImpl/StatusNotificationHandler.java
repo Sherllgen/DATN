@@ -69,10 +69,8 @@ public class StatusNotificationHandler implements OcppActionHandler {
         log.info("StatusNotification from CP {}: connector={}, status={}, errorCode={}",
                 chargePointId, connectorId, status, errorCode);
 
-        // Persist port status to DB
         PortStatus portStatus = STATUS_MAP.getOrDefault(status, PortStatus.UNAVAILABLE);
         try {
-            // chargePointId is the charger's database ID (as string)
             Long chargerId = Long.parseLong(chargePointId);
             List<PortResponse> ports = chargerService.findPortsByChargerId(chargerId);
             ports.stream()
@@ -87,10 +85,8 @@ public class StatusNotificationHandler implements OcppActionHandler {
             log.warn("Could not parse chargePointId '{}' as Long, skipping DB update", chargePointId);
         }
 
-        // OCPP 1.6 StatusNotification.conf is an empty object
         ObjectNode confPayload = objectMapper.createObjectNode();
 
-        // Publish event for downstream modules like Charging Module
         String info = payload.path("info").asText(null);
         String timestampStr = payload.path("timestamp").asText(null);
         LocalDateTime timestamp = null;

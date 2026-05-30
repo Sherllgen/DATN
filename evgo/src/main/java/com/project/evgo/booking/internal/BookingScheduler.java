@@ -45,9 +45,7 @@ public class BookingScheduler {
 
     private static final String LOCK_PREFIX = "evgo:booking:lock:*";
 
-    // ============================================================
     // Job 1: Clean up Redis keys that are stuck without a TTL
-    // ============================================================
     @Scheduled(fixedRate = 60000)
     public void cleanStuckRedisKeys() {
         redisTemplate.execute((RedisCallback<Void>) connection -> {
@@ -77,10 +75,8 @@ public class BookingScheduler {
         });
     }
 
-    // ============================================================
     // Job 2: Cancel PENDING bookings older than 12 minutes
     // (13 min Redis Lock TTL — 1 min buffer = scheduler runs at minute 12)
-    // ============================================================
     @Scheduled(fixedRate = 60000)
     public void cleanupStalePendingBookings() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(12);
@@ -94,11 +90,9 @@ public class BookingScheduler {
         }
     }
 
-    // ============================================================
     // Job 3: Expire no-show CONFIRMED bookings.
     // A booking is a "no-show" when its endTime has passed and no
     // ChargingSession was ever linked to it.
-    // ============================================================
     @Scheduled(fixedRate = 60000)
     public void expireUnusedBookings() {
         LocalDateTime now = LocalDateTime.now();
@@ -119,10 +113,8 @@ public class BookingScheduler {
         }
     }
 
-    // ============================================================
     // Main Job: Unified periodic check for all booking-related actions
     // Runs every 60 seconds. Consolidates 3 previous jobs into 1 query.
-    // ============================================================
     @Scheduled(fixedRate = 60000)
     public void processBookings() {
         LocalDateTime now = LocalDateTime.now();
@@ -246,9 +238,7 @@ public class BookingScheduler {
                 booking.getId(), chargePointId, booking.getPortId());
     }
 
-    // ============================================================
-    // Helpers
-    // ============================================================
+
 
     /**
      * Resolves the current port status using portId.
@@ -269,11 +259,9 @@ public class BookingScheduler {
                 .orElse(0);
     }
 
-    // ============================================================
     // Job 5: ZaloPay IPN Polling Fallback
     // Runs every 5 minutes. Queries PENDING invoices older than 15
     // minutes against the ZaloPay gateway to recover missed callbacks.
-    // ============================================================
     @Scheduled(fixedRate = 300000)
     public void pollZaloPayPendingInvoices() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(15);

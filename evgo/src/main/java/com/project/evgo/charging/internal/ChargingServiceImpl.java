@@ -200,10 +200,8 @@ public class ChargingServiceImpl implements ChargingService {
                 session.getId(), chargePointId, session.getTransactionId(), "User Requested"));
     }
 
-    //-------------------------- Cron jobs helper --------------------------------------------------------
-
-    // If a session is stuck in PREPARING for more than 3 minutes, it will be cleaned up and set to INTERRUPTED
-    // The linked booking will be reverted to CONFIRMED so the user can re-attempt charging
+    // If a session is stuck in PREPARING for more than 3 minutes, it will be cleaned up and set to INTERRUPTED.
+    // The linked booking will be reverted to CONFIRMED so the user can re-attempt charging.
     @Override
     @Transactional
     public void cleanupStuckPreparingSession(Long sessionId) {

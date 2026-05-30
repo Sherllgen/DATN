@@ -49,19 +49,15 @@ public class MeterValuesHandler implements OcppActionHandler {
                 ? payload.path("transactionId").asInt()
                 : null;
 
-        // Extract the latest meter value from the meterValue array
-        // Per OCPP 1.6 §4.4, meterValue is an array of MeterValue objects,
-        // each containing a timestamp and sampledValue array.
-        // We look for the Energy.Active.Import.Register measurand.
+        // Per OCPP 1.6 §4.4, meterValue is an array of MeterValue objects.
+        // We look for the Energy.Active.Import.Register measurand from the latest entry.
         Integer meterValue = null;
         LocalDateTime timestamp = LocalDateTime.now();
         JsonNode meterValueArray = payload.path("meterValue");
 
         if (meterValueArray.isArray() && !meterValueArray.isEmpty()) {
-            // Take the last (most recent) MeterValue entry
             JsonNode lastMeterValue = meterValueArray.get(meterValueArray.size() - 1);
 
-            // Parse timestamp
             String timestampStr = lastMeterValue.path("timestamp").asText(null);
             if (timestampStr != null) {
                 try {
@@ -71,7 +67,6 @@ public class MeterValuesHandler implements OcppActionHandler {
                 }
             }
 
-            // Find Energy.Active.Import.Register in sampledValue array
             JsonNode sampledValues = lastMeterValue.path("sampledValue");
             if (sampledValues.isArray()) {
                 for (JsonNode sample : sampledValues) {
@@ -99,7 +94,6 @@ public class MeterValuesHandler implements OcppActionHandler {
             log.debug("Skipping MeterValues event: meterValue={}, transactionId={}", meterValue, transactionId);
         }
 
-        // MeterValues.conf is an empty payload per OCPP 1.6 §4.4
         ObjectNode confPayload = objectMapper.createObjectNode();
         return new OcppCallResult(call.messageId(), confPayload);
     }
