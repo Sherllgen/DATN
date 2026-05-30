@@ -9,6 +9,7 @@ import com.project.evgo.payment.request.InvoiceCreatedRequest;
 import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.payment.response.InvoiceStatsResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
+import com.project.evgo.sharedkernel.enums.InvoicePurpose;
 import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 
 public interface InvoiceService {
@@ -20,7 +21,8 @@ public interface InvoiceService {
 
     InvoiceResponse findById(Long invoiceId);
 
-    PageResponse<InvoiceResponse> getMyInvoices(Long userId, InvoiceStatus status, int page, int size);
+
+    PageResponse<InvoiceResponse> getMyInvoices(Long userId, InvoiceStatus status, InvoicePurpose purpose, int page, int size);
 
     boolean hasUnpaidInvoices(Long userId);
 

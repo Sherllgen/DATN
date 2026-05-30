@@ -12,6 +12,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -28,33 +29,6 @@ import com.project.evgo.station.response.PriceSettingResponse;
 
 /**
  * Manages Server-Sent Event (SSE) connections for real-time charging session monitoring.
- * <p>
- * Maintains a thread-safe registry of active {@link SseEmitter} instances keyed by sessionId.
- * When a MeterValues update arrives, calculates consumedKwh and estimatedCost, then pushes
- * the data to the subscribed mobile client.
- * <p>
- * <b>Performance Optimization — Rate Caching [S-2]:</b>
- * The charging rate per kWh is resolved ONCE when a client subscribes via {@link #subscribe(Long, Long)}
- * and cached in a JVM-local {@link ConcurrentHashMap}. Subsequent {@link #pushUpdate} calls read the
- * cached rate instead of performing 3–4 DB queries (port → charger → station → priceSetting) per tick.
- * The cache entry is automatically evicted when the emitter completes, times out, or errors out.
- * <p>
- * <b>SSE Keep-Alive — Heartbeat [M-3]:</b>
- * A shared {@link ScheduledExecutorService} sends invisible SSE comment events ({@code :heartbeat})
- * every {@value #HEARTBEAT_INTERVAL_SECONDS} seconds per subscribed session. This prevents intermediate
- * infrastructure (ALB, Nginx, CDN proxies) from dropping idle connections during periods when the charge
- * point is not sending MeterValues. Each heartbeat task is tracked per session and cancelled on cleanup.
- * <p>
- * <b>Architectural Limitation — Horizontal Scaling [S-3]:</b>
- * Both the emitter registry ({@code emitters}) and the rate cache ({@code sessionRateCache}) are
- * JVM-local {@link ConcurrentHashMap} instances. This means that SSE connections are pinned to a single
- * application instance. In a horizontally scaled production deployment with multiple instances behind
- * a load balancer, a MeterValues event arriving at instance A cannot push to a client connected via
- * SSE on instance B. To support horizontal scaling, this should be refactored to use
- * <b>Redis Pub/Sub</b>: each instance subscribes to a Redis channel for SSE events, and the instance
- * holding the client's emitter delivers the update. Sticky sessions (e.g., via IP hash or cookie)
- * can serve as an interim mitigation.
- * <p>
  * Connection lifecycle:
  * <ul>
  *   <li>{@link #subscribe(Long, Long)} — resolves + caches rate, creates emitter, starts heartbeat, registers cleanup callbacks</li>
@@ -67,15 +41,19 @@ import com.project.evgo.station.response.PriceSettingResponse;
 @Slf4j
 public class ChargingMonitorService {
 
-    /** SSE timeout: 30 minutes (in milliseconds). */
+    /** SSE timeout: 30 minutes. */
     private static final long SSE_TIMEOUT_MS = 30 * 60 * 1000L;
 
     /** Heartbeat interval in seconds. Keeps SSE connections alive through proxies. */
     private static final long HEARTBEAT_INTERVAL_SECONDS = 30;
 
+    /** Redis key prefix matching {@code OcppChargingEventListener.REDIS_METER_KEY_PREFIX}. */
+    private static final String REDIS_METER_KEY_PREFIX = "evgo:charging:meter:";
+
     private final ChargingSessionRepository sessionRepository;
     private final ChargerService chargerService;
     private final PriceSettingService priceSettingService;
+    private final StringRedisTemplate redisTemplate;
 
     /** Thread-safe registry: sessionId → active SseEmitter. */
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
@@ -177,6 +155,73 @@ public class ChargingMonitorService {
         Optional<ChargingSession> optionalSession = sessionRepository.findById(sessionId);
         Long portId = optionalSession.map(ChargingSession::getPortId).orElse(null);
         return subscribe(sessionId, portId);
+    }
+
+    /**
+     * Polling fallback — returns the latest known meter snapshot for a session.
+     * <p>
+     * Priority order for meter data:
+     * <ol>
+     *   <li><b>DB totalKwh</b> — used when the session is completed (set by StopTransaction handler).</li>
+     *   <li><b>Redis</b> — reads {@code evgo:charging:meter:{sessionId}} written by
+     *       {@code OcppChargingEventListener.onMeterValues} on every OCPP MeterValues tick.
+     *       This gives the most recent in-progress meter reading without hitting the DB.</li>
+     *   <li><b>Zero fallback</b> — if no MeterValues have been received yet (session just started).</li>
+     * </ol>
+     *
+     * @param sessionId the charging session ID
+     * @return a {@link ChargingMonitorResponse} snapshot of the current session state
+     */
+    public ChargingMonitorResponse getLatestMeterSnapshot(Long sessionId) {
+        ChargingSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new com.project.evgo.sharedkernel.exceptions.AppException(
+                        com.project.evgo.sharedkernel.enums.ErrorCode.SESSION_NOT_FOUND));
+
+        BigDecimal consumedKwh;
+        Integer currentMeterWh = null;
+
+        if (session.getTotalKwh() != null) {
+            // Session already completed — totalKwh from StopTransaction is authoritative
+            consumedKwh = session.getTotalKwh();
+        } else {
+            // Session in progress — read last known meter value from Redis
+            String redisKey = REDIS_METER_KEY_PREFIX + sessionId;
+            String cachedMeterStr = redisTemplate.opsForValue().get(redisKey);
+
+            if (cachedMeterStr != null) {
+                try {
+                    currentMeterWh = Integer.parseInt(cachedMeterStr);
+                    Integer meterStart = session.getMeterStart() != null ? session.getMeterStart() : 0;
+                    int consumedWh = currentMeterWh < meterStart
+                            ? currentMeterWh               // session-relative measurement
+                            : currentMeterWh - meterStart; // absolute measurement
+                    consumedKwh = BigDecimal.valueOf(consumedWh)
+                            .divide(BigDecimal.valueOf(1000), 4, RoundingMode.HALF_UP);
+                    log.debug("Polling snapshot for sessionId={}: meterWh={} from Redis, consumedKwh={}",
+                            sessionId, currentMeterWh, consumedKwh);
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid meter value in Redis for sessionId={}: '{}'", sessionId, cachedMeterStr);
+                    consumedKwh = BigDecimal.ZERO;
+                }
+            } else {
+                // No MeterValues received yet (session just started or Redis evicted)
+                log.debug("No Redis meter value for sessionId={}. Defaulting consumedKwh=0.", sessionId);
+                consumedKwh = BigDecimal.ZERO;
+            }
+        }
+
+        BigDecimal chargingRatePerKwh = getCachedRate(sessionId, session.getPortId());
+        BigDecimal estimatedCost = consumedKwh.multiply(chargingRatePerKwh)
+                .setScale(0, RoundingMode.HALF_UP);
+
+        return ChargingMonitorResponse.builder()
+                .status(session.getStatus())
+                .consumedKwh(consumedKwh)
+                .estimatedCost(estimatedCost)
+                .currentMeterValue(currentMeterWh)
+                .chargingRatePerKwh(chargingRatePerKwh)
+                .timestamp(LocalDateTime.now())
+                .build();
     }
 
     /**

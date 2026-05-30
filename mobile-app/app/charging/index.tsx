@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, ActivityIndicator, Alert, BackHandler } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Toast } from "toastify-react-native";
@@ -29,7 +30,7 @@ export default function ChargingPage() {
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [elapsedTime, setElapsedTime] = useState("00:00:00");
 
-    const { monitorData, isSessionEnded, isConnected, error } = useChargingMonitor(activeSession?.id ?? null);
+    const { monitorData, isSessionEnded, isConnected, isPolling, error } = useChargingMonitor(activeSession?.id ?? null);
 
     // Initialize session
     useEffect(() => {
@@ -264,6 +265,16 @@ export default function ChargingPage() {
                     title="Charging"
                     showBack
                 />
+
+                {/* Degraded-connection banner */}
+                {isPolling && (
+                    <View className="mx-4 mb-2 flex-row items-center bg-warning/10 border border-warning/30 rounded-xl px-3 py-2">
+                        <Ionicons name="wifi-outline" size={16} color="#F59E0B" />
+                        <Text className="text-warning text-xs ml-2 flex-1">
+                            Live connection lost — polling for updates every 5 s
+                        </Text>
+                    </View>
+                )}
 
                 {isStarting ? (
                     <View className="flex-1 items-center justify-center">

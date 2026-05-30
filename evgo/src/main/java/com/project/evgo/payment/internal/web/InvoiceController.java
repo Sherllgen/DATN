@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.project.evgo.sharedkernel.dto.PageResponse;
+import com.project.evgo.sharedkernel.enums.InvoicePurpose;
 import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 
 @RestController
@@ -83,13 +84,14 @@ public class InvoiceController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "Get my invoices", description = "Fetches a paginated list of invoices for the current user, filtered by status")
+    @Operation(summary = "Get my invoices", description = "Fetches a paginated list of invoices for the current user, filtered by status and optional purpose")
     public ResponseEntity<ApiResponse<PageResponse<InvoiceResponse>>> getMyInvoices(
             @RequestParam(defaultValue = "PENDING") String status,
+            @RequestParam(required = false) String purpose,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Long userId = SecurityUtil.getCurrentUserId();
-        
+
         InvoiceStatus invoiceStatus;
         try {
             invoiceStatus = InvoiceStatus.valueOf(status.toUpperCase());
@@ -97,7 +99,16 @@ public class InvoiceController {
             invoiceStatus = InvoiceStatus.PENDING;
         }
 
-        PageResponse<InvoiceResponse> result = invoiceService.getMyInvoices(userId, invoiceStatus, page, size);
+        InvoicePurpose invoicePurpose = null;
+        if (purpose != null && !purpose.isBlank()) {
+            try {
+                invoicePurpose = InvoicePurpose.valueOf(purpose.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                invoicePurpose = null; // Invalid purpose string → no filter
+            }
+        }
+
+        PageResponse<InvoiceResponse> result = invoiceService.getMyInvoices(userId, invoiceStatus, invoicePurpose, page, size);
         return ResponseEntity.ok(ApiResponse.<PageResponse<InvoiceResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")
