@@ -131,9 +131,10 @@ export default function AccountManagementPage() {
                     pageSize: response.data.size,
                 });
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch accounts:", error);
-            toast.error("Failed to load accounts");
+            const msg = error.response?.data?.message || "Failed to load accounts";
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -154,9 +155,10 @@ export default function AccountManagementPage() {
             await lockAccountApi(account.id);
             toast.success("Account locked successfully");
             fetchAccounts();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to lock account:", error);
-            toast.error("Failed to lock account");
+            const msg = error.response?.data?.message || "Failed to lock account";
+            toast.error(msg);
         } finally {
             setActionLoading(false);
         }
@@ -168,9 +170,10 @@ export default function AccountManagementPage() {
             await unlockAccountApi(account.id);
             toast.success("Account unlocked successfully");
             fetchAccounts();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to unlock account:", error);
-            toast.error("Failed to unlock account");
+            const msg = error.response?.data?.message || "Failed to unlock account";
+            toast.error(msg);
         } finally {
             setActionLoading(false);
         }
@@ -185,9 +188,10 @@ export default function AccountManagementPage() {
             setDeleteDialog(false);
             setAccountToDelete(null);
             fetchAccounts();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to delete account:", error);
-            toast.error("Failed to delete account");
+            const msg = error.response?.data?.message || "Failed to delete account";
+            toast.error(msg);
         } finally {
             setActionLoading(false);
         }
