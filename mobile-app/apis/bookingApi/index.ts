@@ -47,7 +47,8 @@ export const getCalendarStatus = async (
 export const getAvailableSlots = async (
     stationId: number,
     date: string,
-    duration: number
+    duration: number,
+    portId?: number
 ): Promise<AvailableSlotResponse[]> => {
     const res = await axiosInstance.get<ApiResponse<AvailableSlotResponse[]>>(
         `${API_BACKEND_URL}/api/v1/bookings/available-slots`,
@@ -56,6 +57,7 @@ export const getAvailableSlots = async (
                 stationId,
                 date,
                 duration,
+                portId,
             },
         }
     );

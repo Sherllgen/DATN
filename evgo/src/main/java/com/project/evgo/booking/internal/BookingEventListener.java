@@ -16,9 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -38,8 +39,8 @@ public class BookingEventListener {
 
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
 
-    @EventListener
-    @Transactional
+    @ApplicationModuleListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onPaymentSuccess(PaymentSuccessEvent event) {
         if (event.bookingId() == null) return;
 
@@ -119,8 +120,8 @@ public class BookingEventListener {
      * The bookingId is carried directly in the event (from sharedkernel),
      * so no dependency on ChargingService is needed.
      */
-    @EventListener
-    @Transactional
+    @ApplicationModuleListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onChargingSessionCompleted(ChargingSessionCompletedEvent event) {
         log.info("Received ChargingSessionCompletedEvent: sessionId={}", event.sessionId());
 

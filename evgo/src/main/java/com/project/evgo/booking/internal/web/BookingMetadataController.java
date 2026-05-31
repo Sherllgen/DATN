@@ -57,10 +57,11 @@ public class BookingMetadataController {
     @Operation(summary = "Calculates and returns available time slots")
     public ResponseEntity<ApiResponse<List<AvailableSlotResponse>>> getAvailableSlots(
             @RequestParam("stationId") Long stationId,
+            @RequestParam(value = "portId", required = false) Long portId,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam("duration") Double durationHour) {
             
-        List<AvailableSlotResponse> result = bookingMetadataService.getAvailableSlots(stationId, date, durationHour);
+        List<AvailableSlotResponse> result = bookingMetadataService.getAvailableSlots(stationId, portId, date, durationHour);
         return ResponseEntity.ok(ApiResponse.<List<AvailableSlotResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Success")

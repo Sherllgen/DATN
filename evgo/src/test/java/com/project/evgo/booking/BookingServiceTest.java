@@ -489,4 +489,26 @@ class BookingServiceTest {
         assertThat(result.get(0).getRevenue()).isEqualTo(java.math.BigDecimal.ZERO);
     }
 
+    @Test
+    @DisplayName("checkAvailability_WithStartTimeTooFarInPast_ThrowsAppException")
+    void checkAvailability_WithStartTimeTooFarInPast_ThrowsAppException() {
+        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 100L,
+                LocalDateTime.now().minusMinutes(20), LocalDateTime.now().plusHours(1));
+
+        assertThatThrownBy(() -> bookingService.checkAvailability(req))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("checkAvailability_WithEndTimeBeforeStartTime_ThrowsAppException")
+    void checkAvailability_WithEndTimeBeforeStartTime_ThrowsAppException() {
+        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 100L,
+                LocalDateTime.now().plusHours(2), LocalDateTime.now().plusHours(1));
+
+        assertThatThrownBy(() -> bookingService.checkAvailability(req))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
 }

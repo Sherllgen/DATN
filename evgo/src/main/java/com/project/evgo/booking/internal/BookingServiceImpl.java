@@ -81,6 +81,7 @@ public class BookingServiceImpl implements BookingService {
     // check availability and create a hold on Redis
     @Override
     public void checkAvailability(CheckAvailabilityRequest request) {
+        validateBookingTime(request.getStartTime(), request.getEndTime());
         boolean hasOverlapDB = bookingRepository
                 .existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
                         request.getPortId(),
@@ -116,6 +117,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponse createBooking(CreateBookingRequest request) {
+        validateBookingTime(request.getStartTime(), request.getEndTime());
         List<LocalDateTime> intervals = getIntervals(request.getStartTime(), request.getEndTime());
         Long currentUserId = SecurityUtil.getCurrentUserId();
 
@@ -373,6 +375,21 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
         log.info("Expired no-show booking {} (endTime={}) — no charging session was ever started.",
                 bookingId, booking.getEndTime());
+    }
+
+    private void validateBookingTime(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Start time and end time are required");
+        }
+        if (endTime.isBefore(startTime) || endTime.isEqual(startTime)) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "End time must be after start time");
+        }
+        if (startTime.isBefore(LocalDateTime.now().minusMinutes(15))) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Start time cannot be in the past");
+        }
+        if (endTime.isBefore(LocalDateTime.now())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "End time must be in the future");
+        }
     }
 
     // splits the duration into 30-minute blocks

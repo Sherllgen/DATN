@@ -14,5 +14,5 @@ public interface BookingMetadataService {
 
     List<CalendarStatusResponse> getCalendarStatus(Long stationId, YearMonth month);
 
-    List<AvailableSlotResponse> getAvailableSlots(Long stationId, LocalDate date, Double durationHour);
+    List<AvailableSlotResponse> getAvailableSlots(Long stationId, Long portId, LocalDate date, Double durationHour);
 }

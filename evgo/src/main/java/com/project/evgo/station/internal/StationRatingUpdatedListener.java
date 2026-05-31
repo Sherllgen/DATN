@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -25,7 +26,7 @@ public class StationRatingUpdatedListener {
      * posted review and persists the result to {@code stations.rate}.
      */
     @ApplicationModuleListener
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onReviewPosted(ReviewPostedEvent event) {
         Long stationId = event.stationId();
         Double average = reviewService.getAverageRatingByStationId(stationId);

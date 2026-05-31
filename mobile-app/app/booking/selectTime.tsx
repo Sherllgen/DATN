@@ -1,15 +1,15 @@
 import { getAvailableSlots, getCalendarStatus, getDurationsConfig } from "@/apis/bookingApi";
 import BookingCalendar from "@/components/booking/BookingCalendar";
+import TimeSlotGrid, { TimeSlot } from "@/components/booking/TimeSlotGrid";
 import AppHeader from "@/components/ui/AppHeader";
 import Button from "@/components/ui/Button";
 import Dropdown from "@/components/ui/Dropdown";
+import GradientBackground from "@/components/ui/GradientBackground";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DayStatus } from "@/types/booking.types";
 
 export default function SelectTimePage() {
     const { stationId, vehicleId, portId } = useLocalSearchParams<{
@@ -24,7 +24,7 @@ export default function SelectTimePage() {
 
     const [durationsList, setDurationsList] = useState<{ label: string; value: string }[]>([]);
     const [calendarStatus, setCalendarStatus] = useState<Record<string, 'AVAILABLE' | 'FULL' | 'UNAVAILABLE'>>({});
-    const [availableTimeSlots, setAvailableTimeSlots] = useState<{ label: string; value: string }[]>([]);
+    const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
 
     const [isLoadingInit, setIsLoadingInit] = useState(true);
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -68,20 +68,47 @@ export default function SelectTimePage() {
             try {
                 setIsLoadingSlots(true);
                 setArrivalTime(undefined);
-                const slotsRes = await getAvailableSlots(Number(stationId), selectedDate, Number(duration));
-                const mappedSlots = slotsRes.map(slot => ({
-                    label: slot.startTime.substring(0, 5), // 'HH:mm'
-                    value: slot.startTime
-                }));
+                
+                // Pass portId to fetch available slots specifically for the selected port
+                const slotsRes = await getAvailableSlots(
+                    Number(stationId),
+                    selectedDate,
+                    Number(duration),
+                    portId ? Number(portId) : undefined
+                );
+
+                const now = new Date();
+                const isToday = selectedDate === now.toLocaleDateString('en-CA');
+                
+                // Safe boundary support: (currentLocalTime - 10 minutes)
+                const nowTimeMinutesLimit = now.getHours() * 60 + now.getMinutes() - 10;
+
+                const mappedSlots: TimeSlot[] = slotsRes.map(slot => {
+                    const [sh, sm] = slot.startTime.split(':').map(Number);
+                    const slotTimeMinutes = sh * 60 + sm;
+                    
+                    const isPast = isToday && slotTimeMinutes < nowTimeMinutesLimit;
+                    const isAvailable = slot.availablePorts > 0 && !isPast;
+                    
+                    return {
+                        label: slot.startTime.substring(0, 5), // 'HH:mm'
+                        value: slot.startTime,
+                        availablePorts: slot.availablePorts,
+                        isPast,
+                        isAvailable
+                    };
+                });
+                
                 setAvailableTimeSlots(mappedSlots);
             } catch (err) {
+                console.error("Failed to fetch slots:", err);
                 setAvailableTimeSlots([]);
             } finally {
                 setIsLoadingSlots(false);
             }
         };
         fetchSlots();
-    }, [selectedDate, duration, stationId]);
+    }, [selectedDate, duration, stationId, portId]);
 
     const handleContinue = () => {
         if (!arrivalTime || !duration) return;
@@ -89,16 +116,15 @@ export default function SelectTimePage() {
     };
 
     return (
-        <LinearGradient
-            colors={["#33404F", "#000000"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            className="flex-1"
-        >
+        <GradientBackground preset="main" dismissKeyboard={false}>
             <SafeAreaView className="flex-1">
                 <AppHeader title="Booking" />
 
-                <ScrollView className="flex-1 px-6 mt-4 pb-10">
+                <ScrollView
+                    className="flex-1 px-6 mt-4"
+                    contentContainerStyle={{ paddingBottom: 60 }}
+                    showsVerticalScrollIndicator={false}
+                >
                     {isLoadingInit ? (
                         <View className="flex-1 justify-center items-center py-20">
                             <ActivityIndicator size="large" color="#00A452" />
@@ -128,19 +154,18 @@ export default function SelectTimePage() {
                                 />
                             </View>
 
-                            <View className="mt-8">
+                            <View className="mt-8 mb-2">
                                 <Text className="text-white font-semibold text-base mb-2">
                                     Select Time {isLoadingSlots && <ActivityIndicator size="small" color="#00A452" style={{ marginLeft: 8 }} />}
                                 </Text>
                                 {availableTimeSlots.length > 0 ? (
-                                    <Dropdown
-                                        label="Arrival Time"
-                                        items={availableTimeSlots}
-                                        value={arrivalTime}
-                                        onValueChange={setArrivalTime}
+                                    <TimeSlotGrid
+                                        slots={availableTimeSlots}
+                                        selectedSlotValue={arrivalTime}
+                                        onSelect={setArrivalTime}
                                     />
                                 ) : (
-                                    <View className="bg-surface-dark border border-[#33404F] p-8 rounded-2xl items-center justify-center">
+                                    <View className="bg-surface-dark border border-[#33404F] p-8 rounded-2xl items-center justify-center mt-2">
                                         {isLoadingSlots ? (
                                             <>
                                                 <ActivityIndicator size="large" color="#00A452" />
@@ -163,25 +188,25 @@ export default function SelectTimePage() {
                                 )}
                             </View>
 
-                    {/* Info Alert Box */}
-                    <View className="bg-[#051F1A] border border-[#00A452]/30 rounded-2xl p-4 mt-8 flex-row items-start">
-                        <Ionicons
-                            name="information-circle"
-                            size={20}
-                            color="#00A452"
-                            style={{ flexShrink: 0, marginTop: 2 }}
-                        />
-                        <Text className="flex-1 ml-3 text-secondary text-sm leading-5">
-                            You can only book available times. Unavailable time
-                            means someone else has booked it.
-                        </Text>
-                    </View>
+                            {/* Info Alert Box */}
+                            <View className="bg-[#051F1A] border border-[#00A452]/30 rounded-2xl p-4 flex-row items-start mb-2">
+                                <Ionicons
+                                    name="information-circle"
+                                    size={20}
+                                    color="#00A452"
+                                    style={{ flexShrink: 0, marginTop: 2 }}
+                                />
+                                <Text className="flex-1 ml-3 text-secondary text-sm leading-5">
+                                    You can only book available times. Unavailable time
+                                    means someone else has booked it or it has passed.
+                                </Text>
+                            </View>
                         </>
                     )}
                 </ScrollView>
 
                 {/* Continue Button */}
-                <View className="px-6 pt-6 pb-2">
+                <View className="px-6 pt-4 pb-2">
                     <Button
                         variant="primary"
                         size="lg"
@@ -193,6 +218,6 @@ export default function SelectTimePage() {
                     </Button>
                 </View>
             </SafeAreaView>
-        </LinearGradient>
+        </GradientBackground>
     );
 }

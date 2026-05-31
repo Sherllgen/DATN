@@ -5,8 +5,9 @@ import com.project.evgo.sharedkernel.events.RequireRefundEvent;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -19,8 +20,8 @@ public class RequireRefundListener {
 
     private final InvoiceRepository invoiceRepository;
 
-    @EventListener
-    @Transactional
+    @ApplicationModuleListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onRequireRefund(RequireRefundEvent event) {
         log.info("Received RequireRefundEvent for bookingId: {}, amount: {}, reason: {}",
                 event.bookingId(), event.amount(), event.reason());

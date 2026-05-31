@@ -1,9 +1,11 @@
 import SelectChargerCard from "@/components/booking/SelectChargerCard";
 import AppHeader from "@/components/ui/AppHeader";
 import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
+import GradientBackground from "@/components/ui/GradientBackground";
 import { getChargersByStationId } from "@/apis/chargerApi";
+import { getAllVehicleApi } from "@/apis/vehicleApi/vehicleApi";
 import { ChargerResponse } from "@/types/charger.types";
-import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import { ScrollView, View, ActivityIndicator, Text } from "react-native";
@@ -17,31 +19,76 @@ export default function SelectChargerPage() {
     }>();
 
     const [chargers, setChargers] = useState<ChargerResponse[]>([]);
+    const [vehicle, setVehicle] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [selectedPortId, setSelectedPortId] = useState<number | null>(null);
+    const [hasBypassedWarning, setHasBypassedWarning] = useState(false);
+
+    // Warning Modal State
+    const [showWarningModal, setShowWarningModal] = useState(false);
+    const [pendingPortId, setPendingPortId] = useState<number | null>(null);
+    const [pendingPortDetails, setPendingPortDetails] = useState<{
+        portNumber: number;
+        chargerName: string;
+        connectorType: string;
+    } | null>(null);
 
     useEffect(() => {
-        const fetchChargers = async () => {
-            if (!stationId) return;
+        const fetchInitialData = async () => {
+            if (!stationId || !vehicleId) return;
             try {
                 setLoading(true);
-                const data = await getChargersByStationId(Number(stationId));
-                setChargers(data);
-                
-                const availablePort = data.flatMap(c => c.ports).find(p => p.status === "AVAILABLE");
-                if (availablePort) {
-                    setSelectedPortId(availablePort.id);
+                setErrorMsg(null);
+
+                const [chargersData, vehiclesRes] = await Promise.all([
+                    getChargersByStationId(Number(stationId)),
+                    getAllVehicleApi(),
+                ]);
+
+                setChargers(chargersData);
+
+                const vehiclesList = vehiclesRes.data || vehiclesRes;
+                const matchedVehicle = vehiclesList.find((v: any) => v.id.toString() === vehicleId);
+                setVehicle(matchedVehicle);
+
+                const allPortsList = chargersData.flatMap(charger =>
+                    charger.ports.map(port => ({
+                        port,
+                        charger
+                    }))
+                );
+
+                const vehicleConnectors = matchedVehicle?.connectorTypes || [];
+
+                // Smart auto-selection: pre-select the first available compatible port
+                const compatibleAvailablePort = allPortsList.find(
+                    ({ port, charger }) =>
+                        port.status === "AVAILABLE" &&
+                        vehicleConnectors.includes(charger.connectorType)
+                );
+
+                if (compatibleAvailablePort) {
+                    setSelectedPortId(compatibleAvailablePort.port.id);
+                    setHasBypassedWarning(false);
+                } else {
+                    // Fallback: select any available port
+                    const anyAvailablePort = allPortsList.find(({ port }) => port.status === "AVAILABLE");
+                    if (anyAvailablePort) {
+                        setSelectedPortId(anyAvailablePort.port.id);
+                        setHasBypassedWarning(false);
+                    }
                 }
             } catch (err) {
-                console.error("Failed to fetch chargers:", err);
-                setErrorMsg("Failed to load chargers for this station.");
+                console.error("Failed to fetch charger/vehicle details:", err);
+                setErrorMsg("Failed to load charger or vehicle details.");
             } finally {
                 setLoading(false);
             }
         };
-        fetchChargers();
-    }, [stationId]);
+
+        fetchInitialData();
+    }, [stationId, vehicleId]);
 
     const allPorts = chargers.flatMap(charger =>
         charger.ports.map(port => ({
@@ -50,20 +97,57 @@ export default function SelectChargerPage() {
         }))
     );
 
+    const handleSelectPort = (portId: number) => {
+        const found = allPorts.find(p => p.port.id === portId);
+        if (!found) return;
+
+        const { port, charger } = found;
+        const vehicleConnectors = vehicle?.connectorTypes || [];
+        const isCompatible = vehicleConnectors.includes(charger.connectorType);
+
+        if (vehicle && vehicleConnectors.length > 0 && !isCompatible) {
+            setPendingPortId(portId);
+            setPendingPortDetails({
+                portNumber: port.portNumber,
+                chargerName: charger.name,
+                connectorType: charger.connectorType
+            });
+            setShowWarningModal(true);
+        } else {
+            setSelectedPortId(portId);
+            setHasBypassedWarning(false);
+        }
+    };
+
     const handleContinue = () => {
         if (!selectedPortId) return;
+
+        // Perform validation just in case
+        const found = allPorts.find(p => p.port.id === selectedPortId);
+        if (found) {
+            const { port, charger } = found;
+            const vehicleConnectors = vehicle?.connectorTypes || [];
+            const isCompatible = vehicleConnectors.includes(charger.connectorType);
+
+            if (vehicle && vehicleConnectors.length > 0 && !isCompatible && !hasBypassedWarning) {
+                setPendingPortId(selectedPortId);
+                setPendingPortDetails({
+                    portNumber: port.portNumber,
+                    chargerName: charger.name,
+                    connectorType: charger.connectorType
+                });
+                setShowWarningModal(true);
+                return;
+            }
+        }
+
         router.push(
             `/booking/selectTime?stationId=${stationId}&vehicleId=${vehicleId}&portId=${selectedPortId}`
         );
     };
 
     return (
-        <LinearGradient
-            colors={["#33404F", "#000000"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            className="flex-1"
-        >
+        <GradientBackground preset="main" dismissKeyboard={false}>
             <SafeAreaView className="flex-1">
                 <AppHeader title="Select Charger" />
 
@@ -91,7 +175,7 @@ export default function SelectChargerPage() {
                                 charger={charger as any}
                                 port={port as any}
                                 isSelected={selectedPortId === port.id}
-                                onSelect={setSelectedPortId}
+                                onSelect={handleSelectPort}
                             />
                         ))
                     )}
@@ -99,7 +183,7 @@ export default function SelectChargerPage() {
                 </ScrollView>
 
                 {/* Continue Button */}
-                <View className="px-6 pt-6">
+                <View className="px-6 pt-6 pb-2">
                     <Button
                         variant="primary"
                         size="lg"
@@ -110,7 +194,76 @@ export default function SelectChargerPage() {
                         Continue
                     </Button>
                 </View>
+
+                {/* Warning Modal */}
+                <Modal
+                    visible={showWarningModal}
+                    onClose={() => {
+                        setShowWarningModal(false);
+                        setPendingPortId(null);
+                        setPendingPortDetails(null);
+                    }}
+                    variant="bottom-sheet"
+                    title="Incompatible Connector"
+                >
+                    <View className="items-center pb-4">
+                        <View className="w-16 h-16 rounded-full bg-red-500/20 items-center justify-center mb-4">
+                            <Ionicons name="warning-outline" size={36} color="#EF4444" />
+                        </View>
+
+                        <Text className="text-white text-base text-center leading-6 mb-6">
+                            The selected port (<Text className="font-semibold text-secondary">{pendingPortDetails?.chargerName} - Port {pendingPortDetails?.portNumber}</Text>) uses the <Text className="font-semibold text-secondary">{pendingPortDetails?.connectorType.replace("_", " ")}</Text> connector type.{"\n\n"}
+                            However, your selected vehicle (<Text className="font-semibold text-secondary">{vehicle?.brand} {vehicle?.modelName}</Text>) only supports:{" "}
+                            <Text className="font-semibold text-secondary">
+                                {vehicle?.connectorTypes && vehicle.connectorTypes.length > 0
+                                    ? vehicle.connectorTypes.join(", ")
+                                    : "N/A"}
+                            </Text>.{"\n\n"}
+                            Do you still want to choose this port?
+                        </Text>
+
+                        <View className="w-full flex-row gap-4">
+                            <View className="flex-1">
+                                <Button
+                                    variant="outline"
+                                    size="md"
+                                    onPress={() => {
+                                        setShowWarningModal(false);
+                                        setPendingPortId(null);
+                                        setPendingPortDetails(null);
+                                    }}
+                                    fullWidth
+                                    className="border-border-gray"
+                                >
+                                    Change Port
+                                </Button>
+                            </View>
+                            <View className="flex-1">
+                                <Button
+                                    variant="primary"
+                                    size="md"
+                                    onPress={() => {
+                                        if (pendingPortId !== null) {
+                                            setSelectedPortId(pendingPortId);
+                                            setHasBypassedWarning(true);
+                                            // Close modal and navigate immediately
+                                            setShowWarningModal(false);
+                                            setPendingPortId(null);
+                                            setPendingPortDetails(null);
+                                            router.push(
+                                                `/booking/selectTime?stationId=${stationId}&vehicleId=${vehicleId}&portId=${pendingPortId}`
+                                            );
+                                        }
+                                    }}
+                                    fullWidth
+                                >
+                                    Select Anyway
+                                </Button>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
             </SafeAreaView>
-        </LinearGradient>
+        </GradientBackground>
     );
 }
