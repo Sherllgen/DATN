@@ -106,9 +106,10 @@ export default function AdminStationsPage() {
             } else if (response.data?.data) {
                 setStations(Array.isArray(response.data.data) ? response.data.data : []);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch stations:", error);
-            toast.error("Failed to load stations");
+            const msg = error.response?.data?.message || "Failed to load stations";
+            toast.error(msg);
         } finally {
             setLoading(false);
         }

@@ -156,9 +156,10 @@ export default function RegistrationReviewPage() {
                     pageSize: response.data.size,
                 });
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch registrations:", error);
-            toast.error("Failed to load registrations");
+            const msg = error.response?.data?.message || "Failed to load registrations";
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -180,9 +181,10 @@ export default function RegistrationReviewPage() {
             // Use list data directly, no API call needed
             setSelectedDetail(registration as unknown as RegistrationDetailData);
             setDetailDialog(true);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to update status:", error);
-            toast.error("Failed to update review status");
+            const msg = error.response?.data?.message || "Failed to update review status";
+            toast.error(msg);
         } finally {
             setLoadingDetail(false);
         }
@@ -198,9 +200,10 @@ export default function RegistrationReviewPage() {
             setRegistrationToApprove(null);
             setDetailDialog(false);
             fetchRegistrations();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to approve registration:", error);
-            toast.error("Failed to approve registration");
+            const msg = error.response?.data?.message || "Failed to approve registration";
+            toast.error(msg);
         } finally {
             setActionLoading(false);
         }
@@ -220,9 +223,10 @@ export default function RegistrationReviewPage() {
             setRejectionReason("");
             setDetailDialog(false);
             fetchRegistrations();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to reject registration:", error);
-            toast.error("Failed to reject registration");
+            const msg = error.response?.data?.message || "Failed to reject registration";
+            toast.error(msg);
         } finally {
             setActionLoading(false);
         }

@@ -125,9 +125,10 @@ export default function EditStationPage() {
                     }
                     setPhotos(photosRes.data?.data || []);
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to fetch station:", error);
-                toast.error("Failed to load station details");
+                const msg = error.response?.data?.message || "Failed to load station details";
+                toast.error(msg);
                 router.push("/stations");
             } finally {
                 setLoading(false);

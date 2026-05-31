@@ -201,9 +201,10 @@ export default function StationDetailPage() {
                 setChargers(chargersRes.data.data);
             }
             setActivePricing(pricingRes.data?.data || null);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch data:", error);
-            toast.error("Failed to load station data");
+            const msg = error.response?.data?.message || "Failed to load station data";
+            toast.error(msg);
             router.push("/stations");
         } finally {
             setLoading(false);
@@ -318,9 +319,10 @@ export default function StationDetailPage() {
             setDeleteChargerDialog(false);
             setChargerToDelete(null);
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to delete charger:", error);
-            toast.error("Failed to delete charger");
+            const msg = error.response?.data?.message || "Failed to delete charger";
+            toast.error(msg);
         } finally {
             setDeleting(false);
         }
@@ -398,9 +400,10 @@ export default function StationDetailPage() {
             }
             setPortToDelete(null);
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to delete port:", error);
-            toast.error("Failed to delete port");
+            const msg = error.response?.data?.message || "Failed to delete port";
+            toast.error(msg);
         } finally {
             setDeleting(false);
         }

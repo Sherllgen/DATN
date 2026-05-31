@@ -105,9 +105,10 @@ export default function StationsPage() {
             if (response.data?.data) {
                 setStations(response.data.data);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch stations:", error);
-            toast.error("Failed to load stations");
+            const msg = error.response?.data?.message || "Failed to load stations";
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -130,9 +131,10 @@ export default function StationsPage() {
                 `Station "${station.name}" is now ${newStatus === "ACTIVE" ? "active" : "inactive"}`
             );
             fetchStations();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to update status:", error);
-            toast.error("Failed to update status");
+            const msg = error.response?.data?.message || "Failed to update status";
+            toast.error(msg);
         }
     }
 
@@ -148,9 +150,10 @@ export default function StationsPage() {
             setDeleteDialogOpen(false);
             setStationToDelete(null);
             fetchStations();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to delete station:", error);
-            toast.error("Failed to delete station");
+            const msg = error.response?.data?.message || "Failed to delete station";
+            toast.error(msg);
         } finally {
             setDeleting(false);
         }

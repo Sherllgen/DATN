@@ -101,9 +101,10 @@ export default function AccountSettings() {
                         phoneNumber: data.phoneNumber || "",
                     });
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to fetch profile:", error);
-                toast.error("Failed to load profile");
+                const msg = error.response?.data?.message || "Failed to load profile";
+                toast.error(msg);
             } finally {
                 setLoading(false);
             }

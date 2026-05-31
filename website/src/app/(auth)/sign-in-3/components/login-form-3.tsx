@@ -129,12 +129,12 @@ export function LoginForm3({
                             </div>
                         </div>
                     </form>
-                    <div className="hidden md:block relative bg-muted">
+                    <div className="hidden md:block relative bg-[#d5e6e0] dark:bg-[#c9d8d3]">
                         <Image
-                            src="https://ui.shadcn.com/placeholder.svg"
+                            src="https://res.cloudinary.com/dmfvnmpuq/image/upload/v1780235263/83c3299c-52c4-42cc-8a07-7aa36d9cf83a.png"
                             alt="Image"
                             fill
-                            className="dark:brightness-[0.95] dark:invert object-cover"
+                            className="dark:brightness-[0.95] object-cover"
                         />
                     </div>
                 </CardContent>
