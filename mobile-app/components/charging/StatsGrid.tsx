@@ -10,12 +10,18 @@ interface StatItemProps {
 
 const StatItem = ({ value, label, showBorderRight, showBorderBottom }: StatItemProps) => (
     <View
-        className={`flex-1 p-6 items-center justify-center 
+        className={`flex-1 px-2 py-6 items-center justify-center 
             ${showBorderRight ? 'border-r border-white/5' : ''} 
             ${showBorderBottom ? 'border-b border-white/5' : ''}`}
     >
-        <Text className="text-white text-2xl font-bold mb-2">{value}</Text>
-        <Text className="text-text-secondary text-sm">{label}</Text>
+        <Text 
+            numberOfLines={1} 
+            adjustsFontSizeToFit 
+            className="text-white text-2xl font-bold mb-2 text-center"
+        >
+            {value}
+        </Text>
+        <Text className="text-text-secondary text-sm text-center">{label}</Text>
     </View>
 );
 

@@ -3,6 +3,7 @@ package com.project.evgo.charging.internal;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -69,6 +70,7 @@ public class OcppChargingEventListener {
         sessionRepository.save(session);
         log.info("Session {} updated to CHARGING: transactionId={}, meterStart={}, startTime={}",
                 session.getId(), event.transactionId(), event.meterStart(), event.timestamp());
+        chargingMonitorService.pushUpdate(session, event.meterStart(), event.timestamp());
     }
 
     /**
@@ -114,6 +116,7 @@ public class OcppChargingEventListener {
 
         sessionRepository.save(session);
         log.info("Session {} set to FINISHING: totalKwh={}, reason={}", session.getId(), totalKwh, event.reason());
+        chargingMonitorService.pushUpdate(session, null, event.timestamp());
 
         eventPublisher.publishEvent(new ChargingSessionCompletedEvent(
                 session.getId(), session.getUserId(), session.getPortId(), totalKwh, event.reason(), session.getBookingId()));
@@ -159,6 +162,15 @@ public class OcppChargingEventListener {
                 session.setStatus(newStatus);
                 sessionRepository.save(session);
                 log.info("Session {} updated to {} from StatusNotification.", session.getId(), newStatus);
+                String redisKey = REDIS_METER_KEY_PREFIX + session.getId();
+                String cachedMeterStr = redisTemplate.opsForValue().get(redisKey);
+                Integer currentMeter = null;
+                if (cachedMeterStr != null) {
+                    try {
+                        currentMeter = Integer.parseInt(cachedMeterStr);
+                    } catch (NumberFormatException ignored) {}
+                }
+                chargingMonitorService.pushUpdate(session, currentMeter, event.timestamp());
             } else {
                 log.debug("No active session (CHARGING/SUSPENDED_EV/SUSPENDED_EVSE) found for portId={} on status '{}'. Nothing to do.",
                         event.portId(), status);
@@ -187,8 +199,9 @@ public class OcppChargingEventListener {
 
         // idleStartTime = session's endTime (when StopTransaction was received)
         // cableUnpluggedTime = StatusNotification timestamp, or now() if not provided
-        java.time.LocalDateTime cableUnpluggedTime = event.timestamp() != null
-                ? event.timestamp() : java.time.LocalDateTime.now();
+        LocalDateTime cableUnpluggedTime = event.timestamp() != null
+                ? event.timestamp() : LocalDateTime.now();
+        chargingMonitorService.pushUpdate(session, null, cableUnpluggedTime);
 
         eventPublisher.publishEvent(new CableUnpluggedEvent(
                 session.getId(), session.getPortId(), session.getUserId(),

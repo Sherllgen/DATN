@@ -63,16 +63,12 @@ export default function HomePage() {
                         if (completedSessions.length > 0) {
                             const last = completedSessions[0];
                             setLastSession(last);
-                            if (last.invoiceId) {
-                                invoiceApi.getInvoiceBySessionId(last.id)
-                                    .then(inv => setLastSessionCost(inv.totalCost))
-                                    .catch(err => {
-                                        console.log("Failed to fetch invoice for last session");
-                                        setLastSessionCost(null);
-                                    });
-                            } else {
-                                setLastSessionCost(0);
-                            }
+                            invoiceApi.getInvoiceBySessionId(last.id)
+                                .then(inv => setLastSessionCost(inv.totalCost))
+                                .catch(err => {
+                                    console.log("Failed to fetch invoice for last session:", err);
+                                    setLastSessionCost(0);
+                                });
                         } else {
                             setLastSession(null);
                             setLastSessionCost(null);

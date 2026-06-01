@@ -90,13 +90,34 @@ public class ChargingMonitorService {
         // Start periodic heartbeat to keep the connection alive through proxies
         startHeartbeat(sessionId);
 
+        // Push initial state immediately so the client doesn't wait for the first MeterValues
+        sessionRepository.findById(sessionId).ifPresent(session -> {
+            String redisKey = REDIS_METER_KEY_PREFIX + sessionId;
+            String cachedMeterStr = redisTemplate.opsForValue().get(redisKey);
+            Integer currentMeter = null;
+            if (cachedMeterStr != null) {
+                try {
+                    currentMeter = Integer.parseInt(cachedMeterStr);
+                } catch (NumberFormatException ignored) {}
+            } else if (session.getStatus() == ChargingSessionStatus.CHARGING) {
+                currentMeter = session.getMeterStart();
+            }
+            log.info("Pushing initial state for sessionId={} upon subscription: status={}, meter={}",
+                    sessionId, session.getStatus(), currentMeter);
+            pushUpdate(session, currentMeter, LocalDateTime.now());
+        });
+
         // Cleanup callback: runs on normal completion, timeout, or error.
         // Evicts the emitter, cached rate, and cancels the heartbeat task.
         Runnable cleanup = () -> {
-            emitters.remove(sessionId, emitter);
-            sessionRateCache.remove(sessionId);
-            cancelHeartbeat(sessionId);
-            log.debug("SSE emitter cleaned up for sessionId={}. Rate cache evicted, heartbeat cancelled.", sessionId);
+            boolean removed = emitters.remove(sessionId, emitter);
+            if (removed) {
+                sessionRateCache.remove(sessionId);
+                cancelHeartbeat(sessionId);
+                log.info("SSE emitter cleaned up for sessionId={}. Rate cache evicted, heartbeat cancelled.", sessionId);
+            } else {
+                log.debug("Old SSE emitter completion callback ignored for sessionId={} (already replaced)", sessionId);
+            }
         };
 
         emitter.onCompletion(cleanup);
@@ -226,9 +247,11 @@ public class ChargingMonitorService {
                     .timestamp(timestamp != null ? timestamp : LocalDateTime.now())
                     .build();
 
-            emitter.send(SseEmitter.event()
-                    .name("meter-update")
-                    .data(response));
+            synchronized (emitter) {
+                emitter.send(SseEmitter.event()
+                        .name("meter-update")
+                        .data(response));
+            }
 
             log.debug("Pushed meter update to sessionId={}: consumedKwh={}, estimatedCost={}",
                     sessionId, consumedKwh, estimatedCost);
@@ -261,7 +284,9 @@ public class ChargingMonitorService {
                 return;
             }
             try {
-                emitter.send(SseEmitter.event().comment("heartbeat"));
+                synchronized (emitter) {
+                    emitter.send(SseEmitter.event().comment("heartbeat"));
+                }
             } catch (IOException e) {
                 log.debug("Heartbeat failed for sessionId={} (client likely disconnected). Cleaning up.", sessionId);
                 completeEmitter(sessionId, emitter);
@@ -354,9 +379,11 @@ public class ChargingMonitorService {
                     .timestamp(LocalDateTime.now())
                     .build();
 
-            emitter.send(SseEmitter.event()
-                    .name("session-ended")
-                    .data(response));
+            synchronized (emitter) {
+                emitter.send(SseEmitter.event()
+                        .name("session-ended")
+                        .data(response));
+            }
         } catch (IOException e) {
             log.debug("Failed to send final update for sessionId={}: {}", sessionId, e.getMessage());
         } finally {
@@ -368,9 +395,11 @@ public class ChargingMonitorService {
      * Safely complete and remove an emitter.
      */
     private void completeEmitter(Long sessionId, SseEmitter emitter) {
-        emitters.remove(sessionId, emitter);
-        sessionRateCache.remove(sessionId);
-        cancelHeartbeat(sessionId);
+        boolean removed = emitters.remove(sessionId, emitter);
+        if (removed) {
+            sessionRateCache.remove(sessionId);
+            cancelHeartbeat(sessionId);
+        }
         try {
             emitter.complete();
         } catch (Exception e) {
