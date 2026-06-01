@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking, AppState } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GradientBackground from '@/components/ui/GradientBackground';
 import { Ionicons } from '@expo/vector-icons';
 import { getInvoiceById, payInvoice } from '@/apis/invoiceApi';
+import { checkUnpaidInvoices } from '@/apis/paymentApi';
+import { useUserStore } from '@/contexts/user.store';
 import { InvoiceResponse } from '@/types/invoice.types';
 
 export default function InvoiceDetailScreen() {
@@ -15,23 +17,44 @@ export default function InvoiceDetailScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-    useEffect(() => {
-        const fetchInvoiceDetail = async () => {
-            if (!id) return;
-            try {
+    const fetchInvoiceDetail = useCallback(async (showLoading = false) => {
+        if (!id) return;
+        try {
+            if (showLoading) {
                 setIsLoading(true);
-                const data = await getInvoiceById(Number(id));
-                setInvoice(data);
-            } catch (error) {
-                console.error("Failed to fetch invoice", error);
+            }
+            const data = await getInvoiceById(Number(id));
+            setInvoice(data);
+
+            // Also check unpaid invoices globally and sync store
+            const hasUnpaid = await checkUnpaidInvoices();
+            useUserStore.getState().setUnpaidCount(hasUnpaid ? 1 : 0);
+        } catch (error) {
+            console.error("Failed to fetch invoice details:", error);
+            if (showLoading) {
                 Alert.alert("Error", "Failed to fetch invoice details.");
-            } finally {
+            }
+        } finally {
+            if (showLoading) {
                 setIsLoading(false);
             }
-        };
-
-        fetchInvoiceDetail();
+        }
     }, [id]);
+
+    useEffect(() => {
+        fetchInvoiceDetail(true);
+    }, [fetchInvoiceDetail]);
+
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextAppState) => {
+            if (nextAppState === 'active') {
+                fetchInvoiceDetail(false);
+            }
+        });
+        return () => {
+            subscription.remove();
+        };
+    }, [fetchInvoiceDetail]);
 
     const handlePayAction = async () => {
         if (isProcessingPayment || !invoice) return;

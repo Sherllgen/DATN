@@ -63,11 +63,15 @@ public class BookingController {
         }
 
         @GetMapping("/my")
-        @Operation(summary = "Get my bookings")
-        public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookings() {
+        @Operation(summary = "Get my bookings with pagination and status filtering")
+        public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getMyBookings(
+                        @RequestParam(required = false) List<String> statuses,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size) {
                 Long currentUserId = SecurityUtil.getCurrentUserId();
-                List<BookingResponse> result = bookingService.findByUserId(currentUserId);
-                return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>builder()
+                PageResponse<BookingResponse> result = bookingService.findByUserIdAndStatuses(
+                                currentUserId, statuses, page, size);
+                return ResponseEntity.ok(ApiResponse.<PageResponse<BookingResponse>>builder()
                                 .status(HttpStatus.OK.value())
                                 .message("Success")
                                 .data(result)

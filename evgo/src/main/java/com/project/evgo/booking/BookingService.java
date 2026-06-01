@@ -26,6 +26,8 @@ public interface BookingService {
 
     List<BookingResponse> findByUserId(Long userId);
 
+    PageResponse<BookingResponse> findByUserIdAndStatuses(Long userId, List<String> statusStrs, int page, int size);
+
     List<BookingResponse> findByPortId(Long portId);
 
     void checkAvailability(CheckAvailabilityRequest request);

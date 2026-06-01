@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GradientBackground from "@/components/ui/GradientBackground";
 import { InvoiceCard, InvoiceCardSkeleton } from '@/components/InvoiceCard';
 import { getMyInvoices, payInvoice } from '@/apis/invoiceApi';
+import { checkUnpaidInvoices } from '@/apis/paymentApi';
 import { InvoiceResponse, InvoicePurpose } from '@/types/invoice.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -101,6 +102,14 @@ export default function PaymentPage() {
 
             if (shouldRefresh || pageNum === 0) {
                 setInvoices(response.content);
+                // Sync global unpaidCount store state
+                checkUnpaidInvoices()
+                    .then((hasUnpaid: boolean) => {
+                        useUserStore.getState().setUnpaidCount(hasUnpaid ? 1 : 0);
+                    })
+                    .catch((err: any) => {
+                        console.log("Failed to sync unpaid invoices count:", err);
+                    });
             } else {
                 setInvoices(prev => [...prev, ...response.content]);
             }

@@ -42,6 +42,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 
 /**
@@ -71,6 +72,34 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<BookingResponse> findByUserId(Long userId) {
         return converter.toResponseList(bookingRepository.findByUserId(userId));
+    }
+
+    @Override
+    public PageResponse<BookingResponse> findByUserIdAndStatuses(Long userId, List<String> statusStrs, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startTime"));
+        Page<Booking> bookingPage;
+        if (statusStrs == null || statusStrs.isEmpty()) {
+            bookingPage = bookingRepository.findByUserId(userId, pageable);
+        } else {
+            List<BookingStatus> statuses = statusStrs.stream()
+                    .map(s -> {
+                        try {
+                            return BookingStatus.valueOf(s.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            return null;
+                        }
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
+
+            if (statuses.isEmpty()) {
+                bookingPage = bookingRepository.findByUserId(userId, pageable);
+            } else {
+                bookingPage = bookingRepository.findByUserIdAndStatusIn(userId, statuses, pageable);
+            }
+        }
+        Page<BookingResponse> responsePage = bookingPage.map(converter::toResponse);
+        return PageResponse.of(responsePage);
     }
 
     @Override
