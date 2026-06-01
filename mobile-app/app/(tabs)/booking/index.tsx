@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, ScrollView, ActivityIndicator, Text, RefreshControl, Linking, Alert } from "react-native";
+import { View, FlatList, ActivityIndicator, Text, Linking, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GradientBackground from "@/components/ui/GradientBackground";
 import AppHeader from "@/components/ui/AppHeader";
@@ -7,7 +7,7 @@ import BookingTabs, { TabName } from "@/components/booking/BookingTabs";
 import BookingCard from "@/components/booking/BookingCard";
 import { useRouter, useFocusEffect } from "expo-router";
 import { getMyBookings, cancelBooking } from "@/apis/bookingApi";
-import { BookingResponse, BookingStatus } from "@/types/booking.types";
+import { BookingResponse } from "@/types/booking.types";
 import { getInvoiceByBookingId, createZaloPayOrder } from "@/apis/paymentApi";
 import { useUserStore } from "@/contexts/user.store";
 import GuestPlaceholder from "@/components/auth/GuestPlaceholder";
@@ -18,38 +18,80 @@ export default function BookingPage() {
     const [activeTab, setActiveTab] = useState<TabName>("Upcoming");
     const [bookings, setBookings] = useState<BookingResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
     const [isPaying, setIsPaying] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
 
-    const fetchBookings = useCallback(async () => {
+    const fetchBookings = useCallback(async (
+        tab: TabName,
+        pageNum: number,
+        shouldRefresh = false
+    ) => {
         try {
-            setIsLoading(true);
-            const data = await getMyBookings();
-            // Sort by startTime descending (newest first)
-            data.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-            setBookings(data);
+            if (pageNum === 0) {
+                if (shouldRefresh) {
+                    setIsRefreshing(true);
+                } else {
+                    setIsLoading(true);
+                }
+            } else {
+                setIsLoadingMore(true);
+            }
+
+            // Map tab to statuses
+            let statuses: string[] = [];
+            if (tab === "Pending") {
+                statuses = ["PENDING"];
+            } else if (tab === "Upcoming") {
+                statuses = ["CONFIRMED", "IN_PROGRESS"];
+            } else if (tab === "Completed") {
+                statuses = ["COMPLETED"];
+            } else if (tab === "Cancelled") {
+                statuses = ["CANCELLED"];
+            }
+
+            const pageResponse = await getMyBookings(pageNum, 5, statuses);
+
+            if (pageNum === 0) {
+                setBookings(pageResponse.content);
+            } else {
+                setBookings((prev) => [...prev, ...pageResponse.content]);
+            }
+
+            setHasMore(!pageResponse.last);
+            setPage(pageNum);
         } catch (error) {
             console.error("Failed to fetch bookings:", error);
+            Alert.alert("Error", "Failed to fetch bookings. Please try again later.");
         } finally {
             setIsLoading(false);
+            setIsRefreshing(false);
+            setIsLoadingMore(false);
         }
     }, []);
 
     useFocusEffect(
         useCallback(() => {
             if (user) {
-                fetchBookings();
+                fetchBookings(activeTab, 0);
             }
-        }, [fetchBookings, user])
+        }, [fetchBookings, user, activeTab])
     );
 
-    const filteredBookings = bookings.filter((booking) => {
-        if (activeTab === "Pending") return booking.status === BookingStatus.PENDING;
-        if (activeTab === "Upcoming") return booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.IN_PROGRESS;
-        if (activeTab === "Completed") return booking.status === BookingStatus.COMPLETED;
-        if (activeTab === "Cancelled") return booking.status === BookingStatus.CANCELLED;
-        return false;
-    });
+    const handleRefresh = () => {
+        if (user) {
+            fetchBookings(activeTab, 0, true);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (!isLoading && !isRefreshing && !isLoadingMore && hasMore && user) {
+            fetchBookings(activeTab, page + 1);
+        }
+    };
 
     const handlePayNow = async (booking: BookingResponse) => {
         if (isPaying) return;
@@ -90,7 +132,7 @@ export default function BookingPage() {
                             setIsCancelling(true);
                             await cancelBooking(booking.id);
                             Alert.alert("Success", "Your booking has been cancelled.");
-                            await fetchBookings();
+                            await fetchBookings(activeTab, 0);
                         } catch (err: any) {
                             const errorCode = err?.response?.data?.message;
                             if (errorCode === "BOOKING_CANCELLATION_NOT_ALLOWED") {
@@ -135,36 +177,46 @@ export default function BookingPage() {
                     onTabChange={setActiveTab}
                 />
 
-                <ScrollView
+                <FlatList
                     style={{ flex: 1 }}
                     className="px-4"
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
-                    refreshControl={
-                        <RefreshControl refreshing={isLoading && bookings.length > 0} onRefresh={fetchBookings} tintColor="#00A452" />
-                    }
-                >
-                    {isLoading && bookings.length === 0 ? (
-                        <View className="flex-1 justify-center items-center py-20 mt-20">
-                            <ActivityIndicator size="large" color="#00A452" />
-                            <Text className="text-white mt-4">Loading bookings...</Text>
-                        </View>
-                    ) : filteredBookings.length === 0 ? (
-                        <View className="flex-1 justify-center items-center py-20 mt-20">
-                            <Text className="text-white/50 text-base">No {activeTab.toLowerCase()} bookings found.</Text>
-                        </View>
-                    ) : (
-                        filteredBookings.map((booking) => (
-                            <BookingCard
-                                key={booking.id}
-                                booking={booking}
-                                onCancel={() => handleCancel(booking)}
-                                onView={() => router.push(`/booking/${booking.id}` as any)}
-                                onPay={() => handlePayNow(booking)}
-                            />
-                        ))
+                    data={bookings}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={({ item }) => (
+                        <BookingCard
+                            booking={item}
+                            onCancel={() => handleCancel(item)}
+                            onView={() => router.push(`/booking/${item.id}` as any)}
+                            onPay={() => handlePayNow(item)}
+                        />
                     )}
-                </ScrollView>
+                    ListEmptyComponent={() => {
+                        if (isLoading) {
+                            return (
+                                <View className="flex-1 justify-center items-center py-20 mt-20">
+                                    <ActivityIndicator size="large" color="#00A452" />
+                                    <Text className="text-white mt-4">Loading bookings...</Text>
+                                </View>
+                            );
+                        }
+                        return (
+                            <View className="flex-1 justify-center items-center py-20 mt-20">
+                                <Text className="text-white/50 text-base">No {activeTab.toLowerCase()} bookings found.</Text>
+                            </View>
+                        );
+                    }}
+                    contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+                    showsVerticalScrollIndicator={false}
+                    onRefresh={handleRefresh}
+                    refreshing={isRefreshing}
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={() => (
+                        isLoadingMore ? (
+                            <ActivityIndicator size="small" color="#00A452" className="my-4" />
+                        ) : null
+                    )}
+                />
             </SafeAreaView>
         </GradientBackground>
     );

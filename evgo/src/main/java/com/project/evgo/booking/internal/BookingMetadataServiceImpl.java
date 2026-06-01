@@ -8,7 +8,11 @@ import com.project.evgo.sharedkernel.enums.AvailabilityStatus;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
 import com.project.evgo.station.PortCountProvider;
 import com.project.evgo.station.PortCounts;
+import com.project.evgo.station.StationService;
+import com.project.evgo.station.response.StationResponse;
+import com.project.evgo.station.response.StationOpeningHoursResponse;
 import lombok.RequiredArgsConstructor;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -26,6 +30,7 @@ public class BookingMetadataServiceImpl implements BookingMetadataService {
 
     private final BookingRepository bookingRepository;
     private final PortCountProvider portCountProvider;
+    private final StationService stationService;
 
     @Override
     public DurationConfigResponse getDurations() {
@@ -81,9 +86,9 @@ public class BookingMetadataServiceImpl implements BookingMetadataService {
     }
 
     @Override
-    public List<AvailableSlotResponse> getAvailableSlots(Long stationId, LocalDate date, Double durationHour) {
+    public List<AvailableSlotResponse> getAvailableSlots(Long stationId, Long portId, LocalDate date, Double durationHour) {
         PortCounts portCounts = portCountProvider.getPortCounts(stationId);
-        int totalPorts = portCounts.totalPorts();
+        int totalPorts = portId != null ? 1 : portCounts.totalPorts();
         
         if (totalPorts == 0) {
             return Collections.emptyList();
@@ -95,7 +100,63 @@ public class BookingMetadataServiceImpl implements BookingMetadataService {
         List<BookingStatus> activeStatuses = Arrays.asList(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS);
         List<Booking> bookings = bookingRepository.findByStationIdAndStatusInAndStartTimeBetween(stationId, activeStatuses, startOfDay, endOfDay);
 
-        return calculateSlots(totalPorts, date, durationHour, bookings);
+        if (portId != null) {
+            bookings = bookings.stream()
+                    .filter(b -> b.getPortId().equals(portId))
+                    .toList();
+        }
+
+        List<AvailableSlotResponse> slots = calculateSlots(totalPorts, date, durationHour, bookings);
+
+        // Apply station opening hours constraint if configured
+        Optional<StationResponse> stationOpt = stationService.findById(stationId);
+        if (stationOpt.isPresent()) {
+            StationResponse station = stationOpt.get();
+            if (station.openingHours() != null && !station.openingHours().isEmpty()) {
+                java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
+                Optional<StationOpeningHoursResponse> hoursOpt = station.openingHours().stream()
+                        .filter(h -> h.dayOfWeek() == dayOfWeek)
+                        .findFirst();
+
+                if (hoursOpt.isPresent()) {
+                    StationOpeningHoursResponse hours = hoursOpt.get();
+                    if (Boolean.FALSE.equals(hours.isOpen())) {
+                        // Closed on this day: return empty list
+                        return Collections.emptyList();
+                    } else {
+                        LocalTime open = hours.openTime();
+                        LocalTime close = hours.closeTime();
+                        if (open != null && close != null) {
+                            return slots.stream()
+                                    .filter(s -> isSlotWithinOpeningHours(s.getStartTime(), s.getEndTime(), open, close))
+                                    .toList();
+                        }
+                    }
+                }
+            }
+        }
+
+        return slots;
+    }
+
+    private boolean isSlotWithinOpeningHours(LocalTime start, LocalTime end, LocalTime open, LocalTime close) {
+        if (open.equals(LocalTime.of(0, 0)) && close.equals(LocalTime.of(0, 0))) {
+            return true;
+        }
+
+        if (start.isBefore(open)) {
+            return false;
+        }
+
+        if (end.equals(LocalTime.of(0, 0))) {
+            return close.equals(LocalTime.of(0, 0));
+        }
+
+        if (close.equals(LocalTime.of(0, 0))) {
+            return true;
+        }
+
+        return !end.isAfter(close);
     }
 
     private List<AvailableSlotResponse> calculateSlots(int totalPorts, LocalDate date, Double durationHour, List<Booking> bookings) {

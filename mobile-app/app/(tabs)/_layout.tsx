@@ -4,14 +4,14 @@ import {
     MaterialTopTabNavigationOptions,
     MaterialTopTabBarProps,
 } from "@react-navigation/material-top-tabs";
-import React from "react";
-import { Pressable, View, Text } from "react-native";
+import React, { useEffect } from "react";
+import { Pressable, View, Text, AppState, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { AppColors } from "@/constants/theme";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useUserStore } from "@/contexts/user.store";
-import { Alert } from "react-native";
+import * as paymentApi from "@/apis/paymentApi";
 
 // Create the custom navigator
 const { Navigator } = createMaterialTopTabNavigator();
@@ -21,6 +21,32 @@ const MaterialTopTabs = withLayoutContext(Navigator);
 export default function TabLayout() {
     const TAB_HEIGHT = 50;
     const insets = useSafeAreaInsets();
+
+    useEffect(() => {
+        const checkUnpaid = async () => {
+            const user = useUserStore.getState().user;
+            if (!user) return;
+            try {
+                const hasUnpaid = await paymentApi.checkUnpaidInvoices();
+                useUserStore.getState().setUnpaidCount(hasUnpaid ? 1 : 0);
+            } catch (err) {
+                console.log("Failed to check unpaid invoices globally:", err);
+            }
+        };
+
+        // Run check initially when tabs mount
+        checkUnpaid();
+
+        const subscription = AppState.addEventListener("change", (nextAppState) => {
+            if (nextAppState === "active") {
+                checkUnpaid();
+            }
+        });
+
+        return () => {
+            subscription.remove();
+        };
+    }, []);
 
     const CenterTabButton = ({ onPress, isFocused }: { onPress?: () => void; isFocused: boolean }) => {
         const unpaidCount = useUserStore((state) => state.unpaidCount) || 0;

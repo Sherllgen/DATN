@@ -42,6 +42,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import com.project.evgo.sharedkernel.dto.PageResponse;
 
 /**
@@ -60,7 +61,7 @@ public class BookingServiceImpl implements BookingService {
     private final StringRedisTemplate redisTemplate;
     private final StationService stationService;
 
-    private static final long LOCK_TTL_MINUTES = 8;
+    private static final long LOCK_TTL_MINUTES = 13;
     private static final String LOCK_PREFIX = "evgo:booking:lock:";
 
     @Override
@@ -74,6 +75,34 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public PageResponse<BookingResponse> findByUserIdAndStatuses(Long userId, List<String> statusStrs, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startTime"));
+        Page<Booking> bookingPage;
+        if (statusStrs == null || statusStrs.isEmpty()) {
+            bookingPage = bookingRepository.findByUserId(userId, pageable);
+        } else {
+            List<BookingStatus> statuses = statusStrs.stream()
+                    .map(s -> {
+                        try {
+                            return BookingStatus.valueOf(s.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            return null;
+                        }
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
+
+            if (statuses.isEmpty()) {
+                bookingPage = bookingRepository.findByUserId(userId, pageable);
+            } else {
+                bookingPage = bookingRepository.findByUserIdAndStatusIn(userId, statuses, pageable);
+            }
+        }
+        Page<BookingResponse> responsePage = bookingPage.map(converter::toResponse);
+        return PageResponse.of(responsePage);
+    }
+
+    @Override
     public List<BookingResponse> findByPortId(Long portId) {
         return converter.toResponseList(bookingRepository.findByPortId(portId));
     }
@@ -81,6 +110,7 @@ public class BookingServiceImpl implements BookingService {
     // check availability and create a hold on Redis
     @Override
     public void checkAvailability(CheckAvailabilityRequest request) {
+        validateBookingTime(request.getStartTime(), request.getEndTime());
         boolean hasOverlapDB = bookingRepository
                 .existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
                         request.getPortId(),
@@ -116,6 +146,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponse createBooking(CreateBookingRequest request) {
+        validateBookingTime(request.getStartTime(), request.getEndTime());
         List<LocalDateTime> intervals = getIntervals(request.getStartTime(), request.getEndTime());
         Long currentUserId = SecurityUtil.getCurrentUserId();
 
@@ -356,6 +387,40 @@ public class BookingServiceImpl implements BookingService {
         });
     }
 
+    @Override
+    @Transactional
+    public void expireBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking == null) {
+            log.warn("Tried to expire bookingId={} but it no longer exists.", bookingId);
+            return;
+        }
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            // Guard: booking may have been cancelled or transitioned since the scheduler queried.
+            log.debug("Skipping expire for bookingId={} — current status is {}.", bookingId, booking.getStatus());
+            return;
+        }
+        booking.setStatus(BookingStatus.EXPIRED);
+        bookingRepository.save(booking);
+        log.info("Expired no-show booking {} (endTime={}) — no charging session was ever started.",
+                bookingId, booking.getEndTime());
+    }
+
+    private void validateBookingTime(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Start time and end time are required");
+        }
+        if (endTime.isBefore(startTime) || endTime.isEqual(startTime)) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "End time must be after start time");
+        }
+        if (startTime.isBefore(LocalDateTime.now().minusMinutes(15))) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Start time cannot be in the past");
+        }
+        if (endTime.isBefore(LocalDateTime.now())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "End time must be in the future");
+        }
+    }
+
     // splits the duration into 30-minute blocks
     private List<LocalDateTime> getIntervals(LocalDateTime startTime, LocalDateTime endTime) {
         List<LocalDateTime> intervals = new ArrayList<>();
@@ -371,3 +436,4 @@ public class BookingServiceImpl implements BookingService {
         return LOCK_PREFIX + portId + ":" + intervalStart.toString();
     }
 }
+

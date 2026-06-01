@@ -28,6 +28,7 @@ import com.project.evgo.payment.internal.Invoice;
 import com.project.evgo.payment.internal.InvoiceDtoConverter;
 import com.project.evgo.payment.internal.InvoiceRepository;
 import com.project.evgo.payment.internal.InvoiceServiceImpl;
+import com.project.evgo.payment.internal.TransactionRepository;
 import com.project.evgo.payment.request.InvoiceCreatedRequest;
 import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.payment.response.InvoiceStatsResponse;
@@ -48,6 +49,9 @@ class InvoiceServiceImplTest {
 
     @Mock
     private InvoiceDtoConverter invoiceDtoConverter;
+
+    @Mock
+    private TransactionRepository transactionRepository;
 
     private static final Long INVOICE_ID = 1L;
     private static final Long BOOKING_ID = 100L;
@@ -70,6 +74,10 @@ class InvoiceServiceImplTest {
 
         testResponse = InvoiceResponse.builder().id(INVOICE_ID).status(InvoiceStatus.PENDING).build();
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Find Invoice Tests
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("Find Invoice Tests")
@@ -120,6 +128,10 @@ class InvoiceServiceImplTest {
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Create Invoice Tests
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Nested
     @DisplayName("Create Invoice Tests")
     class CreateInvoiceTests {
@@ -147,6 +159,122 @@ class InvoiceServiceImplTest {
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // getMyInvoices — purpose filter Tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("getMyInvoices — purpose filter Tests")
+    class GetMyInvoicesTests {
+
+        @Test
+        @DisplayName("getMyInvoices with null purpose should call findByUserIdAndStatus (no filter)")
+        void getMyInvoices_NullPurpose_CallsUnfilteredRepository() {
+            Page<Invoice> page = new PageImpl<>(List.of(testInvoice));
+            when(invoiceRepository.findByUserIdAndStatus(
+                    eq(USER_ID), eq(InvoiceStatus.PENDING), any(Pageable.class)))
+                    .thenReturn(page);
+            when(invoiceDtoConverter.convert(testInvoice)).thenReturn(testResponse);
+
+            PageResponse<InvoiceResponse> result = invoiceService.getMyInvoices(
+                    USER_ID, InvoiceStatus.PENDING, null, 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+            verify(invoiceRepository).findByUserIdAndStatus(
+                    eq(USER_ID), eq(InvoiceStatus.PENDING), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("getMyInvoices with BOOKING purpose should call findByUserIdAndStatusAndPurpose")
+        void getMyInvoices_BookingPurpose_CallsFilteredRepository() {
+            Page<Invoice> page = new PageImpl<>(List.of(testInvoice));
+            when(invoiceRepository.findByUserIdAndStatusAndPurpose(
+                    eq(USER_ID), eq(InvoiceStatus.PENDING), eq(InvoicePurpose.BOOKING), any(Pageable.class)))
+                    .thenReturn(page);
+            when(invoiceDtoConverter.convert(testInvoice)).thenReturn(testResponse);
+
+            PageResponse<InvoiceResponse> result = invoiceService.getMyInvoices(
+                    USER_ID, InvoiceStatus.PENDING, InvoicePurpose.BOOKING, 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+            verify(invoiceRepository).findByUserIdAndStatusAndPurpose(
+                    eq(USER_ID), eq(InvoiceStatus.PENDING), eq(InvoicePurpose.BOOKING), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("getMyInvoices with IDLE_FEE purpose should call findByUserIdAndStatusAndPurpose")
+        void getMyInvoices_IdleFeePurpose_CallsFilteredRepository() {
+            Invoice idleFeeInvoice = new Invoice();
+            idleFeeInvoice.setId(2L);
+            idleFeeInvoice.setUserId(USER_ID);
+            idleFeeInvoice.setPurpose(InvoicePurpose.IDLE_FEE);
+            idleFeeInvoice.setStatus(InvoiceStatus.PENDING);
+            idleFeeInvoice.setTotalCost(BigDecimal.valueOf(5000));
+
+            InvoiceResponse idleFeeResponse = InvoiceResponse.builder()
+                    .id(2L).status(InvoiceStatus.PENDING).build();
+
+            Page<Invoice> page = new PageImpl<>(List.of(idleFeeInvoice));
+            when(invoiceRepository.findByUserIdAndStatusAndPurpose(
+                    eq(USER_ID), eq(InvoiceStatus.PENDING), eq(InvoicePurpose.IDLE_FEE), any(Pageable.class)))
+                    .thenReturn(page);
+            when(invoiceDtoConverter.convert(idleFeeInvoice)).thenReturn(idleFeeResponse);
+
+            PageResponse<InvoiceResponse> result = invoiceService.getMyInvoices(
+                    USER_ID, InvoiceStatus.PENDING, InvoicePurpose.IDLE_FEE, 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).getId()).isEqualTo(2L);
+            verify(invoiceRepository).findByUserIdAndStatusAndPurpose(
+                    eq(USER_ID), eq(InvoiceStatus.PENDING), eq(InvoicePurpose.IDLE_FEE), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("getMyInvoices with CHARGING_SESSION purpose should call findByUserIdAndStatusAndPurpose")
+        void getMyInvoices_ChargingSessionPurpose_CallsFilteredRepository() {
+            Invoice sessionInvoice = new Invoice();
+            sessionInvoice.setId(3L);
+            sessionInvoice.setUserId(USER_ID);
+            sessionInvoice.setPurpose(InvoicePurpose.CHARGING_SESSION);
+            sessionInvoice.setStatus(InvoiceStatus.PAID);
+            sessionInvoice.setTotalCost(BigDecimal.valueOf(30000));
+
+            InvoiceResponse sessionResponse = InvoiceResponse.builder()
+                    .id(3L).status(InvoiceStatus.PAID).build();
+
+            Page<Invoice> page = new PageImpl<>(List.of(sessionInvoice));
+            when(invoiceRepository.findByUserIdAndStatusAndPurpose(
+                    eq(USER_ID), eq(InvoiceStatus.PAID), eq(InvoicePurpose.CHARGING_SESSION), any(Pageable.class)))
+                    .thenReturn(page);
+            when(invoiceDtoConverter.convert(sessionInvoice)).thenReturn(sessionResponse);
+
+            PageResponse<InvoiceResponse> result = invoiceService.getMyInvoices(
+                    USER_ID, InvoiceStatus.PAID, InvoicePurpose.CHARGING_SESSION, 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+            verify(invoiceRepository).findByUserIdAndStatusAndPurpose(
+                    eq(USER_ID), eq(InvoiceStatus.PAID), eq(InvoicePurpose.CHARGING_SESSION), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("getMyInvoices with null purpose and empty result returns empty page")
+        void getMyInvoices_NullPurpose_EmptyResult() {
+            Page<Invoice> emptyPage = new PageImpl<>(List.of());
+            when(invoiceRepository.findByUserIdAndStatus(
+                    eq(USER_ID), eq(InvoiceStatus.PAID), any(Pageable.class)))
+                    .thenReturn(emptyPage);
+
+            PageResponse<InvoiceResponse> result = invoiceService.getMyInvoices(
+                    USER_ID, InvoiceStatus.PAID, null, 0, 10);
+
+            assertThat(result.content()).isEmpty();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Miscellaneous Queries
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Nested
     @DisplayName("Miscellaneous Queries")
     class MiscQueriesTests {
@@ -162,18 +290,19 @@ class InvoiceServiceImplTest {
         }
 
         @Test
-        @DisplayName("getMyInvoices should return page of invoices")
-        void getMyInvoices_Success() {
-            Page<Invoice> page = new PageImpl<>(List.of(testInvoice));
-            when(invoiceRepository.findByUserIdAndStatus(eq(USER_ID), eq(InvoiceStatus.PENDING), any(Pageable.class)))
-                    .thenReturn(page);
-            when(invoiceDtoConverter.convert(testInvoice)).thenReturn(testResponse);
+        @DisplayName("hasUnpaidInvoices should return false when no unpaid invoices")
+        void hasUnpaidInvoices_ReturnsFalse() {
+            when(invoiceRepository.existsByUserIdAndStatus(USER_ID, InvoiceStatus.PENDING)).thenReturn(false);
 
-            PageResponse<InvoiceResponse> result = invoiceService.getMyInvoices(USER_ID, InvoiceStatus.PENDING, 0, 10);
+            boolean result = invoiceService.hasUnpaidInvoices(USER_ID);
 
-            assertThat(result.content()).hasSize(1);
+            assertThat(result).isFalse();
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Statistics Tests
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("Statistics Tests")

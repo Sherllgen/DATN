@@ -3,6 +3,7 @@ package com.project.evgo.charging.internal;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,11 +27,6 @@ import com.project.evgo.sharedkernel.enums.ChargingSessionStatus;
 
 /**
  * Listens to OCPP-originated Application Events and updates ChargingSession state accordingly.
- * <p>
- * Uses {@code @ApplicationModuleListener} to guarantee correct transaction/async boundaries
- * as recommended by Spring Modulith.
- * <p>
- * OCPP 1.6J Reference: {@code doc/ocpp.md/docs/OCPP-1.6J.md}
  */
 @Component
 @RequiredArgsConstructor
@@ -47,14 +43,6 @@ public class OcppChargingEventListener {
 
     /**
      * Handles StartTransaction from the charge point.
-     * <p>
-     * Per OCPP 1.6 §4.10, StartTransaction.req contains: connectorId, idTag, meterStart, timestamp.
-     * The Central System responds with a transactionId in StartTransaction.conf.
-     * <p>
-     * Transitions the PREPARING session to CHARGING, records meterStart, transactionId, and startTime
-     * using the OCPP-provided timestamp.
-     * <p>
-     * Idempotency: if no PREPARING session found (e.g. already CHARGING), logs and ignores.
      */
     @EventListener
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -82,19 +70,11 @@ public class OcppChargingEventListener {
         sessionRepository.save(session);
         log.info("Session {} updated to CHARGING: transactionId={}, meterStart={}, startTime={}",
                 session.getId(), event.transactionId(), event.meterStart(), event.timestamp());
+        chargingMonitorService.pushUpdate(session, event.meterStart(), event.timestamp());
     }
 
     /**
      * Handles StopTransaction from the charge point.
-     * <p>
-     * Per OCPP 1.6 §4.12, StopTransaction.req contains: transactionId, meterStop, timestamp,
-     * and optionally idTag, reason, and transactionData (meter values).
-     * <p>
-     * Valid reasons per spec: EmergencyStop, EVDisconnected, HardReset, Local, Other,
-     * PowerLoss, Reboot, Remote, SoftReset, UnlockCommand, DeAuthorized.
-     * <p>
-     * Completes the session, calculates totalKwh (meterStop - meterStart in Wh → kWh),
-     * sets endTime from the OCPP timestamp, and publishes {@link ChargingSessionCompletedEvent}.
      */
     @EventListener
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -136,6 +116,7 @@ public class OcppChargingEventListener {
 
         sessionRepository.save(session);
         log.info("Session {} set to FINISHING: totalKwh={}, reason={}", session.getId(), totalKwh, event.reason());
+        chargingMonitorService.pushUpdate(session, null, event.timestamp());
 
         eventPublisher.publishEvent(new ChargingSessionCompletedEvent(
                 session.getId(), session.getUserId(), session.getPortId(), totalKwh, event.reason(), session.getBookingId()));
@@ -143,21 +124,6 @@ public class OcppChargingEventListener {
 
     /**
      * Handles StatusNotification from the charge point.
-     * <p>
-     * Per OCPP 1.6 §4.11, StatusNotification.req contains: connectorId, errorCode, status,
-     * and optionally info, timestamp, vendorErrorCode, vendorId.
-     * <p>
-     * connectorId=0 refers to the entire charge point (not a specific connector) per §2.2.
-     * <p>
-     * Handles two scenarios:
-     * <ul>
-     *   <li><b>SuspendedEV / SuspendedEVSE:</b> Updates a CHARGING session to reflect the suspended state.</li>
-     *   <li><b>Available:</b> Marks a FINISHING session as COMPLETED (cable unplugged) and publishes
-     *       {@link CableUnpluggedEvent} to stop idle fee calculation.</li>
-     * </ul>
-     * <p>
-     * Per OCPP 1.6 §5, typical status flow:
-     * Available → Preparing → Charging → SuspendedEV/SuspendedEVSE → Finishing → Available
      */
     @EventListener
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -196,6 +162,15 @@ public class OcppChargingEventListener {
                 session.setStatus(newStatus);
                 sessionRepository.save(session);
                 log.info("Session {} updated to {} from StatusNotification.", session.getId(), newStatus);
+                String redisKey = REDIS_METER_KEY_PREFIX + session.getId();
+                String cachedMeterStr = redisTemplate.opsForValue().get(redisKey);
+                Integer currentMeter = null;
+                if (cachedMeterStr != null) {
+                    try {
+                        currentMeter = Integer.parseInt(cachedMeterStr);
+                    } catch (NumberFormatException ignored) {}
+                }
+                chargingMonitorService.pushUpdate(session, currentMeter, event.timestamp());
             } else {
                 log.debug("No active session (CHARGING/SUSPENDED_EV/SUSPENDED_EVSE) found for portId={} on status '{}'. Nothing to do.",
                         event.portId(), status);
@@ -224,8 +199,9 @@ public class OcppChargingEventListener {
 
         // idleStartTime = session's endTime (when StopTransaction was received)
         // cableUnpluggedTime = StatusNotification timestamp, or now() if not provided
-        java.time.LocalDateTime cableUnpluggedTime = event.timestamp() != null
-                ? event.timestamp() : java.time.LocalDateTime.now();
+        LocalDateTime cableUnpluggedTime = event.timestamp() != null
+                ? event.timestamp() : LocalDateTime.now();
+        chargingMonitorService.pushUpdate(session, null, cableUnpluggedTime);
 
         eventPublisher.publishEvent(new CableUnpluggedEvent(
                 session.getId(), session.getPortId(), session.getUserId(),
@@ -236,20 +212,6 @@ public class OcppChargingEventListener {
 
     /**
      * Handles MeterValues from the charge point.
-     * <p>
-     * Per OCPP 1.6 §4.4, MeterValues.req contains periodic meter samples during a transaction.
-     * This handler:
-     * <ol>
-     *   <li>Looks up the session by transactionId</li>
-     *   <li>Caches the current meter value in Redis with a 24-hour TTL</li>
-     *   <li>Triggers an SSE push to the subscribed mobile client</li>
-     * </ol>
-     * <p>
-     * Redis key pattern: {@code evgo:charging:meter:{sessionId}}
-     * <p>
-     * NOTE: {@code @Transactional} is intentionally omitted here. This method only performs
-     * a read-only DB lookup ({@code findByTransactionId}) and writes to Redis — there is no
-     * database mutation, so wrapping it in a transaction would add unnecessary overhead.
      */
     @EventListener
     public void onMeterValues(MeterValuesReceivedEvent event) {

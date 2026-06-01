@@ -1,3 +1,6 @@
+export type InvoicePurpose = 'BOOKING' | 'CHARGING_SESSION' | 'IDLE_FEE';
+export type InvoiceStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+
 export interface InvoiceResponse {
     id: number;
     bookingId?: number;
@@ -5,8 +8,8 @@ export interface InvoiceResponse {
     userId: number;
     number: string;
     totalCost: number;
-    purpose: string;
-    status: 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+    purpose: InvoicePurpose;
+    status: InvoiceStatus;
     createdAt: string;
 }
 

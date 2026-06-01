@@ -108,14 +108,14 @@ class BookingServiceTest {
 
 
                 when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
+                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(13L), eq(TimeUnit.MINUTES)))
                                 .thenReturn(true);
 
                 // When
                 bookingService.checkAvailability(req);
 
                 // Then
-                verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(8L),
+                verify(valueOperations, org.mockito.Mockito.times(2)).setIfAbsent(anyString(), anyString(), eq(13L),
                                 eq(TimeUnit.MINUTES));
         }
     @Test
@@ -130,7 +130,7 @@ class BookingServiceTest {
 
 
                 when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(8L), eq(TimeUnit.MINUTES)))
+                when(valueOperations.setIfAbsent(anyString(), anyString(), eq(13L), eq(TimeUnit.MINUTES)))
                                 .thenReturn(false);
 
                 // When / Then
@@ -487,6 +487,28 @@ class BookingServiceTest {
         assertThat(result).hasSize(12);
         assertThat(result.get(0).getBookings()).isEqualTo(0L);
         assertThat(result.get(0).getRevenue()).isEqualTo(java.math.BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("checkAvailability_WithStartTimeTooFarInPast_ThrowsAppException")
+    void checkAvailability_WithStartTimeTooFarInPast_ThrowsAppException() {
+        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 100L,
+                LocalDateTime.now().minusMinutes(20), LocalDateTime.now().plusHours(1));
+
+        assertThatThrownBy(() -> bookingService.checkAvailability(req))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("checkAvailability_WithEndTimeBeforeStartTime_ThrowsAppException")
+    void checkAvailability_WithEndTimeBeforeStartTime_ThrowsAppException() {
+        CheckAvailabilityRequest req = new CheckAvailabilityRequest(1L, 1L, 100L,
+                LocalDateTime.now().plusHours(2), LocalDateTime.now().plusHours(1));
+
+        assertThatThrownBy(() -> bookingService.checkAvailability(req))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
 
 }

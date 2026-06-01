@@ -6,6 +6,7 @@ import com.project.evgo.charger.response.PortResponse;
 import com.project.evgo.sharedkernel.enums.InvoicePurpose;
 import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 import com.project.evgo.sharedkernel.events.CableUnpluggedEvent;
+import com.project.evgo.sharedkernel.events.SendPushNotificationEvent;
 import com.project.evgo.station.PriceSettingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -37,6 +39,9 @@ class IdleFeeListenerTest {
 
     @Mock
     private PriceSettingService priceSettingService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private IdleFeeListener idleFeeListener;
@@ -85,6 +90,8 @@ class IdleFeeListenerTest {
         assertThat(savedInvoice.getPurpose()).isEqualTo(InvoicePurpose.IDLE_FEE);
         assertThat(savedInvoice.getStatus()).isEqualTo(InvoiceStatus.PENDING);
         assertThat(savedInvoice.getNumber()).startsWith("INV-IDLE-");
+        // B9: verify push notification is dispatched after invoice save
+        verify(eventPublisher).publishEvent(any(SendPushNotificationEvent.class));
     }
 
     @Test

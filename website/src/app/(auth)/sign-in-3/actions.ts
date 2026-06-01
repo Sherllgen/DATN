@@ -97,8 +97,35 @@ export async function loginAction(formData: FormData): Promise<LoginActionResult
 // LoginForm3 handles the redirect based on the return value if successful
 
 export async function logoutAction() {
-    (await cookies()).delete("accessToken");
-    (await cookies()).delete("refreshToken");
-    (await cookies()).delete("userRole");
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("accessToken")?.value;
+    const refreshToken = cookieStore.get("refreshToken")?.value;
+
+    // Notify backend so it can blacklist the access token
+    // and purge the refresh token from Redis.
+    if (accessToken) {
+        try {
+            await fetch(`${API_BACKEND_URL}/api/v1/auth/logout`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({ refreshToken: refreshToken ?? "" }),
+                // Hard timeout: do not block the user longer than 5 s
+                signal: AbortSignal.timeout(5000),
+            });
+        } catch (err) {
+            // Non-fatal: even if the backend call fails the local session
+            // is cleared below. Log for observability.
+            console.error("[logoutAction] Backend logout call failed:", err);
+        }
+    }
+
+    // Clear all local session cookies regardless of backend result.
+    cookieStore.delete("accessToken");
+    cookieStore.delete("refreshToken");
+    cookieStore.delete("userRole");
+
     redirect("/sign-in-3");
 }

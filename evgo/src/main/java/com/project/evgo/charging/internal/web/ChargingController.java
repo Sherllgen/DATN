@@ -22,6 +22,7 @@ import com.project.evgo.charging.ChargingService;
 import com.project.evgo.charging.internal.ChargingMonitorService;
 import com.project.evgo.charging.request.StartChargingRequest;
 import com.project.evgo.charging.request.StopChargingRequest;
+import com.project.evgo.charging.response.ChargingMonitorResponse;
 import com.project.evgo.charging.response.ChargingSessionResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
 import com.project.evgo.sharedkernel.dto.PageResponse;
@@ -138,6 +139,34 @@ public class ChargingController {
         }
         
         return chargingMonitorService.subscribe(id, session.getPortId());
+    }
+
+    /**
+     * Polling fallback — returns the latest known meter snapshot for a session.
+     * <p>
+     * Used by the mobile client when the SSE stream is unavailable.
+     * For in-progress sessions, consumedKwh will be 0 (meter values are ephemeral,
+     * not persisted between OCPP ticks). For completed sessions, totalKwh is used.
+     */
+    @GetMapping("/session/{id}/latest-meter")
+    @Operation(summary = "Get latest meter snapshot for a charging session (polling fallback)")
+    public ResponseEntity<ApiResponse<ChargingMonitorResponse>> getLatestMeter(
+            @PathVariable Long id) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        ChargingSessionResponse session = chargingService.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SESSION_NOT_FOUND));
+
+        if (!session.getUserId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.SESSION_NOT_OWNED);
+        }
+
+        ChargingMonitorResponse snapshot = chargingMonitorService.getLatestMeterSnapshot(id);
+
+        return ResponseEntity.ok(ApiResponse.<ChargingMonitorResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(snapshot)
+                .build());
     }
 }
 

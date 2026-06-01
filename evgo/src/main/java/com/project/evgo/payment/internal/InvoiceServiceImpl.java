@@ -101,9 +101,11 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
-    public PageResponse<InvoiceResponse> getMyInvoices(Long userId, InvoiceStatus status, int page, int size) {
+    public PageResponse<InvoiceResponse> getMyInvoices(Long userId, InvoiceStatus status, InvoicePurpose purpose, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Invoice> invoices = invoiceRepository.findByUserIdAndStatus(userId, status, pageable);
+        Page<Invoice> invoices = (purpose != null)
+                ? invoiceRepository.findByUserIdAndStatusAndPurpose(userId, status, purpose, pageable)
+                : invoiceRepository.findByUserIdAndStatus(userId, status, pageable);
         return PageResponse.of(invoices.map(invoiceDtoConverter::convert));
     }
 

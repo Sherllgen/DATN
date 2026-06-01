@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, ActivityIndicator, Alert, BackHandler } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Toast } from "toastify-react-native";
@@ -29,7 +30,13 @@ export default function ChargingPage() {
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [elapsedTime, setElapsedTime] = useState("00:00:00");
 
-    const { monitorData, isSessionEnded, isConnected, error } = useChargingMonitor(activeSession?.id ?? null);
+    const { monitorData, isSessionEnded, isConnected, isPolling, error } = useChargingMonitor(activeSession?.id ?? null);
+
+    // Determine values to display
+    const currentStatus = monitorData?.status || activeSession?.status || ChargingSessionStatus.PREPARING;
+    const consumedKwh = monitorData?.consumedKwh || 0;
+    const rate = monitorData?.chargingRatePerKwh || 0;
+    const cost = monitorData?.estimatedCost || 0;
 
     // Initialize session
     useEffect(() => {
@@ -111,9 +118,8 @@ export default function ChargingPage() {
     useEffect(() => {
         let interval: ReturnType<typeof setInterval>;
         
-        if (activeSession?.startTime && !isSessionEnded && activeSession.status !== ChargingSessionStatus.COMPLETED) {
+        if (activeSession?.startTime && !isSessionEnded && currentStatus !== ChargingSessionStatus.COMPLETED && currentStatus !== ChargingSessionStatus.FINISHING) {
             // Append Z to implicitly make it UTC if dates from backend are UTC without timezone info
-            // Ensure proper parsing of startTime string depending on backend format
             const startTimeStr = activeSession.startTime.endsWith('Z') ? activeSession.startTime : `${activeSession.startTime}Z`;
             const start = new Date(startTimeStr).getTime();
             
@@ -134,7 +140,20 @@ export default function ChargingPage() {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [activeSession?.startTime, isSessionEnded, activeSession?.status]);
+    }, [activeSession?.startTime, isSessionEnded, currentStatus]);
+
+    // Sync activeSession with monitorData status to fetch startTime once session starts charging
+    useEffect(() => {
+        if (monitorData && activeSession) {
+            if (activeSession.status === ChargingSessionStatus.PREPARING && monitorData.status === ChargingSessionStatus.CHARGING) {
+                getChargingSession(activeSession.id!)
+                    .then((updated) => {
+                        setActiveSession(updated);
+                    })
+                    .catch((err) => console.log("Failed to refresh active session details:", err));
+            }
+        }
+    }, [monitorData?.status, activeSession?.id]);
 
     // Handle session end
     useEffect(() => {
@@ -147,7 +166,7 @@ export default function ChargingPage() {
                     router.replace("/");
                 }}]
             );
-        } else if (isSessionEnded || activeSession?.status === ChargingSessionStatus.COMPLETED) {
+        } else if (isSessionEnded || activeSession?.status === ChargingSessionStatus.COMPLETED || activeSession?.status === ChargingSessionStatus.FINISHING) {
             setShowCompleteModal(true);
         }
     }, [isSessionEnded, activeSession?.status]);
@@ -155,7 +174,7 @@ export default function ChargingPage() {
     // Handle hardware back button
     useEffect(() => {
         const onBackPress = () => {
-            if (activeSession && activeSession.status !== ChargingSessionStatus.COMPLETED && !isSessionEnded) {
+            if (activeSession && activeSession.status !== ChargingSessionStatus.COMPLETED && activeSession.status !== ChargingSessionStatus.FINISHING && !isSessionEnded) {
                 Alert.alert(
                     "Warning",
                     "Please stop the charging session before leaving this page.",
@@ -220,7 +239,7 @@ export default function ChargingPage() {
                 try {
                     const session = await getChargingSession(activeSession.id);
                     // Also check if status on backend became COMPLETED. 
-                    if (session.status === ChargingSessionStatus.COMPLETED) {
+                    if (session.status === ChargingSessionStatus.COMPLETED || session.status === ChargingSessionStatus.FINISHING) {
                         setIsStopping(false);
                         setShowCompleteModal(true);
                         setActiveSession(session);
@@ -251,12 +270,6 @@ export default function ChargingPage() {
         router.replace("/");
     };
 
-    // Determine values to display
-    const currentStatus = monitorData?.status || activeSession?.status || ChargingSessionStatus.PREPARING;
-    const consumedKwh = monitorData?.consumedKwh || 0;
-    const rate = monitorData?.chargingRatePerKwh || 0;
-    const cost = monitorData?.estimatedCost || 0;
-
     return (
         <GradientBackground preset="main" dismissKeyboard={false}>
             <SafeAreaView style={{ flex: 1 }}>
@@ -264,6 +277,16 @@ export default function ChargingPage() {
                     title="Charging"
                     showBack
                 />
+
+                {/* Degraded-connection banner */}
+                {isPolling && (
+                    <View className="mx-4 mb-2 flex-row items-center bg-warning/10 border border-warning/30 rounded-xl px-3 py-2">
+                        <Ionicons name="wifi-outline" size={16} color="#F59E0B" />
+                        <Text className="text-warning text-xs ml-2 flex-1">
+                            Live connection lost — polling for updates every 5 s
+                        </Text>
+                    </View>
+                )}
 
                 {isStarting ? (
                     <View className="flex-1 items-center justify-center">
@@ -301,7 +324,7 @@ export default function ChargingPage() {
                                 className="w-full"
                                 style={{ height: 56 }}
                                 loading={isStopping}
-                                disabled={isStopping || isSessionEnded || currentStatus === ChargingSessionStatus.COMPLETED}
+                                disabled={isStopping || isSessionEnded || currentStatus === ChargingSessionStatus.COMPLETED || currentStatus === ChargingSessionStatus.FINISHING}
                             >
                                 Stop Charging
                             </Button>

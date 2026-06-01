@@ -53,7 +53,6 @@ public class StopTransactionHandler implements OcppActionHandler {
         log.info("StopTransaction from CP {}: transactionId={}, meterStop={}, timestamp={}, reason={}",
                 chargePointId, transactionId, meterStop, timestamp, reason);
 
-        // Publish event for Charging module
         eventPublisher.publishEvent(new StopTransactionReceivedEvent(
                 transactionId,
                 meterStop,
@@ -62,7 +61,6 @@ public class StopTransactionHandler implements OcppActionHandler {
                 reason
         ));
 
-        // Create StopTransaction.conf
         ObjectNode confPayload = objectMapper.createObjectNode();
         if (idTag != null) {
             ObjectNode idTagInfo = objectMapper.createObjectNode();

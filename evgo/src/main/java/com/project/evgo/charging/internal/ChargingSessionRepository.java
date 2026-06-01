@@ -42,4 +42,14 @@ public interface ChargingSessionRepository extends JpaRepository<ChargingSession
      * Used by the /me/active endpoint to return 0 or 1 result without fetching all sessions.
      */
     Optional<ChargingSession> findFirstByUserIdAndStatusIn(Long userId, Collection<ChargingSessionStatus> statuses);
+
+    /**
+     * Checks whether at least one ChargingSession row references the given bookingId.
+     */
+    boolean existsByBookingId(Long bookingId);
+
+    /**
+     * Find all sessions in a given status whose endTime is before the specified cutoff.
+     */
+    List<ChargingSession> findByStatusAndEndTimeBefore(ChargingSessionStatus status, LocalDateTime cutoff);
 }

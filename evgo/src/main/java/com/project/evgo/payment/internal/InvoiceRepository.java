@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.project.evgo.sharedkernel.enums.InvoicePurpose;
 import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 
 import java.math.BigDecimal;
@@ -29,6 +30,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByStatusAndCreatedAtBefore(InvoiceStatus status, LocalDateTime threshold);
 
     Page<Invoice> findByUserIdAndStatus(Long userId, InvoiceStatus status, Pageable pageable);
+
+    Page<Invoice> findByUserIdAndStatusAndPurpose(Long userId, InvoiceStatus status, InvoicePurpose purpose, Pageable pageable);
 
     @Query("SELECT SUM(i.totalCost) FROM Invoice i WHERE i.bookingId IN :bookingIds AND i.status = :status")
     BigDecimal sumAmountByBookingIdInAndStatus(

@@ -6,7 +6,8 @@ import {
     AvailableSlotResponse,
     CheckAvailabilityRequest,
     CreateBookingRequest,
-    BookingResponse
+    BookingResponse,
+    PageResponse
 } from "@/types/booking.types";
 
 const API_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -47,7 +48,8 @@ export const getCalendarStatus = async (
 export const getAvailableSlots = async (
     stationId: number,
     date: string,
-    duration: number
+    duration: number,
+    portId?: number
 ): Promise<AvailableSlotResponse[]> => {
     const res = await axiosInstance.get<ApiResponse<AvailableSlotResponse[]>>(
         `${API_BACKEND_URL}/api/v1/bookings/available-slots`,
@@ -56,6 +58,7 @@ export const getAvailableSlots = async (
                 stationId,
                 date,
                 duration,
+                portId,
             },
         }
     );
@@ -84,11 +87,16 @@ export const createBooking = async (request: CreateBookingRequest): Promise<Book
 };
 
 /**
- * Get all bookings for the currently authenticated user
+ * Get bookings for the currently authenticated user with pagination and status filtering
  */
-export const getMyBookings = async (): Promise<BookingResponse[]> => {
-    const res = await axiosInstance.get<ApiResponse<BookingResponse[]>>(
-        `${API_BACKEND_URL}/api/v1/bookings/my`
+export const getMyBookings = async (
+    page: number = 0,
+    size: number = 5,
+    statuses?: string[]
+): Promise<PageResponse<BookingResponse>> => {
+    const statusParam = statuses && statuses.length > 0 ? `&statuses=${statuses.join(",")}` : "";
+    const res = await axiosInstance.get<ApiResponse<PageResponse<BookingResponse>>>(
+        `${API_BACKEND_URL}/api/v1/bookings/my?page=${page}&size=${size}${statusParam}`
     );
     return res.data.data;
 };

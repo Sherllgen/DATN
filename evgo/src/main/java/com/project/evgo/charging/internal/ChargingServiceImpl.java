@@ -92,7 +92,7 @@ public class ChargingServiceImpl implements ChargingService {
     @Transactional
     public ChargingSessionResponse startCharging(StartChargingRequest request, Long userId) {
         String redisKey = "charging:start:" + userId + ":" + request.getPortId();
-        Boolean isAbsent = redisTemplate.opsForValue().setIfAbsent(redisKey, "LOCKED", Duration.ofSeconds(10));
+        Boolean isAbsent = redisTemplate.opsForValue().setIfAbsent(redisKey, "LOCKED", Duration.ofSeconds(30));
         if (Boolean.FALSE.equals(isAbsent)) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Please wait before trying again");
         }
@@ -200,10 +200,8 @@ public class ChargingServiceImpl implements ChargingService {
                 session.getId(), chargePointId, session.getTransactionId(), "User Requested"));
     }
 
-    //-------------------------- Cron jobs helper --------------------------------------------------------
-
-    // If a session is stuck in PREPARING for more than 3 minutes, it will be cleaned up and set to INTERRUPTED
-    // The linked booking will be reverted to CONFIRMED so the user can re-attempt charging
+    // If a session is stuck in PREPARING for more than 3 minutes, it will be cleaned up and set to INTERRUPTED.
+    // The linked booking will be reverted to CONFIRMED so the user can re-attempt charging.
     @Override
     @Transactional
     public void cleanupStuckPreparingSession(Long sessionId) {
@@ -217,5 +215,10 @@ public class ChargingServiceImpl implements ChargingService {
             chargerService.internalUpdatePortStatus(session.getPortId(), PortStatus.AVAILABLE);
             bookingService.revertBookingToConfirmed(session.getBookingId());
         }
+    }
+
+    @Override
+    public boolean existsSessionByBookingId(Long bookingId) {
+        return sessionRepository.existsByBookingId(bookingId);
     }
 }

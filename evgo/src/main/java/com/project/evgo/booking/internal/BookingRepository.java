@@ -20,6 +20,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByUserId(Long userId);
 
+    Page<Booking> findByUserId(Long userId, Pageable pageable);
+
+    Page<Booking> findByUserIdAndStatusIn(Long userId, List<BookingStatus> statuses, Pageable pageable);
+
     List<Booking> findByPortId(Long portId);
 
     List<Booking> findByStationIdAndStatusInAndStartTimeBetween(
@@ -39,6 +43,25 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByStatusAndEndTimeBetween(BookingStatus status, LocalDateTime from, LocalDateTime to);
 
     List<Booking> findByStatusAndCreatedAtBefore(BookingStatus status, LocalDateTime threshold);
+
+    /**
+     * Finds CONFIRMED bookings whose endTime has already passed.
+     */
+    List<Booking> findByStatusAndEndTimeBefore(BookingStatus status, LocalDateTime cutoff);
+
+    /**
+     * Finds no-show CONFIRMED bookings — those whose endTime has already passed
+     * AND that have no linked row in the {@code charging_sessions} table.
+     */
+    @Query(value = """
+            SELECT b.* FROM bookings b
+            WHERE b.status = 'CONFIRMED'
+              AND b.end_time < :cutoff
+              AND NOT EXISTS (
+                  SELECT 1 FROM charging_sessions cs WHERE cs.booking_id = b.id
+              )
+            """, nativeQuery = true)
+    List<Booking> findExpiredConfirmedBookingsWithNoSession(@Param("cutoff") LocalDateTime cutoff);
 
     Page<Booking> findByStationIdIn(List<Long> stationIds, Pageable pageable);
 
