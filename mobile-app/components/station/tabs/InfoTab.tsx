@@ -3,6 +3,7 @@ import { View, Text, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import StationMarker from "@/components/map/StationMarker";
 import { Station, StationStatus, PriceSettingResponse } from "@/types/station.types";
 import ChargerTypeTag from "@/components/station/ChargerTypeTag";
 import Button from "@/components/ui/Button";
@@ -188,18 +189,8 @@ const InfoTab = ({ station, priceSetting }: InfoTabProps) => {
                         }}
                     >
 
-                        <Marker
-                            coordinate={{
-                                latitude: station.latitude,
-                                longitude: station.longitude,
-                            }}
-                            pinColor={
-                                station.status === StationStatus.ACTIVE
-                                    ? "#4CAF50" // success/secondary
-                                    : station.status === StationStatus.SUSPENDED
-                                        ? "#F59E0B" // warning
-                                        : "#EF4444" // error
-                            }
+                        <StationMarker
+                            station={station}
                         />
                     </MapView>
                 </View>

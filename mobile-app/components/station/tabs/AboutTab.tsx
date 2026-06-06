@@ -8,9 +8,9 @@ interface AboutTabProps {
 }
 
 const AboutTab = ({ station }: AboutTabProps) => {
-    // Mock data for phone and website
-    const phoneNumber = "(+84) 123 456 789";
-    const website = "www.evgo-station.com";
+    // Currently the backend API does not provide these fields. Set them to empty/fallback values.
+    const phoneNumber = "Not updated";
+    const website = "Not updated";
 
     return (
         <View>
