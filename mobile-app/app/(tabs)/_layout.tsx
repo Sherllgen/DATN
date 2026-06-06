@@ -5,7 +5,7 @@ import {
     MaterialTopTabBarProps,
 } from "@react-navigation/material-top-tabs";
 import React, { useEffect } from "react";
-import { Pressable, View, Text, AppState, Alert } from "react-native";
+import { Pressable, View, Text, AppState, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { AppColors } from "@/constants/theme";
@@ -98,14 +98,17 @@ export default function TabLayout() {
 
     // Custom Tab Bar to position Top Tabs at the bottom
     const CustomTabBar = ({ state, descriptors, navigation }: MaterialTopTabBarProps) => {
+        // Fallback for Android devices where insets.bottom might be 0 despite edge-to-edge being enabled
+        const safeBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 48) : insets.bottom;
+        
         return (
             <View
                 style={{
                     flexDirection: 'row',
                     backgroundColor: "#131315",
-                    height: TAB_HEIGHT + insets.bottom,
+                    height: TAB_HEIGHT + safeBottom,
                     paddingTop: 6,
-                    paddingBottom: insets.bottom,
+                    paddingBottom: safeBottom,
                     borderTopWidth: 0.5,
                     borderTopColor: "rgba(255,255,255,0.1)",
                 }}

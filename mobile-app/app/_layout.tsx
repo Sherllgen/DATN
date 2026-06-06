@@ -5,6 +5,14 @@ import { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
+import * as NavigationBar from "expo-navigation-bar";
+import { Platform } from "react-native";
+
+if (Platform.OS === "android") {
+    NavigationBar.setPositionAsync("absolute");
+    NavigationBar.setVisibilityAsync("hidden");
+    NavigationBar.setBehaviorAsync("inset-swipe");
+}
 
 import { LinearGradient } from "expo-linear-gradient";
 import ToastManager from "toastify-react-native";
