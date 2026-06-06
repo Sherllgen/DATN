@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     KeyboardAvoidingView,
     Platform,
+    Dimensions,
     ModalProps as RNModalProps,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +32,8 @@ interface ModalProps extends Omit<RNModalProps, "transparent" | "animationType">
     contentClassName?: string;
 }
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 export default function Modal({
     visible,
     onClose,
@@ -42,6 +45,19 @@ export default function Modal({
     contentClassName = "",
     ...props
 }: ModalProps) {
+    const insets = useSafeAreaInsets();
+    
+    // Calculate actual bottom inset. On Android Modal, insets.bottom might be 0, 
+    // so we fallback to comparing screen height vs window height to detect the nav bar.
+    const { height: screenHeight } = Dimensions.get("screen");
+    const { height: windowHeight } = Dimensions.get("window");
+    const navBarHeight = Platform.OS === "android" ? Math.max(0, screenHeight - windowHeight) : 0;
+    
+    const actualBottomInset = Math.max(insets.bottom, navBarHeight);
+    
+    // Add extra breathing room (16px) above the nav bar, or default to 32px for gesture nav
+    const safeBottom = actualBottomInset > 0 ? actualBottomInset + 16 : 32;
+
     // Variant styles
     const containerVariantStyles = {
         "bottom-sheet": "flex-1 justify-end",
@@ -50,7 +66,7 @@ export default function Modal({
     };
 
     const contentVariantStyles = {
-        "bottom-sheet": "bg-surface pb-8 rounded-t-3xl",
+        "bottom-sheet": "bg-surface rounded-t-3xl", // pb handled dynamically via style
         centered: "bg-surface rounded-xl w-full max-w-md",
         "full-screen": "bg-surface flex-1",
     };
@@ -88,6 +104,7 @@ export default function Modal({
                             contentVariantStyles[variant],
                             contentClassName,
                         ].join(" ")}
+                        style={variant === "bottom-sheet" ? { paddingBottom: safeBottom } : undefined}
                     >
                         {/* Header */}
                         {/* Header Container (No Divider) */}

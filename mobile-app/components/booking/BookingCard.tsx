@@ -84,20 +84,24 @@ const BookingCard = ({ booking, onCancel, onView, onPay }: BookingCardProps) => 
                     value="Type"
                     icon={<MaterialCommunityIcons name="ev-plug-tesla" size={32} color="white" />}
                     showBorderRight
+                    flexRatio={0.7}
                 />
                 <BookingStatItem
                     label="Max. power"
                     value={booking.maxPower ? `${booking.maxPower} kW` : "N/A"}
                     showBorderRight
+                    flexRatio={1.1}
                 />
                 <BookingStatItem
                     label="Duration"
                     value={durationStr}
                     showBorderRight
+                    flexRatio={1}
                 />
                 <BookingStatItem
                     label="Amount"
                     value={`₫${booking.totalPrice?.toFixed(2) || "0.00"}`}
+                    flexRatio={1.5}
                 />
             </View>
 

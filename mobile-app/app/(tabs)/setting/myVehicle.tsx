@@ -29,10 +29,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function MyVehiclePage() {
-    const [vehicles, setVehicles] = useState<Vehicle[]>([
-        { id: "1", brand: "VINFAST", modelName: "Evo Neo" },
-        { id: "2", brand: "YADEA", modelName: "ODORA S2" },
-    ]);
+    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
     const [refreshing, setRefreshing] = useState(false);
 
@@ -107,12 +104,12 @@ export default function MyVehiclePage() {
 
     const validateVehicleForm = () => {
         if (!modelName.trim()) {
-            setErrorMessage("Vui lòng nhập tên xe");
+            setErrorMessage("Vehicle name required");
             return false;
         }
 
         if (connectorTypes.length === 0) {
-            setErrorMessage("Vui lòng chọn ít nhất 1 loại sạc");
+            setErrorMessage("Charger type required");
             return false;
         }
 
@@ -138,7 +135,7 @@ export default function MyVehiclePage() {
             }
         } catch (error) {
             logAxiosError(error);
-            setErrorMessage("Có lỗi xảy ra khi thêm xe");
+            setErrorMessage("Failed to add vehicle");
         } finally {
             setIsSaving(false);
         }
@@ -163,7 +160,7 @@ export default function MyVehiclePage() {
             }
         } catch (error) {
             logAxiosError(error);
-            setErrorMessage("Có lỗi xảy ra khi cập nhật xe");
+            setErrorMessage("Failed to update");
         } finally {
             setIsSaving(false);
         }

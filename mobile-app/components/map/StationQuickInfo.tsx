@@ -67,7 +67,7 @@ export default function StationQuickInfo({
 
     return (
         <Modal visible={visible} onClose={onClose}>
-            <View className="pb-6">
+            <View>
                 {/* Station Name and Navigation */}
                 <View className="flex-row items-center justify-between mb-4">
                     <View className="flex-1">

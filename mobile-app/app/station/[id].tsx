@@ -56,7 +56,7 @@ export default function StationDetailScreen() {
                     return null;
                 })
             ]);
-            
+
             setStation(data);
             setPriceSetting(priceData);
 
@@ -228,11 +228,11 @@ export default function StationDetailScreen() {
                             <Button
                                 variant="primary"
                                 fullWidth={false}
-                                onPress={() => console.log("Call station")}
+                                onPress={() => console.log("Direct to station")}
                                 className="flex-1"
                             >
-                                <Ionicons name="call" size={20} color="white" />
-                                {"  "}Call
+                                <Ionicons name="navigate" size={20} color="white" />
+                                {"  "}Direct
                             </Button>
                         </View>
                         {/* Tabs Navigation and Content */}

@@ -99,7 +99,7 @@ export default function TabLayout() {
     // Custom Tab Bar to position Top Tabs at the bottom
     const CustomTabBar = ({ state, descriptors, navigation }: MaterialTopTabBarProps) => {
         // Fallback for Android devices where insets.bottom might be 0 despite edge-to-edge being enabled
-        const safeBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 48) : insets.bottom;
+        const safeBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 12) : Math.max(insets.bottom, 12);
         
         return (
             <View

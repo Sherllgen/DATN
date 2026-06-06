@@ -1,6 +1,7 @@
 import React from "react";
 import { Marker } from "react-native-maps";
-import { StationSearchResult, StationStatus } from "@/types/station.types";
+import { Image } from "react-native";
+import { Station, StationStatus } from "@/types/station.types";
 
 const PIN_ACTIVE = require("@/assets/images/pin-active.png");
 const PIN_INACTIVE = require("@/assets/images/pin-inactive.png");
@@ -8,10 +9,10 @@ const PIN_SUSPENDED = require("@/assets/images/pin-suspended.png");
 const PIN_NAVIGATE = require("@/assets/images/pin-navigate.png");
 
 export interface StationMarkerProps {
-    station: StationSearchResult;
-    isNavigating: boolean;
-    isDestination: boolean;
-    onPress: () => void;
+    station: Station;
+    isNavigating?: boolean;
+    isDestination?: boolean;
+    onPress?: () => void;
 }
 
 /**
@@ -49,17 +50,39 @@ const StationMarker: React.FC<StationMarkerProps> = React.memo(
          */
         const zIndex = isNavigating && isDestination ? 10 : 5;
 
+        // Unify size across all maps for consistency
+        const size = 40;
+
+        const [tracksViewChanges, setTracksViewChanges] = React.useState(true);
+
+        // Force re-tracking if marker status changes
+        React.useEffect(() => {
+            setTracksViewChanges(true);
+        }, [isNavigating, isDestination, station.status]);
+
+        // Generate a unique key based on state so the Marker remounts when icon changes
+        const markerKey = `${station.id}-${isNavigating}-${isDestination}-${station.status}`;
+
         return (
             <Marker
+                key={markerKey}
                 coordinate={{
                     latitude: station.latitude,
                     longitude: station.longitude,
                 }}
+                anchor={{ x: 0.5, y: 1 }} // Pointy tip at the exact coordinate
+                centerOffset={{ x: 0, y: -size / 2 }} // Needed for callout positioning
                 onPress={onPress}
-                image={getMarkerImage()}
                 zIndex={zIndex}
-                tracksViewChanges={false} // Performance: Stop tracking for static markers
-            />
+                tracksViewChanges={tracksViewChanges}
+            >
+                <Image 
+                    source={getMarkerImage()} 
+                    style={{ width: size, height: size }} 
+                    resizeMode="contain"
+                    onLoad={() => setTracksViewChanges(false)}
+                />
+            </Marker>
         );
     }
 );
