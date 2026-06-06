@@ -74,6 +74,7 @@ public enum ErrorCode {
 
     // Port errors (7xxx)
     PORT_NOT_FOUND(7001, HttpStatus.NOT_FOUND, "Port not found"),
+    PORT_NOT_AVAILABLE(7002, HttpStatus.CONFLICT, "Port is not available for charging"),
 
     // Search errors (8xxx)
     INVALID_SEARCH_QUERY(8001, HttpStatus.BAD_REQUEST, "Search query cannot be empty"),

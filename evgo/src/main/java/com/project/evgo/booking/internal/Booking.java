@@ -40,8 +40,8 @@ public class Booking {
     @Column(name = "vehicle_id", nullable = false)
     private Long vehicleId;
 
-    @Column(name = "port_number", nullable = false)
-    private Integer portNumber;
+    @Column(name = "port_id", nullable = false)
+    private Long portId;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;

@@ -3,8 +3,14 @@ package com.project.evgo.payment.internal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.project.evgo.sharedkernel.enums.InvoicePurpose;
 import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,5 +27,25 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     boolean existsByUserIdAndStatus(Long userId, InvoiceStatus status);
 
+    List<Invoice> findByStatusAndCreatedAtBefore(InvoiceStatus status, LocalDateTime threshold);
+
     Page<Invoice> findByUserIdAndStatus(Long userId, InvoiceStatus status, Pageable pageable);
+
+    Page<Invoice> findByUserIdAndStatusAndPurpose(Long userId, InvoiceStatus status, InvoicePurpose purpose, Pageable pageable);
+
+    @Query("SELECT SUM(i.totalCost) FROM Invoice i WHERE i.bookingId IN :bookingIds AND i.status = :status")
+    BigDecimal sumAmountByBookingIdInAndStatus(
+            @Param("bookingIds") List<Long> bookingIds,
+            @Param("status") InvoiceStatus status);
+
+    @Query("SELECT MONTH(i.createdAt) as month, SUM(i.totalCost) as revenue " +
+            "FROM Invoice i " +
+            "WHERE i.bookingId IN :bookingIds " +
+            "AND i.status = :status " +
+            "AND YEAR(i.createdAt) = :year " +
+            "GROUP BY MONTH(i.createdAt)")
+    List<Object[]> sumMonthlyRevenueByBookingIdsAndYear(
+            @Param("bookingIds") List<Long> bookingIds,
+            @Param("status") InvoiceStatus status,
+            @Param("year") int year);
 }

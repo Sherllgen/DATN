@@ -87,6 +87,7 @@ class ChargingServiceTest {
         port.setId(portId);
         port.setChargerId(5L);
         port.setPortNumber(1);
+        port.setStatus(PortStatus.AVAILABLE);
         when(chargerService.findPortById(portId)).thenReturn(Optional.of(port));
 
         ChargingSessionResponse response = new ChargingSessionResponse();
@@ -234,18 +235,36 @@ class ChargingServiceTest {
         when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
         when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
 
-        ChargingSession savedSession = new ChargingSession();
-        savedSession.setId(10L);
-        when(sessionRepository.save(any(ChargingSession.class))).thenReturn(savedSession);
-
-        // Port resolution returns empty
+        // Port resolution returns empty (port validated before session save)
         when(chargerService.findPortById(portId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.startCharging(request, userId))
                 .isInstanceOf(AppException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PORT_NOT_FOUND);
 
         // Redis lock should be cleaned up on failure
+        verify(redisTemplate).delete(eq("charging:start:" + userId + ":" + portId));
+    }
+
+    @Test
+    @DisplayName("startCharging when port is not available should throw AppException")
+    void startCharging_PortNotAvailable_ThrowsAppException() {
+        Long userId = 1L;
+        Long portId = 100L;
+        StartChargingRequest request = new StartChargingRequest(null, portId);
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
+        when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
+
+        PortResponse port = PortResponse.builder().id(portId).chargerId(5L).portNumber(1).status(PortStatus.CHARGING).build();
+        when(chargerService.findPortById(portId)).thenReturn(Optional.of(port));
+
+        assertThatThrownBy(() -> service.startCharging(request, userId))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PORT_NOT_AVAILABLE);
+
         verify(redisTemplate).delete(eq("charging:start:" + userId + ":" + portId));
     }
 
@@ -291,15 +310,21 @@ class ChargingServiceTest {
         when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
         when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
 
-        BookingResponse booking = BookingResponse.builder().id(bookingId).userId(userId).build();
+        // Port must be resolved and AVAILABLE before booking validation
+        PortResponse port = PortResponse.builder().id(portId).chargerId(5L).portNumber(1).status(PortStatus.AVAILABLE).build();
+        when(chargerService.findPortById(portId)).thenReturn(Optional.of(port));
+
+        BookingResponse booking = BookingResponse.builder()
+                .id(bookingId)
+                .userId(userId)
+                .startTime(java.time.LocalDateTime.now().minusMinutes(5))
+                .endTime(java.time.LocalDateTime.now().plusHours(1))
+                .build();
         when(bookingService.findById(bookingId)).thenReturn(Optional.of(booking));
 
         ChargingSession savedSession = new ChargingSession();
         savedSession.setId(10L);
         when(sessionRepository.save(any(ChargingSession.class))).thenReturn(savedSession);
-
-        PortResponse port = PortResponse.builder().id(portId).chargerId(5L).portNumber(1).build();
-        when(chargerService.findPortById(portId)).thenReturn(Optional.of(port));
 
         ChargingSessionResponse response = ChargingSessionResponse.builder().id(10L).build();
         when(converter.convert(savedSession)).thenReturn(response);
@@ -322,6 +347,10 @@ class ChargingServiceTest {
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
         when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
+
+        // Port must be resolved before booking validation
+        PortResponse port = PortResponse.builder().id(portId).chargerId(5L).portNumber(1).status(PortStatus.AVAILABLE).build();
+        when(chargerService.findPortById(portId)).thenReturn(Optional.of(port));
 
         // Booking belongs to user 2
         BookingResponse booking = BookingResponse.builder().id(bookingId).userId(2L).build();
@@ -346,6 +375,10 @@ class ChargingServiceTest {
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         when(invoiceService.hasUnpaidInvoices(userId)).thenReturn(false);
         when(sessionRepository.existsByPortIdAndStatusIn(anyLong(), anyList())).thenReturn(false);
+
+        // Port must be resolved before booking validation
+        PortResponse port = PortResponse.builder().id(portId).chargerId(5L).portNumber(1).status(PortStatus.AVAILABLE).build();
+        when(chargerService.findPortById(portId)).thenReturn(Optional.of(port));
 
         when(bookingService.findById(bookingId)).thenReturn(Optional.empty());
 

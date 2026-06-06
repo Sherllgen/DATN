@@ -26,21 +26,30 @@ export default function ChargingCompleteModal({ showModal, sessionId, totalCost,
         if (showModal) {
             translateY.value = withSpring(0, { damping: 20, stiffness: 90 });
             if (sessionId) {
-                fetchInvoice(sessionId);
+                if (totalCost === 0) {
+                    setInvoice(null);
+                } else {
+                    fetchInvoice(sessionId);
+                }
             }
         } else {
             translateY.value = withTiming(1000, { duration: 300 });
             setInvoice(null);
         }
-    }, [showModal, sessionId]);
+    }, [showModal, sessionId, totalCost]);
 
     const fetchInvoice = async (id: number) => {
         try {
             setLoadingInvoice(true);
             const data = await getInvoiceByChargingSessionId(id);
             setInvoice(data);
-        } catch (error) {
-            console.log("Failed to fetch invoice", error);
+        } catch (error: any) {
+            if (error?.response?.status === 404) {
+                console.log(`Invoice not found for session ${id} (Status 404). This might happen if cost was too low to generate an invoice.`);
+            } else {
+                console.log("Failed to fetch invoice", error);
+            }
+            setInvoice(null);
         } finally {
             setLoadingInvoice(false);
         }
@@ -90,7 +99,9 @@ export default function ChargingCompleteModal({ showModal, sessionId, totalCost,
                                 <Ionicons name="checkmark-circle" size={40} color="#00A452" />
                             </View>
                             <Text className="text-white text-2xl font-bold text-center">Charging Complete</Text>
-                            <Text className="text-text-secondary text-base text-center mt-1">Please review your invoice below</Text>
+                            <Text className="text-text-secondary text-base text-center mt-1">
+                                {totalCost === 0 ? "Your session ended successfully" : "Please review your invoice below"}
+                            </Text>
                         </View>
 
                         {loadingInvoice ? (
@@ -159,8 +170,14 @@ export default function ChargingCompleteModal({ showModal, sessionId, totalCost,
                             </>
                         ) : (
                             <View className="py-8 items-center justify-center">
-                                <Text className="text-text-secondary mb-4">No invoice found</Text>
-                                <Button onPress={onDismiss} variant="outline">Close</Button>
+                                <Text className="text-text-secondary text-base mb-6 text-center">
+                                    {totalCost === 0 
+                                        ? "Session completed with no charges." 
+                                        : "No invoice found or an error occurred."}
+                                </Text>
+                                <Button onPress={onDismiss} variant="outline" className="w-full" style={{ height: 56 }}>
+                                    Close
+                                </Button>
                             </View>
                         )}
                     </ScrollView>

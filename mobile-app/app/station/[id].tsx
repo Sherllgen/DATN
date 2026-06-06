@@ -12,7 +12,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { useAuthStore } from "@/contexts/auth.store";
 
 import GradientBackground from "@/components/ui/GradientBackground";
 import Button from "@/components/ui/Button";
@@ -20,8 +19,8 @@ import StatusBadge, {
     StatusBadgeVariant,
 } from "@/components/station/StatusBadge";
 import StationTabs from "@/components/station/StationTabs";
-import { getStationById } from "@/apis/stationApi/stationApi";
-import { Station, StationStatus } from "@/types/station.types";
+import { getStationById, getActivePriceSetting } from "@/apis/stationApi/stationApi";
+import { Station, StationStatus, PriceSettingResponse } from "@/types/station.types";
 import { useStationCache } from "@/stores/stationCacheStore";
 
 
@@ -33,6 +32,7 @@ export default function StationDetailScreen() {
     const cachedStation = id ? getCachedStation(Number(id)) : null;
 
     const [station, setStation] = useState<Station | null>(cachedStation);
+    const [priceSetting, setPriceSetting] = useState<PriceSettingResponse | null>(null);
     const [loading, setLoading] = useState(!cachedStation); // Only show loading if no cache
     const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +49,16 @@ export default function StationDetailScreen() {
             setLoading(prev => prev && !station); // Fix: check current state, not closure
             setError(null);
 
-            const data = await getStationById(Number(id));
+            const [data, priceData] = await Promise.all([
+                getStationById(Number(id)),
+                getActivePriceSetting(Number(id)).catch(err => {
+                    console.log("[StationDetail] No active price setting found for station", id);
+                    return null;
+                })
+            ]);
+            
             setStation(data);
+            setPriceSetting(priceData);
 
             // Update cache with fresh data
             useStationCache.getState().setStation(data);
@@ -65,16 +73,6 @@ export default function StationDetailScreen() {
             setLoading(false);
         }
     };
-
-    if (loading) {
-        return (
-            <GradientBackground preset="main" className="flex-1">
-                <SafeAreaView className="flex-1 items-center justify-center">
-                    <ActivityIndicator size="large" color="#00A452" />
-                </SafeAreaView>
-            </GradientBackground>
-        );
-    }
 
     if (loading) {
         return (
@@ -238,7 +236,7 @@ export default function StationDetailScreen() {
                             </Button>
                         </View>
                         {/* Tabs Navigation and Content */}
-                        <StationTabs station={station} />
+                        <StationTabs station={station} priceSetting={priceSetting} />
 
                     </View>
                 </ScrollView>

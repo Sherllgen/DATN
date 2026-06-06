@@ -92,7 +92,7 @@ public class ChargingServiceImpl implements ChargingService {
     @Transactional
     public ChargingSessionResponse startCharging(StartChargingRequest request, Long userId) {
         String redisKey = "charging:start:" + userId + ":" + request.getPortId();
-        Boolean isAbsent = redisTemplate.opsForValue().setIfAbsent(redisKey, "LOCKED", Duration.ofSeconds(10));
+        Boolean isAbsent = redisTemplate.opsForValue().setIfAbsent(redisKey, "LOCKED", Duration.ofSeconds(30));
         if (Boolean.FALSE.equals(isAbsent)) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Please wait before trying again");
         }
@@ -111,12 +111,27 @@ public class ChargingServiceImpl implements ChargingService {
                 throw new AppException(ErrorCode.SESSION_ALREADY_EXISTS);
             }
 
+            // Resolve portId → chargePointId (chargerId) + connectorId (portNumber)
+            PortResponse port = chargerService.findPortById(request.getPortId())
+                    .orElseThrow(() -> new AppException(ErrorCode.PORT_NOT_FOUND));
+
+            // Validate port is available for charging
+            if (request.getBookingId() == null && port.getStatus() != PortStatus.AVAILABLE) {
+                throw new AppException(ErrorCode.PORT_NOT_AVAILABLE);
+            }
+
             if (request.getBookingId() != null) {
                 BookingResponse booking = bookingService.findById(request.getBookingId())
                         .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
                 
                 if (!booking.getUserId().equals(userId)) {
                     throw new AppException(ErrorCode.FORBIDDEN);
+                }
+
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime allowedStart = booking.getStartTime().minusMinutes(15);
+                if (now.isBefore(allowedStart) || now.isAfter(booking.getEndTime())) {
+                    throw new AppException(ErrorCode.INVALID_REQUEST, "Current time is outside the valid booking window");
                 }
             }
 
@@ -128,15 +143,19 @@ public class ChargingServiceImpl implements ChargingService {
 
             session = sessionRepository.save(session);
 
-            // Resolve portId → chargePointId (chargerId) + connectorId (portNumber)
-            PortResponse port = chargerService.findPortById(request.getPortId())
-                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Port not found"));
             String chargePointId = port.getChargerId().toString();
             Integer connectorId = port.getPortNumber();
             String idTag = userId.toString();
 
             eventPublisher.publishEvent(new SendRemoteStartCommandEvent(
                     session.getId(), chargePointId, connectorId, idTag));
+
+            // Transition the linked booking to IN_PROGRESS
+            if (request.getBookingId() != null) {
+                bookingService.startBookingSession(request.getBookingId());
+                log.info("Booking {} transitioned to IN_PROGRESS for charging session {}", 
+                        request.getBookingId(), session.getId());
+            }
 
             return converter.convert(session);
         } catch (Exception e) {
@@ -168,6 +187,7 @@ public class ChargingServiceImpl implements ChargingService {
             session.setEndTime(LocalDateTime.now());
             sessionRepository.save(session);
             chargerService.internalUpdatePortStatus(session.getPortId(), PortStatus.AVAILABLE);
+            bookingService.revertBookingToConfirmed(session.getBookingId());
             return;
         }
 
@@ -178,5 +198,27 @@ public class ChargingServiceImpl implements ChargingService {
 
         eventPublisher.publishEvent(new SendRemoteStopCommandEvent(
                 session.getId(), chargePointId, session.getTransactionId(), "User Requested"));
+    }
+
+    // If a session is stuck in PREPARING for more than 3 minutes, it will be cleaned up and set to INTERRUPTED.
+    // The linked booking will be reverted to CONFIRMED so the user can re-attempt charging.
+    @Override
+    @Transactional
+    public void cleanupStuckPreparingSession(Long sessionId) {
+        ChargingSession session = sessionRepository.findById(sessionId).orElse(null);
+        if (session != null && session.getStatus() == ChargingSessionStatus.PREPARING) {
+            log.warn("Session {} stuck in PREPARING since {}. Cleaning up and setting to INTERRUPTED.",
+                    session.getId(), session.getCreatedAt());
+            session.setStatus(ChargingSessionStatus.INTERRUPTED);
+            session.setEndTime(LocalDateTime.now());
+            sessionRepository.save(session);
+            chargerService.internalUpdatePortStatus(session.getPortId(), PortStatus.AVAILABLE);
+            bookingService.revertBookingToConfirmed(session.getBookingId());
+        }
+    }
+
+    @Override
+    public boolean existsSessionByBookingId(Long bookingId) {
+        return sessionRepository.existsByBookingId(bookingId);
     }
 }

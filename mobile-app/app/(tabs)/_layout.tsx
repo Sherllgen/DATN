@@ -4,14 +4,14 @@ import {
     MaterialTopTabNavigationOptions,
     MaterialTopTabBarProps,
 } from "@react-navigation/material-top-tabs";
-import React from "react";
-import { Pressable, View, Text } from "react-native";
+import React, { useEffect } from "react";
+import { Pressable, View, Text, AppState, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { AppColors } from "@/constants/theme";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useUserStore } from "@/contexts/user.store";
-import { Alert } from "react-native";
+import * as paymentApi from "@/apis/paymentApi";
 
 // Create the custom navigator
 const { Navigator } = createMaterialTopTabNavigator();
@@ -21,6 +21,32 @@ const MaterialTopTabs = withLayoutContext(Navigator);
 export default function TabLayout() {
     const TAB_HEIGHT = 50;
     const insets = useSafeAreaInsets();
+
+    useEffect(() => {
+        const checkUnpaid = async () => {
+            const user = useUserStore.getState().user;
+            if (!user) return;
+            try {
+                const hasUnpaid = await paymentApi.checkUnpaidInvoices();
+                useUserStore.getState().setUnpaidCount(hasUnpaid ? 1 : 0);
+            } catch (err) {
+                console.log("Failed to check unpaid invoices globally:", err);
+            }
+        };
+
+        // Run check initially when tabs mount
+        checkUnpaid();
+
+        const subscription = AppState.addEventListener("change", (nextAppState) => {
+            if (nextAppState === "active") {
+                checkUnpaid();
+            }
+        });
+
+        return () => {
+            subscription.remove();
+        };
+    }, []);
 
     const CenterTabButton = ({ onPress, isFocused }: { onPress?: () => void; isFocused: boolean }) => {
         const unpaidCount = useUserStore((state) => state.unpaidCount) || 0;
@@ -72,14 +98,17 @@ export default function TabLayout() {
 
     // Custom Tab Bar to position Top Tabs at the bottom
     const CustomTabBar = ({ state, descriptors, navigation }: MaterialTopTabBarProps) => {
+        // Fallback for Android devices where insets.bottom might be 0 despite edge-to-edge being enabled
+        const safeBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 48) : insets.bottom;
+        
         return (
             <View
                 style={{
                     flexDirection: 'row',
                     backgroundColor: "#131315",
-                    height: TAB_HEIGHT + insets.bottom,
+                    height: TAB_HEIGHT + safeBottom,
                     paddingTop: 6,
-                    paddingBottom: insets.bottom,
+                    paddingBottom: safeBottom,
                     borderTopWidth: 0.5,
                     borderTopColor: "rgba(255,255,255,0.1)",
                 }}
@@ -159,7 +188,7 @@ export default function TabLayout() {
             tabBarPosition="bottom"
             tabBar={(props) => <CustomTabBar {...props} />}
             screenOptions={{
-                swipeEnabled: true,
+                swipeEnabled: false,
                 lazy: true,
                 tabBarActiveTintColor: "#fff",
                 tabBarInactiveTintColor: "#9BA1A6",

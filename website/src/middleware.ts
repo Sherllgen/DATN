@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { protectedRoutes } from "@/config/protected-routes";
-import { RoutePermission, UserRole } from "./types/user";
 import { hasAccess } from "@/config/has-access";
 
 // Các route dành cho guest (chưa đăng nhập)
@@ -31,11 +30,15 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // Kiểm tra nếu đã đăng nhập mà truy cập auth routes
+    // Check if logged in but accessing auth routes OR the root path
     const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+    const isRootPath = pathname === "/";
 
-    if (isAuthRoute && accessToken) {
-        // Redirect về dashboard
+    if ((isAuthRoute || isRootPath) && accessToken) {
+        if (userRole === "SUPER_ADMIN") {
+            return NextResponse.redirect(new URL("/admin/accounts", request.url));
+        }
+        // Redirect to dashboard for others
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 

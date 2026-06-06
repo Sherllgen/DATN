@@ -81,7 +81,7 @@ export default function NavigationInfo({
                     className="flex-row items-center gap-1"
                 >
                     <Ionicons name="close-circle" size={18} color="white" />
-                    <Text className="text-white font-semibold text-sm">Exit Navigation</Text>
+                    <Text className="text-white font-semibold text-sm">Exit</Text>
                 </Button>
             </View>
         </View>

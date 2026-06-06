@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +44,12 @@ class ChargingMonitorServiceTest {
     @Mock
     private PriceSettingService priceSettingService;
 
+    @Mock
+    private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
+
     @InjectMocks
     private ChargingMonitorService monitorService;
 
@@ -49,6 +57,8 @@ class ChargingMonitorServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
         chargingSession = new ChargingSession();
         chargingSession.setId(1L);
         chargingSession.setUserId(100L);
@@ -134,7 +144,7 @@ class ChargingMonitorServiceTest {
             SseEmitter emitter = monitorService.subscribe(1L);
 
             assertThat(emitter).isNotNull();
-            verify(sessionRepository).findById(1L);
+            verify(sessionRepository, times(2)).findById(1L);
         }
     }
 

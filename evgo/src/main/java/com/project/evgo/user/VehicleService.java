@@ -20,6 +20,8 @@ public interface VehicleService {
 
     VehicleResponse getVehicleById(Long vehicleId);
 
+    List<VehicleResponse> findAllByIds(java.util.Set<Long> vehicleIds);
+
     VehicleResponse setVehicleInUse(Long vehicleId);
 
     VehicleResponse getInUseVehicle();

@@ -3,13 +3,15 @@ import { View, Text, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-import { Station, StationStatus } from "@/types/station.types";
+import { Station, StationStatus, PriceSettingResponse } from "@/types/station.types";
 import ChargerTypeTag from "@/components/station/ChargerTypeTag";
 import Button from "@/components/ui/Button";
 import { useUserStore } from "@/contexts/user.store";
+import { useAuthStore } from "@/contexts/auth.store";
 
 interface InfoTabProps {
     station: Station;
+    priceSetting?: PriceSettingResponse | null;
 }
 
 // Helper function to format day of week
@@ -36,10 +38,23 @@ const formatTimeRange = (openTime: string | null, closeTime: string | null): str
     return `${formatTime(openTime)} - ${formatTime(closeTime)}`;
 };
 
-const InfoTab = ({ station }: InfoTabProps) => {
+const InfoTab = ({ station, priceSetting }: InfoTabProps) => {
     const unpaidCount = useUserStore((state) => state.unpaidCount) || 0;
 
     const handleBookPress = () => {
+        const { accessToken } = useAuthStore.getState();
+        if (!accessToken) {
+            Alert.alert(
+                "Login Required",
+                "You must be logged in to book a charging slot.",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Log In", onPress: () => router.push("/auth/login") }
+                ]
+            );
+            return;
+        }
+
         if (unpaidCount > 0) {
             Alert.alert("Action Blocked", "Please settle your unpaid invoices before booking a slot.");
             return;
@@ -67,16 +82,35 @@ const InfoTab = ({ station }: InfoTabProps) => {
                     Cost
                 </Text>
                 <View className="bg-border-gray/20 rounded-lg p-4 border border-border-gray">
-                    <View className="flex-row items-center">
-                        <Ionicons
-                            name="card"
-                            size={20}
-                            color="#4CAF50"
-                        />
-                        <Text className="text-base font-medium text-white ml-3">
-                            Payment is required
-                        </Text>
-                    </View>
+                    {priceSetting ? (
+                        <View>
+                            <View className="flex-row items-center justify-between mb-3">
+                                <View className="flex-row items-center">
+                                    <Ionicons name="flash" size={20} color="#F59E0B" />
+                                    <Text className="text-base font-medium text-white ml-3">Charging Rate</Text>
+                                </View>
+                                <Text className="text-base text-white font-medium">{priceSetting.chargingRatePerKwh.toLocaleString()} VND/kWh</Text>
+                            </View>
+                            <View className="flex-row items-center justify-between">
+                                <View className="flex-row items-center">
+                                    <Ionicons name="calendar" size={20} color="#00A452" />
+                                    <Text className="text-base font-medium text-white ml-3">Booking Fee</Text>
+                                </View>
+                                <Text className="text-base text-white font-medium">{priceSetting.bookingFee.toLocaleString()} VND/Hour</Text>
+                            </View>
+                        </View>
+                    ) : (
+                        <View className="flex-row items-center">
+                            <Ionicons
+                                name="card"
+                                size={20}
+                                color="#4CAF50"
+                            />
+                            <Text className="text-base font-medium text-white ml-3">
+                                Please contact for pricing
+                            </Text>
+                        </View>
+                    )}
                 </View>
             </View>
 

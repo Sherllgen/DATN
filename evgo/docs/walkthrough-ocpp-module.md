@@ -36,19 +36,23 @@ WebSocketSession
 - `OcppActionRouter` — collects all `@Component` handlers via Spring injection, indexes by action name
 - Unknown actions → `CALLERROR` with `NotImplemented`
 
-### Cross-Module Communication
+### Application Events
 
-```
-ocpp → charger (via ChargerService public API)
-ocpp → charging (via events: Start/StopTransactionReceivedEvent, MeterValuesReceivedEvent, StatusNotificationReceivedEvent)
-charging → ocpp (via events: SendRemoteStartCommandEvent, SendRemoteStopCommandEvent)
-booking → ocpp (via events: SendReserveNowCommandEvent, SendRemoteStopCommandEvent)
-charger → * (via ChargePointBootedEvent)
-```
+#### Events Published by OCPP Module
+| Event | Payload | When |
+|-------|---------|------|
+| `StartTransactionReceivedEvent` | `chargePointId, connectorId, portId, transactionId, idTag, meterStart, timestamp, reservationId` | When `StartTransaction` is received from the hardware. |
+| `StopTransactionReceivedEvent` | `transactionId, meterStop, timestamp, idTag, reason` | When `StopTransaction` is received from the hardware. |
+| `StatusNotificationReceivedEvent` | `chargePointId, connectorId, portId, errorCode, status, info, timestamp, vendorErrorCode, vendorId` | When a status update (e.g., `Available`, `Charging`, `Faulted`) is received. |
+| `MeterValuesReceivedEvent` | `transactionId, meterValue, timestamp` | When `MeterValues` sampled data is received from the hardware. |
+| `ChargePointBootedEvent` | `chargePointId, vendor, model, serial, firmwareVersion` | When a successful `BootNotification` is processed. |
 
-- `ocpp` module calls `ChargerService.processBootNotification()` and `updateHeartbeat()` directly (synchronous).
-- `ocpp` module publishes events like `StartTransactionReceivedEvent`, `MeterValuesReceivedEvent` which are consumed by the **Charging Module** (for billing and SSE).
-- `ocpp` module listens for commands (e.g., `SendRemoteStartCommandEvent`, `SendReserveNowCommandEvent`) from the **Charging** and **Booking** modules to dispatch downstream actions to hardware limits.
+#### Events Consumed by OCPP Module
+| Event | Source | Handler | Action |
+|-------|--------|---------|--------|
+| `SendRemoteStartCommandEvent` | `charging` | `OcppCommandListener.onSendRemoteStartCommand()` | Dispatches `RemoteStartTransaction` to the specified charger over WebSocket. |
+| `SendRemoteStopCommandEvent` | `charging`, `booking` | `OcppCommandListener.onSendRemoteStopCommand()` | Dispatches `RemoteStopTransaction` to the specified charger over WebSocket. |
+| `SendReserveNowCommandEvent` | `booking` | `OcppCommandListener.onSendReserveNowCommand()` | Dispatches `ReserveNow` to the specified charger to lock the port. |
 
 ---
 

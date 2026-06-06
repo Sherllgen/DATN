@@ -34,6 +34,7 @@ import com.project.evgo.sharedkernel.events.ChargingSessionCompletedEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -134,7 +135,7 @@ class OcppChargingEventListenerTest {
         session.setMeterStart(1000);
         session.setStatus(ChargingSessionStatus.CHARGING);
 
-        when(sessionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(session));
+        when(sessionRepository.findByTransactionIdAndStatusIn(eq(transactionId), anyList())).thenReturn(Optional.of(session));
 
         // When
         listener.onStopTransaction(event);
@@ -173,7 +174,7 @@ class OcppChargingEventListenerTest {
         session.setMeterStart(1000);
         session.setStatus(ChargingSessionStatus.CHARGING);
 
-        when(sessionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(session));
+        when(sessionRepository.findByTransactionIdAndStatusIn(eq(transactionId), anyList())).thenReturn(Optional.of(session));
 
         // When
         listener.onStopTransaction(event);
@@ -190,7 +191,7 @@ class OcppChargingEventListenerTest {
         // Given
         StopTransactionReceivedEvent event = new StopTransactionReceivedEvent(
                 999, 5000, LocalDateTime.now(), null, null);
-        when(sessionRepository.findByTransactionId(999)).thenReturn(Optional.empty());
+        when(sessionRepository.findByTransactionIdAndStatusIn(eq(999), anyList())).thenReturn(Optional.empty());
 
         // When
         listener.onStopTransaction(event);
@@ -390,7 +391,7 @@ class OcppChargingEventListenerTest {
         session.setTransactionId(transactionId);
         session.setStatus(ChargingSessionStatus.CHARGING);
 
-        when(sessionRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(session));
+        when(sessionRepository.findFirstByTransactionIdOrderByCreatedAtDesc(transactionId)).thenReturn(Optional.of(session));
 
         // When
         listener.onMeterValues(event);
@@ -425,13 +426,13 @@ class OcppChargingEventListenerTest {
         MeterValuesReceivedEvent event = new MeterValuesReceivedEvent(
                 "5", 1, 999, 3500, LocalDateTime.now());
 
-        when(sessionRepository.findByTransactionId(999)).thenReturn(Optional.empty());
+        when(sessionRepository.findFirstByTransactionIdOrderByCreatedAtDesc(999)).thenReturn(Optional.empty());
 
         // When
         listener.onMeterValues(event);
 
         // Then
-        verify(sessionRepository).findByTransactionId(999);
+        verify(sessionRepository).findFirstByTransactionIdOrderByCreatedAtDesc(999);
         verifyNoInteractions(chargingMonitorService);
     }
 }

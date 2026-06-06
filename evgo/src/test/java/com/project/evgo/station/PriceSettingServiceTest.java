@@ -13,6 +13,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -224,72 +226,20 @@ class PriceSettingServiceTest {
             verify(priceSettingRepository, never()).save(any());
         }
 
-        @Test
-        @DisplayName("Should throw exception when charging rate is zero or negative")
-        void createPriceSetting_ZeroChargingRate_ThrowsException() {
+        @ParameterizedTest(name = "chargingRate={0}, bookingFee={1}, penalty={2} -> throws {3}")
+        @CsvSource({
+                "0, 5000, 500, INVALID_PRICE_VALUE",
+                "-100, 5000, 500, INVALID_PRICE_VALUE",
+                "3000, -100, 500, INVALID_PRICE_VALUE",
+                "3000, null, -500, INVALID_PRICE_VALUE"
+        })
+        @DisplayName("Should throw exception when price values are invalid")
+        void createPriceSetting_InvalidPrices_ThrowsException(String chargingRate, String bookingFee, String penalty, ErrorCode expectedErrorCode) {
             // Given
             CreatePriceSettingRequest request = new CreatePriceSettingRequest(
-                    BigDecimal.ZERO, null, null, null, null, null);
-
-            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
-
-            // When & Then
-            assertThatThrownBy(() -> priceSettingService.createPriceSetting(STATION_ID, request))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.INVALID_PRICE_VALUE);
-                    });
-
-            verify(priceSettingRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Should throw exception when charging rate is negative")
-        void createPriceSetting_NegativeChargingRate_ThrowsException() {
-            // Given
-            CreatePriceSettingRequest request = new CreatePriceSettingRequest(
-                    new BigDecimal("-100"), null, null, null, null, null);
-
-            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
-
-            // When & Then
-            assertThatThrownBy(() -> priceSettingService.createPriceSetting(STATION_ID, request))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.INVALID_PRICE_VALUE);
-                    });
-        }
-
-        @Test
-        @DisplayName("Should throw exception when booking fee is negative")
-        void createPriceSetting_NegativeBookingFee_ThrowsException() {
-            // Given
-            CreatePriceSettingRequest request = new CreatePriceSettingRequest(
-                    new BigDecimal("3000"),
-                    new BigDecimal("-100"), // Negative booking fee
-                    null, null, null, null);
-
-            doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
-
-            // When & Then
-            assertThatThrownBy(() -> priceSettingService.createPriceSetting(STATION_ID, request))
-                    .isInstanceOf(AppException.class)
-                    .satisfies(ex -> {
-                        AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.INVALID_PRICE_VALUE);
-                    });
-        }
-
-        @Test
-        @DisplayName("Should throw exception when idle penalty is negative")
-        void createPriceSetting_NegativePenalty_ThrowsException() {
-            // Given
-            CreatePriceSettingRequest request = new CreatePriceSettingRequest(
-                    new BigDecimal("3000"),
-                    null,
-                    new BigDecimal("-500"), // Negative penalty
+                    "null".equals(chargingRate) ? null : new BigDecimal(chargingRate),
+                    "null".equals(bookingFee) ? null : new BigDecimal(bookingFee),
+                    "null".equals(penalty) ? null : new BigDecimal(penalty),
                     null, null, null);
 
             doNothing().when(stationOwnershipValidator).verifyOwnership(STATION_ID);
@@ -299,8 +249,10 @@ class PriceSettingServiceTest {
                     .isInstanceOf(AppException.class)
                     .satisfies(ex -> {
                         AppException appEx = (AppException) ex;
-                        assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.INVALID_PRICE_VALUE);
+                        assertThat(appEx.getErrorCode()).isEqualTo(expectedErrorCode);
                     });
+
+            verify(priceSettingRepository, never()).save(any());
         }
 
         @Test
@@ -454,114 +406,32 @@ class PriceSettingServiceTest {
     @DisplayName("Calculate Idle Fee Tests")
     class CalculateIdleFeeTests {
 
-        @Test
-        @DisplayName("Should return zero fee when within grace period")
-        void calculateIdleFee_WithinGracePeriod_ReturnsZero() {
-            // Given - 20 minutes overstay, 30 minutes grace
-            when(priceSettingRepository.findByStationIdAndIsActiveTrue(STATION_ID))
-                    .thenReturn(Optional.of(testPriceSetting));
-
-            // When
-            BigDecimal fee = priceSettingService.calculateIdleFee(STATION_ID, 20);
-
-            // Then
-            assertThat(fee).isEqualByComparingTo(BigDecimal.ZERO);
-        }
-
-        @Test
-        @DisplayName("Should return zero fee at exactly grace period boundary")
-        void calculateIdleFee_ExactlyAtGrace_ReturnsZero() {
-            // Given - 30 minutes overstay, 30 minutes grace = 0 billable
-            when(priceSettingRepository.findByStationIdAndIsActiveTrue(STATION_ID))
-                    .thenReturn(Optional.of(testPriceSetting));
-
-            // When
-            BigDecimal fee = priceSettingService.calculateIdleFee(STATION_ID, 30);
-
-            // Then
-            assertThat(fee).isEqualByComparingTo(BigDecimal.ZERO);
-        }
-
-        @Test
-        @DisplayName("Should calculate fee after grace period")
-        void calculateIdleFee_AfterGracePeriod_CalculatesFee() {
-            // Given - 45 minutes overstay, 30 minutes grace = 15 billable * 500 = 7500
-            when(priceSettingRepository.findByStationIdAndIsActiveTrue(STATION_ID))
-                    .thenReturn(Optional.of(testPriceSetting));
-
-            // When
-            BigDecimal fee = priceSettingService.calculateIdleFee(STATION_ID, 45);
-
-            // Then
-            assertThat(fee).isEqualByComparingTo(new BigDecimal("7500"));
-        }
-
-        @Test
-        @DisplayName("Should calculate fee starting at 1 minute after grace")
-        void calculateIdleFee_OneMinuteAfterGrace_CalculatesOneMinute() {
-            // Given - 31 minutes overstay, 30 minutes grace = 1 billable * 500 = 500
-            when(priceSettingRepository.findByStationIdAndIsActiveTrue(STATION_ID))
-                    .thenReturn(Optional.of(testPriceSetting));
-
-            // When
-            BigDecimal fee = priceSettingService.calculateIdleFee(STATION_ID, 31);
-
-            // Then
-            assertThat(fee).isEqualByComparingTo(new BigDecimal("500"));
-        }
-
-        @Test
-        @DisplayName("Should return zero when penalty rate is null")
-        void calculateIdleFee_NullPenaltyRate_ReturnsZero() {
+        @ParameterizedTest(name = "overstay={0}m, grace={1}m, penaltyRate={2} -> fee={3}")
+        @CsvSource({
+                "20, 30, 500, 0",      // Within grace period
+                "30, 30, 500, 0",      // Exactly at grace boundary
+                "45, 30, 500, 7500",   // After grace period
+                "31, 30, 500, 500",    // One minute after grace
+                "10, 0, 500, 5000",    // Zero grace period
+                "0, 30, 500, 0",       // Zero overstay
+                "60, 30, 0, 0",        // Zero penalty rate
+                "60, 30, null, 0"      // Null penalty rate
+        })
+        @DisplayName("Calculate idle fee with different scenarios")
+        void calculateIdleFee_Scenarios(int overstayMinutes, int gracePeriod, String penaltyRateStr, String expectedFeeStr) {
             // Given
-            PriceSetting noPenalty = new PriceSetting();
-            noPenalty.setIdlePenaltyPerMinute(null);
-            noPenalty.setGracePeriodMinutes(30);
-
+            PriceSetting pricing = new PriceSetting();
+            pricing.setGracePeriodMinutes(gracePeriod);
+            pricing.setIdlePenaltyPerMinute("null".equals(penaltyRateStr) ? null : new BigDecimal(penaltyRateStr));
+            
             when(priceSettingRepository.findByStationIdAndIsActiveTrue(STATION_ID))
-                    .thenReturn(Optional.of(noPenalty));
+                    .thenReturn(Optional.of(pricing));
 
             // When
-            BigDecimal fee = priceSettingService.calculateIdleFee(STATION_ID, 60);
+            BigDecimal fee = priceSettingService.calculateIdleFee(STATION_ID, overstayMinutes);
 
             // Then
-            assertThat(fee).isEqualByComparingTo(BigDecimal.ZERO);
-        }
-
-        @Test
-        @DisplayName("Should return zero when penalty rate is zero")
-        void calculateIdleFee_ZeroPenaltyRate_ReturnsZero() {
-            // Given
-            PriceSetting zeroPenalty = new PriceSetting();
-            zeroPenalty.setIdlePenaltyPerMinute(BigDecimal.ZERO);
-            zeroPenalty.setGracePeriodMinutes(30);
-
-            when(priceSettingRepository.findByStationIdAndIsActiveTrue(STATION_ID))
-                    .thenReturn(Optional.of(zeroPenalty));
-
-            // When
-            BigDecimal fee = priceSettingService.calculateIdleFee(STATION_ID, 60);
-
-            // Then
-            assertThat(fee).isEqualByComparingTo(BigDecimal.ZERO);
-        }
-
-        @Test
-        @DisplayName("Should calculate fee with zero grace period (penalty starts immediately)")
-        void calculateIdleFee_ZeroGracePeriod_ChargingFromMinuteOne() {
-            // Given - 10 minutes overstay, 0 grace = 10 billable * 500 = 5000
-            PriceSetting zeroGrace = new PriceSetting();
-            zeroGrace.setIdlePenaltyPerMinute(new BigDecimal("500"));
-            zeroGrace.setGracePeriodMinutes(0);
-
-            when(priceSettingRepository.findByStationIdAndIsActiveTrue(STATION_ID))
-                    .thenReturn(Optional.of(zeroGrace));
-
-            // When
-            BigDecimal fee = priceSettingService.calculateIdleFee(STATION_ID, 10);
-
-            // Then
-            assertThat(fee).isEqualByComparingTo(new BigDecimal("5000"));
+            assertThat(fee).isEqualByComparingTo(new BigDecimal(expectedFeeStr));
         }
 
         @Test
@@ -578,20 +448,6 @@ class PriceSettingServiceTest {
                         AppException appEx = (AppException) ex;
                         assertThat(appEx.getErrorCode()).isEqualTo(ErrorCode.PRICE_SETTING_NOT_FOUND);
                     });
-        }
-
-        @Test
-        @DisplayName("Should return zero fee when overstay is zero minutes")
-        void calculateIdleFee_ZeroOverstay_ReturnsZero() {
-            // Given
-            when(priceSettingRepository.findByStationIdAndIsActiveTrue(STATION_ID))
-                    .thenReturn(Optional.of(testPriceSetting));
-
-            // When
-            BigDecimal fee = priceSettingService.calculateIdleFee(STATION_ID, 0);
-
-            // Then
-            assertThat(fee).isEqualByComparingTo(BigDecimal.ZERO);
         }
     }
 }

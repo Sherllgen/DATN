@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import Link from "next/link";
 import Image from "next/image";
-import { loginAction } from "../actions";
+import { loginAction, type LoginActionResult } from "../actions";
 import { useActionState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/contexts/user.store";
@@ -20,13 +20,18 @@ export function LoginForm3({
     const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
     const setUser = useUserStore((state) => state.setUser);
-    const [state, formAction, isPending] = useActionState(
-        async (prevState: any, formData: FormData) => {
-            const result = await loginAction(formData);
-            return result;
+    const [state, formAction, isPending] = useActionState<LoginActionResult, FormData>(
+        async (prevState, formData) => {
+            return await loginAction(formData);
         },
         { success: false, message: "" }
     );
+
+    useEffect(() => {
+        if (state.success && state.redirect) {
+            router.replace(state.redirect);
+        }
+    }, [state, router]);
 
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -124,12 +129,12 @@ export function LoginForm3({
                             </div>
                         </div>
                     </form>
-                    <div className="hidden md:block relative bg-muted">
+                    <div className="hidden md:block relative bg-[#d5e6e0] dark:bg-[#c9d8d3]">
                         <Image
-                            src="https://ui.shadcn.com/placeholder.svg"
+                            src="https://res.cloudinary.com/dmfvnmpuq/image/upload/v1780235263/83c3299c-52c4-42cc-8a07-7aa36d9cf83a.png"
                             alt="Image"
                             fill
-                            className="dark:brightness-[0.95] dark:invert object-cover"
+                            className="dark:brightness-[0.95] object-cover"
                         />
                     </div>
                 </CardContent>

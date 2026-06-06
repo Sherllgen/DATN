@@ -21,6 +21,8 @@ public interface ChargerService {
 
     Optional<ChargerResponse> findById(Long id);
 
+    List<ChargerResponse> findAllByIds(java.util.Set<Long> ids);
+
     List<PortResponse> findPortsByChargerId(Long chargerId);
 
     Optional<PortResponse> findPortByChargerIdAndPortNumber(Long chargerId, Integer portNumber);
@@ -45,12 +47,10 @@ public interface ChargerService {
 
     long countAvailableByStationId(Long stationId);
 
-    // -------------------------------------OCPP
-    // operations-------------------------------------
+    // -------------------------------------OCPP Operations-------------------------------------
 
     /**
      * Process a BootNotification from an OCPP charge point.
-     * Updates charger metadata and status, publishes ChargePointBootedEvent.
      *
      * @param chargerId the database ID of the charger
      * @return the updated ChargerResponse, or empty if charger not found
@@ -66,4 +66,5 @@ public interface ChargerService {
     void updateHeartbeat(Long chargerId);
 
     void internalUpdatePortStatus(Long portId, PortStatus status);
+
 }

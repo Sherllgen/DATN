@@ -1,15 +1,24 @@
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import "react-native-reanimated";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
+import * as SecureStore from "expo-secure-store";
+import * as NavigationBar from "expo-navigation-bar";
+import { Platform } from "react-native";
+
+if (Platform.OS === "android") {
+    NavigationBar.setPositionAsync("absolute");
+    NavigationBar.setVisibilityAsync("hidden");
+    NavigationBar.setBehaviorAsync("inset-swipe");
+}
 
 import { LinearGradient } from "expo-linear-gradient";
 import ToastManager from "toastify-react-native";
 import "../global.css";
 
-import { useAuthStore } from "@/contexts/auth.store";
+import { useAuthStore, SECURE_KEY_ACCESS_TOKEN, SECURE_KEY_REFRESH_TOKEN } from "@/contexts/auth.store";
 import { useUserStore } from "@/contexts/user.store";
 import { getProfileApi } from "@/apis/profileApi/profileApi";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -31,35 +40,62 @@ const BlackTheme = {
 export default function RootLayout() {
     console.log('RootLayout rendering...');
     const accessToken = useAuthStore((state) => state.accessToken);
-    const user = useUserStore((state) => state.user);
     const setUser = useUserStore((state) => state.setUser);
     const logout = useAuthStore((state) => state.logout);
+    const [tokensLoaded, setTokensLoaded] = useState(false);
+    // Keeps splash visible until user profile is fully hydrated
+    const [isAppReady, setIsAppReady] = useState(false);
 
     // Register & listen for push notifications once the user is authenticated
     usePushNotifications(!!accessToken);
 
+    // Get tokens from SecureStore on startup
     useEffect(() => {
-        console.log('RootLayout mounted, hiding splash...');
-        // Hide the splash screen after the app is ready
-        SplashScreen.hideAsync().catch(console.warn);
+        const hydrateTokens = async () => {
+            try {
+                const [storedAccess, storedRefresh] = await Promise.all([
+                    SecureStore.getItemAsync(SECURE_KEY_ACCESS_TOKEN),
+                    SecureStore.getItemAsync(SECURE_KEY_REFRESH_TOKEN),
+                ]);
+                if (storedAccess && storedRefresh) {
+                    // Restore both tokens into memory
+                    useAuthStore.setState({ accessToken: storedAccess, refreshToken: storedRefresh });
+                }
+            } catch (e) {
+                console.warn("SecureStore hydration failed:", e);
+            } finally {
+                setTokensLoaded(true);
+            }
+        };
+        hydrateTokens();
     }, []);
 
+    // SplashScreen is hidden only after the full hydration pipeline finishes (Fix #1)
     useEffect(() => {
+        if (isAppReady) {
+            SplashScreen.hideAsync().catch(console.warn);
+        }
+    }, [isAppReady]);
+
+    // Hydrate user profile once tokens are restored from SecureStore
+    useEffect(() => {
+        if (!tokensLoaded) return; // wait for SecureStore read to finish
+
         const hydrateUser = async () => {
             try {
-                // Since we use withCredentials: true, the session cookie will automatically authenticate this request if valid
                 const res = await getProfileApi();
                 if (res && res.data) {
                     setUser(res.data);
                 }
             } catch (error) {
-                // User is not logged in / Session expired -> clear token memory just in case
                 console.log("Not logged in or session expired.");
                 logout();
+            } finally {
+                setIsAppReady(true); // Always ungate the splash regardless of auth status
             }
         };
         hydrateUser();
-    }, []);
+    }, [tokensLoaded]);
 
     console.log('About to return JSX...');
     return (

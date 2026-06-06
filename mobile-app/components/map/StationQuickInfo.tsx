@@ -1,10 +1,13 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import StatusBadge, { StatusBadgeVariant } from "@/components/station/StatusBadge";
 import { StationSearchResult, StationStatus } from "@/types/station.types";
+import { useAuthStore } from "@/contexts/auth.store";
+import { useUserStore } from "@/contexts/user.store";
+import { router } from "expo-router";
 
 export interface StationQuickInfoProps {
     /** Modal visibility */
@@ -29,6 +32,8 @@ export default function StationQuickInfo({
     onBook,
     onNavigate,
 }: StationQuickInfoProps) {
+    const unpaidCount = useUserStore((state) => state.unpaidCount) || 0;
+
     if (!station) return null;
 
     // Determine status variant based on backend status
@@ -38,6 +43,27 @@ export default function StationQuickInfo({
             : station.status === StationStatus.SUSPENDED
                 ? "suspended"
                 : "occupied";
+
+    const handleBookPress = () => {
+        const { accessToken } = useAuthStore.getState();
+        if (!accessToken) {
+            Alert.alert(
+                "Login Required",
+                "You must be logged in to book a charging slot.",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Log In", onPress: () => router.push("/auth/login") }
+                ]
+            );
+            return;
+        }
+
+        if (unpaidCount > 0) {
+            Alert.alert("Action Blocked", "Please settle your unpaid invoices before booking a slot.");
+            return;
+        }
+        onBook();
+    };
 
     return (
         <Modal visible={visible} onClose={onClose}>
@@ -128,7 +154,7 @@ export default function StationQuickInfo({
                     <Button
                         variant="primary"
                         fullWidth={false}
-                        onPress={onBook}
+                        onPress={handleBookPress}
                         className="flex-1"
                     >
                         Book

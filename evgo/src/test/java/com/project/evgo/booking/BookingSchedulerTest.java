@@ -5,9 +5,14 @@ import com.project.evgo.booking.internal.BookingRepository;
 import com.project.evgo.booking.internal.BookingScheduler;
 import com.project.evgo.sharedkernel.events.SendPushNotificationEvent;
 import com.project.evgo.sharedkernel.events.SendRemoteStopCommandEvent;
+import com.project.evgo.sharedkernel.events.SendReserveNowCommandEvent;
 import com.project.evgo.charger.ChargerService;
 import com.project.evgo.charger.response.PortResponse;
+import com.project.evgo.payment.InvoiceService;
+import com.project.evgo.payment.ZaloPayService;
+import com.project.evgo.payment.response.InvoiceResponse;
 import com.project.evgo.sharedkernel.enums.BookingStatus;
+import com.project.evgo.sharedkernel.enums.InvoiceStatus;
 import com.project.evgo.sharedkernel.enums.PortStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,6 +44,9 @@ class BookingSchedulerTest {
     private BookingRepository bookingRepository;
 
     @Mock
+    private BookingService bookingService;
+
+    @Mock
     private ChargerService chargerService;
 
     @Mock
@@ -46,6 +54,12 @@ class BookingSchedulerTest {
 
     @Mock
     private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private InvoiceService invoiceService;
+
+    @Mock
+    private ZaloPayService zaloPayService;
 
     @InjectMocks
     private BookingScheduler bookingScheduler;
@@ -61,7 +75,7 @@ class BookingSchedulerTest {
         when(connection.keyCommands()).thenReturn(keyCommands);
         when(keyCommands.scan(any(ScanOptions.class))).thenReturn(cursor);
 
-        byte[] stuckKey = "evgo:booking:lock:1:1:TIME".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] stuckKey = "evgo:booking:lock:100:TIME".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         when(cursor.hasNext()).thenReturn(true, false);
         when(cursor.next()).thenReturn(stuckKey);
 
@@ -81,14 +95,15 @@ class BookingSchedulerTest {
     @DisplayName("processBookings: Should dispatch ReserveNow for upcoming CONFIRMED booking")
     void processBookings_UpcomingConfirmed_DispatchesReserveNow() {
         LocalDateTime now = LocalDateTime.now();
-        Booking booking = buildBooking(1L, BookingStatus.CONFIRMED, 10L, 1, 42L,
+        Booking booking = buildBooking(1L, BookingStatus.CONFIRMED, 10L, 100L, 42L,
                 now.plusMinutes(9).plusSeconds(30), now.plusHours(1));
 
         when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(booking));
         
-        when(chargerService.findPortByChargerIdAndPortNumber(10L, 1))
-                .thenReturn(Optional.of(PortResponse.builder().portNumber(1).status(PortStatus.AVAILABLE).build()));
+        // resolvePortStatus and resolvePortNumber both call findPortById
+        when(chargerService.findPortById(100L))
+                .thenReturn(Optional.of(PortResponse.builder().id(100L).portNumber(1).status(PortStatus.AVAILABLE).build()));
 
         bookingScheduler.processBookings();
 
@@ -102,7 +117,7 @@ class BookingSchedulerTest {
     @DisplayName("processBookings: Should dispatch Push Notification for IN_PROGRESS booking ending soon")
     void processBookings_InProgressEndingSoon_DispatchesPush() {
         LocalDateTime now = LocalDateTime.now();
-        Booking booking = buildBooking(2L, BookingStatus.IN_PROGRESS, 10L, 1, 42L,
+        Booking booking = buildBooking(2L, BookingStatus.IN_PROGRESS, 10L, 100L, 42L,
                 now.minusMinutes(30), now.plusMinutes(14).plusSeconds(30));
 
         when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
@@ -116,14 +131,18 @@ class BookingSchedulerTest {
     }
 
     @Test
-    @DisplayName("processBookings: Should dispatch RemoteStop (Hard Cutoff) for IN_PROGRESS booking at T-10")
-    void processBookings_InProgressAtT10_DispatchesRemoteStop() {
+    @DisplayName("processBookings: Should dispatch RemoteStop when next booking exists on same port")
+    void processBookings_InProgressAtT10_WithNextBooking_DispatchesRemoteStop() {
         LocalDateTime now = LocalDateTime.now();
-        Booking booking = buildBooking(3L, BookingStatus.IN_PROGRESS, 10L, 1, 42L,
+        Booking booking = buildBooking(3L, BookingStatus.IN_PROGRESS, 10L, 100L, 42L,
                 now.minusMinutes(50), now.plusMinutes(9).plusSeconds(30));
 
         when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(booking));
+
+        // Another booking follows on the same port (now uses portId only)
+        when(bookingService.getPortsWithUpcomingBookings(any(), any()))
+                .thenReturn(List.of(100L));
 
         bookingScheduler.processBookings();
 
@@ -133,8 +152,30 @@ class BookingSchedulerTest {
     }
 
     @Test
-    @DisplayName("cleanupStalePendingBookings: Should cancel PENDING bookings older than 12 mins")
-    void cleanupStalePendingBookings_OldPending_CancelsThem() {
+    @DisplayName("processBookings: Should SKIP RemoteStop when no next booking exists on port")
+    void processBookings_InProgressAtT10_NoNextBooking_SkipsCutoff() {
+        LocalDateTime now = LocalDateTime.now();
+        Booking booking = buildBooking(4L, BookingStatus.IN_PROGRESS, 10L, 100L, 42L,
+                now.minusMinutes(50), now.plusMinutes(9).plusSeconds(30));
+
+        when(bookingRepository.findBookingsNeedingAction(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(booking));
+
+        // No upcoming booking on this port (now uses portId only)
+        when(bookingService.getPortsWithUpcomingBookings(any(), any()))
+                .thenReturn(List.of());
+
+        bookingScheduler.processBookings();
+
+        // RemoteStop should NOT be dispatched
+        verify(eventPublisher, never()).publishEvent(any(SendRemoteStopCommandEvent.class));
+        // No push notification either
+        verify(eventPublisher, never()).publishEvent(any(SendPushNotificationEvent.class));
+    }
+
+    @Test
+    @DisplayName("cleanupStalePendingBookings: Should call cancelStalePendingBooking on service for stale PENDING bookings")
+    void cleanupStalePendingBookings_OldPending_CallsService() {
         Booking stale = new Booking();
         stale.setId(100L);
         stale.setStatus(BookingStatus.PENDING);
@@ -144,17 +185,48 @@ class BookingSchedulerTest {
 
         bookingScheduler.cleanupStalePendingBookings();
 
-        assertThat(stale.getStatus()).isEqualTo(BookingStatus.CANCELLED);
-        verify(bookingRepository).save(stale);
+        verify(bookingService).cancelStalePendingBooking(100L);
     }
 
-    private Booking buildBooking(Long id, BookingStatus status, Long chargerId, Integer portNumber,
+    @Test
+    @DisplayName("pollZaloPayPendingInvoices: Should call queryOrderStatus for each stale PENDING invoice")
+    void pollZaloPayPendingInvoices_ShouldQueryGatewayForStaleInvoices() {
+        InvoiceResponse staleInvoice = InvoiceResponse.builder()
+                .id(55L)
+                .status(InvoiceStatus.PENDING)
+                .build();
+
+        when(invoiceService.findPendingOlderThan(any())).thenReturn(List.of(staleInvoice));
+        when(invoiceService.getLatestAppTransId(55L)).thenReturn("260518_abc12345");
+
+        bookingScheduler.pollZaloPayPendingInvoices();
+
+        verify(zaloPayService).queryOrderStatus("260518_abc12345");
+    }
+
+    @Test
+    @DisplayName("pollZaloPayPendingInvoices: Should skip invoice with no transaction")
+    void pollZaloPayPendingInvoices_NoTransaction_Skips() {
+        InvoiceResponse staleInvoice = InvoiceResponse.builder()
+                .id(99L)
+                .status(InvoiceStatus.PENDING)
+                .build();
+
+        when(invoiceService.findPendingOlderThan(any())).thenReturn(List.of(staleInvoice));
+        when(invoiceService.getLatestAppTransId(99L)).thenReturn(null);
+
+        bookingScheduler.pollZaloPayPendingInvoices();
+
+        verify(zaloPayService, never()).queryOrderStatus(any());
+    }
+
+    private Booking buildBooking(Long id, BookingStatus status, Long chargerId, Long portId,
                                   Long userId, LocalDateTime start, LocalDateTime end) {
         Booking b = new Booking();
         b.setId(id);
         b.setStatus(status);
         b.setChargerId(chargerId);
-        b.setPortNumber(portNumber);
+        b.setPortId(portId);
         b.setUserId(userId);
         b.setStartTime(start);
         b.setEndTime(end);

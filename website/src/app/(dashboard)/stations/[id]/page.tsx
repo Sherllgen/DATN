@@ -65,7 +65,7 @@ import { PricingHistory } from "@/components/station/pricing-history";
 
 type StationStatus = "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED";
 type ConnectorType = "SOCKET_220V" | "VINFAST_STD" | "DATBIKE_FAST" | "IEC_TYPE_2" | "OTHER";
-type PortStatus = "AVAILABLE" | "RESERVED" | "CHARGING" | "MAINTENANCE";
+type PortStatus = "AVAILABLE" | "PREPARING" | "CHARGING" | "SUSPENDED_EVSE" | "SUSPENDED_EV" | "FINISHING" | "RESERVED" | "UNAVAILABLE" | "FAULTED";
 
 interface Station {
     id: number;
@@ -119,16 +119,26 @@ const connectorTypeLabels: Record<ConnectorType, string> = {
 
 const portStatusLabels: Record<PortStatus, string> = {
     AVAILABLE: "Available",
-    RESERVED: "Reserved",
+    PREPARING: "Preparing",
     CHARGING: "Charging",
-    MAINTENANCE: "Maintenance",
+    SUSPENDED_EVSE: "Suspended (EVSE)",
+    SUSPENDED_EV: "Suspended (EV)",
+    FINISHING: "Finishing",
+    RESERVED: "Reserved",
+    UNAVAILABLE: "Unavailable",
+    FAULTED: "Faulted",
 };
 
 const portStatusVariants: Record<PortStatus, "default" | "secondary" | "destructive" | "outline"> = {
     AVAILABLE: "default",
-    RESERVED: "secondary",
+    PREPARING: "secondary",
     CHARGING: "outline",
-    MAINTENANCE: "destructive",
+    SUSPENDED_EVSE: "secondary",
+    SUSPENDED_EV: "secondary",
+    FINISHING: "outline",
+    RESERVED: "secondary",
+    UNAVAILABLE: "destructive",
+    FAULTED: "destructive",
 };
 
 export default function StationDetailPage() {
@@ -191,9 +201,10 @@ export default function StationDetailPage() {
                 setChargers(chargersRes.data.data);
             }
             setActivePricing(pricingRes.data?.data || null);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch data:", error);
-            toast.error("Failed to load station data");
+            const msg = error.response?.data?.message || "Failed to load station data";
+            toast.error(msg);
             router.push("/stations");
         } finally {
             setLoading(false);
@@ -274,11 +285,11 @@ export default function StationDetailPage() {
                 });
                 toast.success("Charger updated successfully");
             } else {
-                // CreateChargerRequest: name, maxPower, stationId
                 const createPayload = {
                     stationId: parseInt(stationId),
                     name: chargerForm.name,
                     maxPower: parseFloat(chargerForm.maxPower),
+                    connectorType: chargerForm.connectorType,
                 };
                 await axios.post("/api/chargers", createPayload, {
                     withCredentials: true,
@@ -308,9 +319,10 @@ export default function StationDetailPage() {
             setDeleteChargerDialog(false);
             setChargerToDelete(null);
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to delete charger:", error);
-            toast.error("Failed to delete charger");
+            const msg = error.response?.data?.message || "Failed to delete charger";
+            toast.error(msg);
         } finally {
             setDeleting(false);
         }
@@ -346,7 +358,7 @@ export default function StationDetailPage() {
 
             if (editingPort) {
                 // Update Port Status
-                await axios.patch(`/api/ports/${editingPort.id}/status`, {
+                await axios.patch(`/api/ports/${editingPort.id}`, {
                     status: portStatus,
                 }, { withCredentials: true });
 
@@ -388,9 +400,10 @@ export default function StationDetailPage() {
             }
             setPortToDelete(null);
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to delete port:", error);
-            toast.error("Failed to delete port");
+            const msg = error.response?.data?.message || "Failed to delete port";
+            toast.error(msg);
         } finally {
             setDeleting(false);
         }

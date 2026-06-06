@@ -1,5 +1,6 @@
 package com.project.evgo.review;
 
+import com.project.evgo.sharedkernel.events.ReviewPostedEvent;
 import com.project.evgo.review.internal.Review;
 import com.project.evgo.review.internal.ReviewDtoConverter;
 import com.project.evgo.review.internal.ReviewProjection;
@@ -18,10 +19,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +39,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -51,6 +56,12 @@ class ReviewServiceTest {
 
     @Mock
     private ReviewDtoConverter converter;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
+    @Captor
+    private ArgumentCaptor<Object> eventCaptor;
 
     private static final Long STATION_ID = 1L;
     private static final Long USER_ID = 10L;
@@ -215,6 +226,10 @@ class ReviewServiceTest {
                         r.getStationId().equals(STATION_ID) &&
                         r.getUserId().equals(USER_ID) &&
                         r.getRating() == 5));
+                // B12: verify event published so Station.rate is updated
+                verify(eventPublisher).publishEvent(eventCaptor.capture());
+                assertThat(eventCaptor.getValue()).isInstanceOf(ReviewPostedEvent.class);
+                assertThat(((ReviewPostedEvent) eventCaptor.getValue()).stationId()).isEqualTo(STATION_ID);
             }
         }
 
@@ -243,6 +258,10 @@ class ReviewServiceTest {
                 verify(reviewRepository).save(argThat(r -> r.getId().equals(100L) &&
                         r.getRating() == 4 &&
                         r.getComment().equals("Updated comment")));
+                // B12: upsert path also triggers rate recalculation
+                verify(eventPublisher).publishEvent(eventCaptor.capture());
+                assertThat(eventCaptor.getValue()).isInstanceOf(ReviewPostedEvent.class);
+                assertThat(((ReviewPostedEvent) eventCaptor.getValue()).stationId()).isEqualTo(STATION_ID);
             }
         }
 
@@ -280,6 +299,10 @@ class ReviewServiceTest {
                 assertThat(result).isNotNull();
                 verify(reviewRepository).save(argThat(r -> r.getRating().equals(4) && 
                                                           r.getComment().equals("Updated comment")));
+                // update also triggers rate recalculation
+                verify(eventPublisher).publishEvent(eventCaptor.capture());
+                assertThat(eventCaptor.getValue()).isInstanceOf(ReviewPostedEvent.class);
+                assertThat(((ReviewPostedEvent) eventCaptor.getValue()).stationId()).isEqualTo(STATION_ID);
             }
         }
 
@@ -321,6 +344,10 @@ class ReviewServiceTest {
 
                 // Then
                 verify(reviewRepository).delete(testReview);
+                // delete also triggers rate recalculation
+                verify(eventPublisher).publishEvent(eventCaptor.capture());
+                assertThat(eventCaptor.getValue()).isInstanceOf(ReviewPostedEvent.class);
+                assertThat(((ReviewPostedEvent) eventCaptor.getValue()).stationId()).isEqualTo(STATION_ID);
             }
         }
 

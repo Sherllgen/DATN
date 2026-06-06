@@ -172,8 +172,8 @@ export function DataTable({
                     const displayUrl =
                         pdfFileUrl && pdfFileUrl.length > 30
                             ? pdfFileUrl.slice(0, 10) +
-                              "..." +
-                              pdfFileUrl.slice(-10)
+                            "..." +
+                            pdfFileUrl.slice(-10)
                             : pdfFileUrl;
                     return pdfFileUrl ? (
                         <a
@@ -373,10 +373,10 @@ export function DataTable({
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
-                                                      header.column.columnDef
-                                                          .header,
-                                                      header.getContext()
-                                                  )}
+                                                    header.column.columnDef
+                                                        .header,
+                                                    header.getContext()
+                                                )}
                                         </TableHead>
                                     );
                                 })}

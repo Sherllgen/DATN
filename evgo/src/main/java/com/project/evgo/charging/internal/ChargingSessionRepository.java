@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -16,13 +17,17 @@ public interface ChargingSessionRepository extends JpaRepository<ChargingSession
 
     List<ChargingSession> findByUserId(Long userId);
     
-    Optional<ChargingSession> findByTransactionId(Integer transactionId);
+    Optional<ChargingSession> findFirstByTransactionIdOrderByCreatedAtDesc(Integer transactionId);
+
+    Optional<ChargingSession> findByTransactionIdAndStatusIn(Integer transactionId, List<ChargingSessionStatus> statuses);
     
     Optional<ChargingSession> findByBookingId(Long bookingId);
 
     Optional<ChargingSession> findByPortIdAndStatus(Long portId, ChargingSessionStatus status);
 
     boolean existsByPortIdAndStatusIn(Long portId, List<ChargingSessionStatus> statuses);
+
+    List<ChargingSession> findByStatusAndCreatedAtBefore(ChargingSessionStatus status, LocalDateTime dateTime);
 
     Optional<ChargingSession> findFirstByPortIdAndStatusIn(Long portId, List<ChargingSessionStatus> statuses);
 
@@ -37,4 +42,14 @@ public interface ChargingSessionRepository extends JpaRepository<ChargingSession
      * Used by the /me/active endpoint to return 0 or 1 result without fetching all sessions.
      */
     Optional<ChargingSession> findFirstByUserIdAndStatusIn(Long userId, Collection<ChargingSessionStatus> statuses);
+
+    /**
+     * Checks whether at least one ChargingSession row references the given bookingId.
+     */
+    boolean existsByBookingId(Long bookingId);
+
+    /**
+     * Find all sessions in a given status whose endTime is before the specified cutoff.
+     */
+    List<ChargingSession> findByStatusAndEndTimeBefore(ChargingSessionStatus status, LocalDateTime cutoff);
 }

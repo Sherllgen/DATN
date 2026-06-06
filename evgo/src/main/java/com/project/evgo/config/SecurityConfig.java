@@ -27,6 +27,7 @@ public class SecurityConfig {
 
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+	private final RateLimitingFilter rateLimitingFilter;
 
 	/**
 	 * Public endpoints that don't require authentication.
@@ -59,7 +60,8 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
 						.requestMatchers("/api/v1/admin/**").hasRole("SUPER_ADMIN")
 						.anyRequest().authenticated())
-				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterAfter(rateLimitingFilter, JwtAuthenticationFilter.class);
 
 		return http.build();
 	}

@@ -16,22 +16,34 @@ interface LocationPickerProps {
 const DEFAULT_CENTER: [number, number] = [10.7769, 106.7009]; // Ho Chi Minh City
 const DEFAULT_ZOOM = 13;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeafletMap = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeafletMarker = any;
+
 export function LocationPicker({ latitude, longitude, onLocationChange }: LocationPickerProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<any>(null);
-    const markerRef = useRef<any>(null);
+    const mapRef = useRef<LeafletMap>(null);
+    const markerRef = useRef<LeafletMarker>(null);
+    const initializingRef = useRef(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [searching, setSearching] = useState(false);
     const [mapReady, setMapReady] = useState(false);
 
     // Initialize map
     useEffect(() => {
-        if (!mapContainerRef.current || mapRef.current) return;
+        let isMounted = true;
+        if (!mapContainerRef.current || mapRef.current || initializingRef.current) return;
 
         const initMap = async () => {
             const L = (await import("leaflet")).default;
+            if (!isMounted || mapRef.current) return;
+
+            const container = mapContainerRef.current;
+            if (!container || (container as any)._leaflet_id) return;
 
             // Fix default marker icons for webpack/next.js
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             delete (L.Icon.Default.prototype as any)._getIconUrl;
             L.Icon.Default.mergeOptions({
                 iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
@@ -46,7 +58,7 @@ export function LocationPicker({ latitude, longitude, onLocationChange }: Locati
                 isNaN(initialLng) ? DEFAULT_CENTER[1] : initialLng,
             ];
 
-            const map = L.map(mapContainerRef.current!, {
+            const map = L.map(container, {
                 center,
                 zoom: DEFAULT_ZOOM,
             });
@@ -66,6 +78,7 @@ export function LocationPicker({ latitude, longitude, onLocationChange }: Locati
             }
 
             // Click to place marker
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             map.on("click", (e: any) => {
                 const { lat, lng } = e.latlng;
                 if (markerRef.current) {
@@ -92,16 +105,19 @@ export function LocationPicker({ latitude, longitude, onLocationChange }: Locati
             document.head.appendChild(link);
         }
 
+        initializingRef.current = true;
         initMap();
 
         return () => {
+            isMounted = false;
+            initializingRef.current = false;
             if (mapRef.current) {
                 mapRef.current.remove();
                 mapRef.current = null;
                 markerRef.current = null;
             }
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Sync external coordinate changes to marker

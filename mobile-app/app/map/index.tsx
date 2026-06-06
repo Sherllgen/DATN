@@ -85,16 +85,17 @@ export default function MapScreen() {
                         </TouchableOpacity>
 
                         {/* Search Input */}
-                        <View className="flex-1 flex-row items-center bg-white rounded-full px-4 py-3">
+                        <View className="flex-1 flex-row items-center bg-white rounded-full px-4 h-12">
                             <Ionicons name="search" size={20} color="#9BA1A6" />
                             <TextInput
-                                className="flex-1 ml-3 mb-1 text-base text-[#11181C]"
+                                className="flex-1 ml-3 text-base text-[#11181C]"
                                 placeholder="Search station"
                                 placeholderTextColor="#9BA1A6"
                                 value={mapLogic.searchQuery}
                                 onChangeText={mapLogic.setSearchQuery}
                                 returnKeyType="search"
                                 autoCorrect={false}
+                                style={{ textAlignVertical: 'center' }}
                                 onSubmitEditing={() => {
                                     mapLogic.setViewMode("list");
                                     mapLogic.fetchListStations(0, activeFilters);
@@ -117,11 +118,11 @@ export default function MapScreen() {
                 <View style={{ flex: 1, display: mapLogic.viewMode === "map" ? "flex" : "none" }}>
                     <View className="flex-1 relative">
                         {/* Debug Info */}
-                        {__DEV__ && (
+                        {/* {__DEV__ && (
                             <View className="absolute top-2 left-2 bg-black/70 px-3 py-2 rounded-lg z-50">
                                 <Text className="text-white text-xs">Stations: {mapLogic.stations.length}</Text>
                             </View>
-                        )}
+                        )} */}
 
                         {/* Map */}
                         <MapView

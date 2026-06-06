@@ -8,6 +8,7 @@ import HistoryItem from "@/components/home/HistoryItem";
 import { getChargingSessionHistory } from "@/apis/chargingApi";
 import { useUserStore } from "@/contexts/user.store";
 import { ChargingSessionStatus, ChargingSessionResponse } from "@/types/charging.types";
+import SessionDetailsModal from "@/components/charging/SessionDetailsModal";
 
 const PAGE_SIZE = 10;
 
@@ -18,6 +19,11 @@ export default function ChargingHistoryPage() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [selectedSession, setSelectedSession] = useState<ChargingSessionResponse | null>(null);
+    const [selectedDuration, setSelectedDuration] = useState("");
+    const [selectedDate, setSelectedDate] = useState("");
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     const fetchSessions = async (pageNumber: number, isLoadMore = false) => {
         if (!user?.id) return;
@@ -44,6 +50,20 @@ export default function ChargingHistoryPage() {
         } finally {
             setLoading(false);
             setLoadingMore(false);
+        }
+    };
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await fetchSessions(0);
+        setRefreshing(false);
+    }, [user?.id]);
+
+    const handleDismissDetails = (wasPaid = false) => {
+        setShowDetailsModal(false);
+        setSelectedSession(null);
+        if (wasPaid) {
+            fetchSessions(0);
         }
     };
 
@@ -84,6 +104,12 @@ export default function ChargingHistoryPage() {
                     date={dateStr}
                     duration={duration}
                     energy={item.totalKwh || 0}
+                    onPress={() => {
+                        setSelectedSession(item);
+                        setSelectedDuration(duration);
+                        setSelectedDate(dateStr);
+                        setShowDetailsModal(true);
+                    }}
                 />
             );
         },
@@ -116,6 +142,8 @@ export default function ChargingHistoryPage() {
                         showsVerticalScrollIndicator={false}
                         onEndReached={hasMore ? loadMore : undefined}
                         onEndReachedThreshold={0.3}
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
                         ListFooterComponent={
                             hasMore ? (
                                 <View className="py-4 items-center">
@@ -131,6 +159,14 @@ export default function ChargingHistoryPage() {
                         }
                     />
                 )}
+                
+                <SessionDetailsModal
+                    showModal={showDetailsModal}
+                    session={selectedSession}
+                    duration={selectedDuration}
+                    date={selectedDate}
+                    onDismiss={handleDismissDetails}
+                />
             </SafeAreaView>
         </GradientBackground>
     );

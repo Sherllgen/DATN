@@ -21,7 +21,7 @@ axiosInstance.interceptors.request.use(
         return config;
     },
     (error) => {
-        console.error("❌ REQUEST ERROR:", error);
+        console.warn("REQUEST ERROR:", error);
         return Promise.reject(error);
     }
 );
@@ -38,7 +38,7 @@ axiosInstance.interceptors.response.use(
     },
     (error) => {
         if (axios.isAxiosError(error)) {
-            console.error("🔥 AXIOS ERROR DETAILS:", {
+            console.warn("AXIOS ERROR DETAILS:", {
                 message: error.message,
                 code: error.code,
                 config: {
@@ -51,16 +51,16 @@ axiosInstance.interceptors.response.use(
                 },
                 response: error.response
                     ? {
-                          status: error.response.status,
-                          statusText: error.response.statusText,
-                          data: error.response.data, // JSON error từ backend
-                          headers: error.response.headers,
-                      }
-                    : "❌ No response received (Network error)",
+                        status: error.response.status,
+                        statusText: error.response.statusText,
+                        data: error.response.data, // JSON error từ backend
+                        headers: error.response.headers,
+                    }
+                    : "No response received (Network error)",
                 request: !!error.request,
             });
         } else {
-            console.error("❌ UNKNOWN ERROR:", error);
+            console.warn("UNKNOWN ERROR:", error);
         }
 
         return Promise.reject(error);

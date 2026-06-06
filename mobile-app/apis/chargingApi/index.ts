@@ -3,7 +3,8 @@ import { ApiResponse, PageResponse } from "@/types/booking.types";
 import {
     StartChargingRequest,
     StopChargingRequest,
-    ChargingSessionResponse
+    ChargingSessionResponse,
+    ChargingMonitorData,
 } from "@/types/charging.types";
 
 const API_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -50,6 +51,16 @@ export const getChargingSessionHistory = async (
 ): Promise<PageResponse<ChargingSessionResponse>> => {
     const res = await axiosInstance.get<ApiResponse<PageResponse<ChargingSessionResponse>>>(
         `${API_BACKEND_URL}/api/v1/charging/me/history?status=${status}&page=${page}&size=${size}`
+    );
+    return res.data.data;
+};
+
+/**
+ * Polling fallback — fetches the latest meter snapshot for a session.
+ */
+export const getLatestMeterValue = async (sessionId: number): Promise<ChargingMonitorData> => {
+    const res = await axiosInstance.get<ApiResponse<ChargingMonitorData>>(
+        `${API_BACKEND_URL}/api/v1/charging/session/${sessionId}/latest-meter`
     );
     return res.data.data;
 };

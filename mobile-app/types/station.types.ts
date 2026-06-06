@@ -127,3 +127,23 @@ export interface StationReviewsSummary {
     totalReviews: number;
     ratingDistribution: Record<number, number>;
 }
+
+/**
+ * Active pricing configuration set by the station owner.
+ * Mirrors backend PriceSettingResponse DTO.
+ */
+export interface PriceSettingResponse {
+    id: number;
+    stationId: number;
+    version: number;
+    /** Booking reservation fee per hour (VND) */
+    bookingFee: number;
+    /** Rate applied per kWh consumed during charging (VND/kWh) */
+    chargingRatePerKwh: number;
+    idlePenaltyPerMinute: number;
+    gracePeriodMinutes: number;
+    isActive: boolean;
+    notes: string | null;
+    effectiveFrom: string;
+    createdAt: string;
+}

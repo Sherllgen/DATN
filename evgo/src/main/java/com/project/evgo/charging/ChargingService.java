@@ -47,4 +47,18 @@ public interface ChargingService {
     ChargingSessionResponse startCharging(StartChargingRequest request, Long userId);
 
     void stopCharging(StopChargingRequest request, Long userId);
+
+    /**
+     * Called by the system scheduler to clean up a charging session that is stuck in PREPARING.
+     */
+    void cleanupStuckPreparingSession(Long sessionId);
+
+    /**
+     * Checks whether any charging session is linked to the given bookingId.
+     * Used by the booking scheduler to detect no-show CONFIRMED bookings (B7).
+     *
+     * @param bookingId the booking to check
+     * @return {@code true} if at least one session row references this bookingId
+     */
+    boolean existsSessionByBookingId(Long bookingId);
 }

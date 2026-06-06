@@ -12,12 +12,12 @@ import com.project.evgo.ocpp.internal.OcppActionHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Handles the OCPP "StartTransaction" action.
@@ -31,9 +31,7 @@ public class StartTransactionHandler implements OcppActionHandler {
     private final ObjectMapper objectMapper;
     private final ChargerService chargerService;
     private final ApplicationEventPublisher eventPublisher;
-    
-    // Simple mock sequence for transaction IDs (in production, use DB sequence)
-    private static final AtomicInteger transactionIdSeq = new AtomicInteger(1000);
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public String getAction() {
@@ -58,10 +56,12 @@ public class StartTransactionHandler implements OcppActionHandler {
         
         Integer reservationId = payload.has("reservationId") ? payload.path("reservationId").asInt() : null;
 
-        int transactionId = transactionIdSeq.incrementAndGet();
+        // Generate a globally unique transactionId from the DB sequence
+        int transactionId = jdbcTemplate.queryForObject(
+                "SELECT nextval('ocpp_transaction_id_seq')", Integer.class);
 
-        log.info("StartTransaction from CP {}: connectorId={}, idTag={}, meterStart={}, timestamp={}",
-                chargePointId, connectorId, idTag, meterStart, timestamp);
+        log.info("StartTransaction from CP {}: connectorId={}, idTag={}, meterStart={}, timestamp={}, transactionId={}",
+                chargePointId, connectorId, idTag, meterStart, timestamp, transactionId);
 
         Long portId = null;
         try {
@@ -76,7 +76,6 @@ public class StartTransactionHandler implements OcppActionHandler {
             log.warn("Could not parse chargePointId '{}' as Long", chargePointId);
         }
 
-        // Publish event for Charging module
         eventPublisher.publishEvent(new StartTransactionReceivedEvent(
                 chargePointId,
                 connectorId,
@@ -88,10 +87,9 @@ public class StartTransactionHandler implements OcppActionHandler {
                 reservationId
         ));
 
-        // Create StartTransaction.conf
         ObjectNode confPayload = objectMapper.createObjectNode();
         ObjectNode idTagInfo = objectMapper.createObjectNode();
-        idTagInfo.put("status", "Accepted"); // Simulating always accepted for now
+        idTagInfo.put("status", "Accepted");
         
         confPayload.set("idTagInfo", idTagInfo);
         confPayload.put("transactionId", transactionId);
@@ -99,3 +97,4 @@ public class StartTransactionHandler implements OcppActionHandler {
         return new OcppCallResult(call.messageId(), confPayload);
     }
 }
+
