@@ -1,6 +1,6 @@
 import React from "react";
 import { Marker } from "react-native-maps";
-import { Image } from "react-native";
+import { Image, View } from "react-native";
 import { Station, StationStatus } from "@/types/station.types";
 
 const PIN_ACTIVE = require("@/assets/images/pin-active.png");
@@ -76,12 +76,18 @@ const StationMarker: React.FC<StationMarkerProps> = React.memo(
                 zIndex={zIndex}
                 tracksViewChanges={tracksViewChanges}
             >
-                <Image 
-                    source={getMarkerImage()} 
-                    style={{ width: size, height: size }} 
-                    resizeMode="contain"
-                    onLoad={() => setTracksViewChanges(false)}
-                />
+                <View style={{ width: size, height: size }}>
+                    <Image 
+                        source={getMarkerImage()} 
+                        style={{ width: size, height: size }} 
+                        resizeMode="contain"
+                        onLoad={() => {
+                            // On Android Release builds, we must wait a tick after load 
+                            // to let the layout engine resize the image before freezing the marker.
+                            setTimeout(() => setTracksViewChanges(false), 100);
+                        }}
+                    />
+                </View>
             </Marker>
         );
     }
