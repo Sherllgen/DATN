@@ -1,6 +1,6 @@
 export default {
   "expo": {
-    "name": "mobile-app",
+    "name": "EV-Go",
     "slug": "capstone-project",
     "version": "1.0.0",
     "orientation": "portrait",
