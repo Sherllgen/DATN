@@ -88,3 +88,14 @@ ON CONFLICT DO NOTHING;
 
 -- Update reviews sequence
 SELECT setval('reviews_id_seq', (SELECT MAX(id) FROM "reviews"));
+
+-- Sync station.rate with the real AVG of all inserted reviews
+-- (keeps the denormalized column consistent on fresh DB boot)
+UPDATE stations s
+SET rate = (
+    SELECT ROUND(CAST(AVG(r.rating) AS NUMERIC), 1)
+    FROM reviews r
+    WHERE r.station_id = s.id
+)
+WHERE EXISTS (SELECT 1 FROM reviews r WHERE r.station_id = s.id);
+

@@ -75,17 +75,17 @@ export default function MapScreen() {
                 {/* Header with Search */}
                 <View className="px-4 pb-4 pt-2">
                     <View className="flex-row items-center gap-3">
-                        {/* Back Button */}   
+                        {/* Back Button */}
                         <TouchableOpacity
                             onPress={() => router.back()}
                             className="w-12 h-12 bg-white/10 rounded-full items-center justify-center border border-white/20"
                             activeOpacity={0.7}
-                            >
+                        >
                             <Ionicons name="arrow-back" size={24} color="#FFF" />
                         </TouchableOpacity>
 
                         {/* Search Input */}
-                        <View className="flex-1 flex-row items-center bg-white rounded-full px-4 h-12"> 
+                        <View className="flex-1 flex-row items-center bg-white rounded-full px-4 h-12">
                             <Ionicons name="search" size={20} color="#9BA1A6" />
                             <TextInput
                                 className="flex-1 ml-3 text-base text-[#11181C]"
@@ -100,7 +100,7 @@ export default function MapScreen() {
                                     mapLogic.setViewMode("list");
                                     mapLogic.fetchListStations(0, activeFilters);
                                 }}
-                            /> 
+                            />
                         </View>
 
                         {/* Filter Button */}
@@ -108,7 +108,7 @@ export default function MapScreen() {
                             className="w-12 h-12 bg-secondary rounded-full items-center justify-center shadow-lg"
                             activeOpacity={0.7}
                             onPress={() => setShowFilterSheet(true)}
-                            >
+                        >
                             <Ionicons name="options" size={24} color={hasActiveFilters ? "#035c1cff" : "#FFF"} />
                         </TouchableOpacity>
                     </View>
@@ -118,11 +118,11 @@ export default function MapScreen() {
                 <View style={{ flex: 1, display: mapLogic.viewMode === "map" ? "flex" : "none" }}>
                     <View className="flex-1 relative">
                         {/* Debug Info */}
-                        {__DEV__ && (
+                        {/* {__DEV__ && (
                             <View className="absolute top-2 left-2 bg-black/70 px-3 py-2 rounded-lg z-50">
                                 <Text className="text-white text-xs">Stations: {mapLogic.stations.length}</Text>
                             </View>
-                        )}
+                        )} */}
 
                         {/* Map */}
                         <MapView

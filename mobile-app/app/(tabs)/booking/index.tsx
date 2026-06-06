@@ -36,6 +36,7 @@ export default function BookingPage() {
                     setIsRefreshing(true);
                 } else {
                     setIsLoading(true);
+                    setBookings([]); // Clear old data to trigger the loading indicator
                 }
             } else {
                 setIsLoadingMore(true);
