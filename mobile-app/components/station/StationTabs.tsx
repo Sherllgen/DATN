@@ -5,17 +5,25 @@ import InfoTab from "@/components/station/tabs/InfoTab";
 import ReviewsTab from "@/components/station/tabs/ReviewsTab";
 import AboutTab from "@/components/station/tabs/AboutTab";
 
-type StationTabType = "Info" | "Reviews" | "About";
+export type StationTabType = "Info" | "Reviews" | "About";
 
 interface StationTabsProps {
     station: Station;
     priceSetting?: PriceSettingResponse | null;
+    activeTab?: StationTabType;
+    onTabChange?: (tab: StationTabType) => void;
 }
 
 const tabs: StationTabType[] = ["Info", "Reviews", "About"];
 
-const StationTabs = ({ station, priceSetting }: StationTabsProps) => {
-    const [activeTab, setActiveTab] = useState<StationTabType>("Info");
+const StationTabs = ({ station, priceSetting, activeTab: propActiveTab, onTabChange }: StationTabsProps) => {
+    const [localActiveTab, setLocalActiveTab] = useState<StationTabType>("Info");
+    const activeTab = propActiveTab || localActiveTab;
+
+    const handleTabChange = (tab: StationTabType) => {
+        setLocalActiveTab(tab);
+        if (onTabChange) onTabChange(tab);
+    };
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -40,7 +48,7 @@ const StationTabs = ({ station, priceSetting }: StationTabsProps) => {
                         return (
                             <TouchableOpacity
                                 key={tab}
-                                onPress={() => setActiveTab(tab)}
+                                onPress={() => handleTabChange(tab)}
                                 activeOpacity={0.7}
                                 className="flex-1 items-center py-4 relative"
                             >

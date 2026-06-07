@@ -18,7 +18,7 @@ import Button from "@/components/ui/Button";
 import StatusBadge, {
     StatusBadgeVariant,
 } from "@/components/station/StatusBadge";
-import StationTabs from "@/components/station/StationTabs";
+import StationTabs, { StationTabType } from "@/components/station/StationTabs";
 import { getStationById, getActivePriceSetting } from "@/apis/stationApi/stationApi";
 import { Station, StationStatus, PriceSettingResponse } from "@/types/station.types";
 import { useStationCache } from "@/stores/stationCacheStore";
@@ -34,6 +34,7 @@ export default function StationDetailScreen() {
     const [station, setStation] = useState<Station | null>(cachedStation);
     const [priceSetting, setPriceSetting] = useState<PriceSettingResponse | null>(null);
     const [loading, setLoading] = useState(!cachedStation); // Only show loading if no cache
+    const [activeTab, setActiveTab] = useState<StationTabType>("Info");
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -219,7 +220,7 @@ export default function StationDetailScreen() {
                             <Button
                                 variant="outline"
                                 fullWidth={false}
-                                onPress={() => console.log("Rate station")}
+                                onPress={() => setActiveTab("Reviews")}
                                 className="flex-1"
                             >
                                 <Ionicons name="star-outline" size={20} color="white" />
@@ -228,7 +229,9 @@ export default function StationDetailScreen() {
                             <Button
                                 variant="primary"
                                 fullWidth={false}
-                                onPress={() => console.log("Direct to station")}
+                                onPress={() => {
+                                    router.navigate({ pathname: "/map", params: { action: "navigate", stationId: station.id } });
+                                }}
                                 className="flex-1"
                             >
                                 <Ionicons name="navigate" size={20} color="white" />
@@ -236,7 +239,12 @@ export default function StationDetailScreen() {
                             </Button>
                         </View>
                         {/* Tabs Navigation and Content */}
-                        <StationTabs station={station} priceSetting={priceSetting} />
+                        <StationTabs 
+                            station={station} 
+                            priceSetting={priceSetting} 
+                            activeTab={activeTab}
+                            onTabChange={setActiveTab}
+                        />
 
                     </View>
                 </ScrollView>

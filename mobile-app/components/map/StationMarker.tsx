@@ -58,10 +58,14 @@ const StationMarker: React.FC<StationMarkerProps> = React.memo(
         // Force re-tracking if marker status changes
         React.useEffect(() => {
             setTracksViewChanges(true);
+            const timer = setTimeout(() => {
+                setTracksViewChanges(false);
+            }, 500); // Wait enough time for Android to render without fading
+            return () => clearTimeout(timer);
         }, [isNavigating, isDestination, station.status]);
 
-        // Generate a unique key based on state so the Marker remounts when icon changes
-        const markerKey = `${station.id}-${isNavigating}-${isDestination}-${station.status}`;
+        // Constant key prevents full Marker unmount/remount, avoiding visual glitches
+        const markerKey = station.id.toString();
 
         return (
             <Marker
@@ -81,11 +85,7 @@ const StationMarker: React.FC<StationMarkerProps> = React.memo(
                         source={getMarkerImage()} 
                         style={{ width: size, height: size }} 
                         resizeMode="contain"
-                        onLoad={() => {
-                            // On Android Release builds, we must wait a tick after load 
-                            // to let the layout engine resize the image before freezing the marker.
-                            setTimeout(() => setTracksViewChanges(false), 100);
-                        }}
+                        fadeDuration={0} // CRITICAL: Disable Android fade to prevent freezing at 20% opacity
                     />
                 </View>
             </Marker>

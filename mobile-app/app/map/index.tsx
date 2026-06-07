@@ -46,19 +46,24 @@ export default function MapScreen() {
     }, [activeFilters, mapLogic.filterMeta]);
 
     // Memoize markers with smart state logic
-    const markers = useMemo(
-        () =>
-            mapLogic.stations.map((station) => (
-                <StationMarker
-                    key={station.id}
-                    station={station}
-                    isNavigating={mapLogic.isNavigating}
-                    isDestination={station.id === mapLogic.selectedStation?.id}
-                    onPress={() => mapLogic.handleMarkerPress(station)}
-                />
-            )),
-        [mapLogic.stations, mapLogic.isNavigating, mapLogic.selectedStation]
-    );
+    const markers = useMemo(() => {
+        const renderedStations = new Map(mapLogic.stations.map(s => [s.id, s]));
+        
+        // Ensure destination station is always rendered during navigation, even if outside bounds
+        if (mapLogic.isNavigating && mapLogic.selectedStation && !renderedStations.has(mapLogic.selectedStation.id)) {
+            renderedStations.set(mapLogic.selectedStation.id, mapLogic.selectedStation);
+        }
+
+        return Array.from(renderedStations.values()).map((station) => (
+            <StationMarker
+                key={station.id}
+                station={station}
+                isNavigating={mapLogic.isNavigating}
+                isDestination={station.id === mapLogic.selectedStation?.id}
+                onPress={() => mapLogic.handleMarkerPress(station)}
+            />
+        ));
+    }, [mapLogic.stations, mapLogic.isNavigating, mapLogic.selectedStation]);
 
     // Log polyline state for debugging
     if (mapLogic.isNavigating || mapLogic.routeCoordinates.length > 0) {

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import * as Location from "expo-location";
 import MapView, { Region } from "react-native-maps";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { Alert } from "react-native";
 import { searchStationsInBound, filterStations, getStationMetadata } from "@/apis/stationApi/stationApi";
 import { StationSearchResult, StationFilterParams, FilterMetadata } from "@/types/station.types";
 import { getRoute } from "@/apis/stationApi/directionApi";
@@ -46,7 +47,7 @@ export interface UseMapLogicReturn {
 
     // Handlers
     handleMarkerPress: (station: StationSearchResult) => void;
-    handleNavigate: () => Promise<void>;
+    handleNavigate: (targetStationOrEvent?: any) => Promise<void>;
     cancelNavigation: () => Promise<void>;
     centerToUserLocation: () => void;
     handleRegionChangeComplete: (region: Region) => void;
@@ -111,7 +112,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
     const [listPage, setListPage] = useState(0);
     const [hasMoreList, setHasMoreList] = useState(true);
     const [isListLoading, setIsListLoading] = useState(false);
-    
+
     // Track active filters for the list to pass when loading more
     const activeFiltersRef = useRef<StationFilterParams>({});
 
@@ -126,18 +127,38 @@ export const useMapLogic = (): UseMapLogicReturn => {
     const initialRegionRef = useRef<Region>(INITIAL_REGION);
     const locationWatcherRef = useRef<Location.LocationSubscription | null>(null);
     const listAbortControllerRef = useRef<AbortController | null>(null);
+    const navigatedRef = useRef<number | null>(null);
+    const params = useLocalSearchParams<{ action?: string, stationId?: string }>();
+
+    // ==================== AUTO NAVIGATION FROM PARAMS ====================
+    useEffect(() => {
+        if (params.action === 'navigate' && params.stationId && location && !isNavigating) {
+            const stationIdNum = Number(params.stationId);
+            if (navigatedRef.current !== stationIdNum) {
+                navigatedRef.current = stationIdNum;
+                const cachedStation = useStationCache.getState().getStation(stationIdNum);
+                if (cachedStation) {
+                    console.log('[AutoNavigate] Triggering navigation for station:', stationIdNum);
+                    // Use a small timeout to ensure map is fully rendered and location is stable
+                    setTimeout(() => {
+                        handleNavigate(cachedStation);
+                    }, 500);
+                }
+            }
+        }
+    }, [params.action, params.stationId, location, isNavigating]);
 
     // ==================== INITIALIZATION ====================
     useEffect(() => {
         checkLocationPermission();
         // Load stations immediately with default region
         fetchStationsInBound(initialRegionRef.current);
-        
+
         // Fetch metadata
         getStationMetadata()
             .then((data) => setFilterMeta(data))
             .catch((error) => console.error("Error fetching station metadata:", error));
-            
+
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -164,7 +185,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
         if (routeCoordinates.length > 0 && isNavigating) {
             console.log('[Polyline Effect] Coordinates updated:', routeCoordinates.length, 'points');
             console.log('[Polyline Effect] Calculating route bounds...');
-            
+
             // Calculate bounding box for route
             const lats = routeCoordinates.map(c => c.latitude);
             const lngs = routeCoordinates.map(c => c.longitude);
@@ -172,12 +193,12 @@ export const useMapLogic = (): UseMapLogicReturn => {
             const maxLat = Math.max(...lats);
             const minLng = Math.min(...lngs);
             const maxLng = Math.max(...lngs);
-            
+
             const centerLat = (minLat + maxLat) / 2;
             const centerLng = (minLng + maxLng) / 2;
             const latDelta = (maxLat - minLat) * 1.5; // 1.5x padding
             const lngDelta = (maxLng - minLng) * 1.5;
-            
+
             // Use animateToRegion instead of fitToCoordinates
             // This triggers a more reliable re-render in the native layer
             setTimeout(() => {
@@ -239,7 +260,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
             }
 
             setLocation(userLocation);
-            
+
             console.log('[getCurrentLocation] User location obtained:', {
                 lat: userLocation.coords.latitude,
                 lng: userLocation.coords.longitude,
@@ -329,9 +350,9 @@ export const useMapLogic = (): UseMapLogicReturn => {
         try {
             // Stop existing watcher if any
             await stopLocationTracking();
-            
+
             console.log('[Location Tracking] Starting GPS tracking...');
-            
+
             locationWatcherRef.current = await Location.watchPositionAsync(
                 {
                     accuracy: Location.Accuracy.Balanced,
@@ -346,13 +367,13 @@ export const useMapLogic = (): UseMapLogicReturn => {
                     setLocation(newLocation);
                 }
             );
-            
+
             console.log('[Location Tracking] GPS tracking active');
         } catch (error) {
             console.error('[Location Tracking] Failed to start:', error);
         }
     };
-    
+
     /**
      * Stop GPS tracking and cleanup
      */
@@ -364,7 +385,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
             console.log('[Location Tracking] GPS tracking stopped');
         }
     };
-    
+
     // ==================== LOCATION TRACKING LIFECYCLE ====================
     // Start/stop tracking based on navigation state
     useEffect(() => {
@@ -373,7 +394,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
         } else {
             stopLocationTracking();
         }
-        
+
         // Cleanup on unmount
         return () => {
             stopLocationTracking();
@@ -392,7 +413,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
         if (location && lastFetchedRegionRef.current && stations.length > 0 && !hasRefetchedWithLocationRef.current) {
             // Check if stations are missing distanceKm (indicates they were fetched without location)
             const needsRefetch = stations.some(s => s.distanceKm === null);
-            
+
             console.log('[Location Effect] Checking re-fetch:', {
                 hasLocation: !!location,
                 stationsCount: stations.length,
@@ -400,7 +421,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
                 needsRefetch,
                 alreadyRefetched: hasRefetchedWithLocationRef.current
             });
-            
+
             if (needsRefetch) {
                 console.log('[Location Effect] Re-fetching stations with user location for distance calculation');
                 hasRefetchedWithLocationRef.current = true; // Mark as refetched to prevent loop
@@ -509,13 +530,13 @@ export const useMapLogic = (): UseMapLogicReturn => {
 
         // Only block if we're NOT fetching Page 0 (which might be a refetch with location)
         if (isListLoading && page !== 0) return;
-        
+
         setIsListLoading(true);
-        
+
         // Create new controller for this request
         const controller = new AbortController();
         listAbortControllerRef.current = controller;
-        
+
         try {
             // Update active filters if provided
             if (filters) {
@@ -533,11 +554,11 @@ export const useMapLogic = (): UseMapLogicReturn => {
                     userLng: location.coords.longitude
                 })
             };
-            
+
             console.log(`[fetchListStations] passing params:`, JSON.stringify(params));
-            
+
             const paginatedResponse = await filterStations(params, controller.signal);
-            
+
             console.log(`[fetchListStations] page ${page} returned ${paginatedResponse.content?.length} stations`);
 
             if (page === 0) {
@@ -554,7 +575,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
 
             setListPage(page);
             setHasMoreList(!paginatedResponse.last);
-            
+
         } catch (error: any) {
             if (error.name === 'CanceledError' || error.name === 'AbortError') {
                 console.log(`[fetchListStations] Request for page ${page} was cancelled`);
@@ -620,10 +641,18 @@ export const useMapLogic = (): UseMapLogicReturn => {
      * Handles navigation with instant feedback and polyline simplification.
      * Performance: Simplifies route coordinates from 5000+ to ~200-500 points.
      */
-    const handleNavigate = async () => {
-        if (!selectedStation || !location) return;
+    const handleNavigate = async (targetStationOrEvent?: any) => {
+        let stationToNav = selectedStation;
+        
+        // Safely check if argument is a station (has latitude) rather than a PressEvent
+        if (targetStationOrEvent && typeof targetStationOrEvent.latitude === 'number') {
+            stationToNav = targetStationOrEvent as StationSearchResult;
+            setSelectedStation(stationToNav);
+        }
 
-        console.log('[handleNavigate] START - Station:', selectedStation.name);
+        if (!stationToNav || !location) return;
+
+        console.log('[handleNavigate] START - Station:', stationToNav.name);
         setShowQuickInfo(false);
         setIsInitialLoading(true); // Instant feedback
 
@@ -631,8 +660,8 @@ export const useMapLogic = (): UseMapLogicReturn => {
             const routeData = await getRoute(
                 location.coords.latitude,
                 location.coords.longitude,
-                selectedStation.latitude,
-                selectedStation.longitude
+                stationToNav.latitude,
+                stationToNav.longitude
             );
 
             if (routeData && routeData.encodedPolyline) {
@@ -645,35 +674,39 @@ export const useMapLogic = (): UseMapLogicReturn => {
                 // CRITICAL: Simplify polyline to prevent OOM crashes
                 // 0.0001 degrees ≈ 11 meters, good balance for urban navigation
                 const simplifiedCoords = simplifyPolyline(coords, 0.0001);
-                
+
                 console.log(`[handleNavigate] Polyline simplified: ${coords.length} → ${simplifiedCoords.length} points`);
 
                 // Only set navigation state AFTER route is calculated
                 // Store route metrics
                 setRouteDistance(routeData.distance);
                 setRouteDuration(routeData.duration);
-                
+
                 console.log('[handleNavigate] Setting routeCoordinates and isNavigating=true');
                 setRouteCoordinates(simplifiedCoords);
                 setIsNavigating(true);
-                
+
                 // Show loading spinner to cover MapView remount
                 setIsNavigationLoading(true);
-                
+
                 // CRITICAL: Force MapView re-render by changing key
                 // This ensures the native layer detects the new Polyline component
                 setMapKey(prev => prev + 1);
                 console.log('[handleNavigate] MapKey incremented to force re-render');
-                
+
                 // Hide loading spinner after MapView remounts
                 setTimeout(() => {
                     setIsNavigationLoading(false);
                 }, 250);
-                
+
                 console.log('[handleNavigate] State updated, useEffect should trigger');
             }
         } catch (error) {
             console.error("[handleNavigate] Navigation failed:", error);
+            Alert.alert(
+                "Navigation Error",
+                "Could not calculate a route to this station. The station might be too far or located across a body of water."
+            );
         } finally {
             setIsInitialLoading(false);
         }
@@ -685,7 +718,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
      */
     const cancelNavigation = async () => {
         console.log('[cancelNavigation] START - Clearing navigation state');
-        
+
         // Step 1: Clear navigation state FIRST
         setIsNavigating(false);
         setRouteCoordinates([]);
@@ -777,14 +810,14 @@ export const useMapLogic = (): UseMapLogicReturn => {
         remainingDistance: (() => {
             // Calculate remaining distance along the route (not straight-line)
             if (!location || routeCoordinates.length === 0) return 0;
-            
+
             const userLat = location.coords.latitude;
             const userLng = location.coords.longitude;
-            
+
             // Find nearest point on route to current location
             let nearestIndex = 0;
             let minDistance = Infinity;
-            
+
             routeCoordinates.forEach((coord, index) => {
                 const dist = haversineDistance(userLat, userLng, coord.latitude, coord.longitude);
                 if (dist < minDistance) {
@@ -792,7 +825,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
                     nearestIndex = index;
                 }
             });
-            
+
             // Sum distances from nearest point to end of route
             let remaining = 0;
             for (let i = nearestIndex; i < routeCoordinates.length - 1; i++) {
@@ -803,7 +836,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
                     routeCoordinates[i + 1].longitude
                 );
             }
-            
+
             return remaining;
         })(),
         isNavigating,
@@ -812,7 +845,7 @@ export const useMapLogic = (): UseMapLogicReturn => {
         viewMode,
         searchQuery,
         mapKey,
-        
+
         listStations,
         listPage,
         hasMoreList,
