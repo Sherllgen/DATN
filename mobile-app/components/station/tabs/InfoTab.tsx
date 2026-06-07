@@ -30,13 +30,21 @@ const formatDayOfWeek = (day: string): string => {
 };
 
 // Helper function to format time range
-const formatTimeRange = (openTime: string | null, closeTime: string | null): string => {
+const formatTimeRange = (openTime: string | null, closeTime: string | null, isOpen: boolean): string => {
+    if (!isOpen) {
+        return "Closed";
+    }
     if (!openTime || !closeTime) {
-        return "00:00 - 00:00";
+        return "24/24";
     }
     // Convert "HH:MM:SS" to "HH:MM"
     const formatTime = (time: string) => time.substring(0, 5);
-    return `${formatTime(openTime)} - ${formatTime(closeTime)}`;
+    const formattedOpen = formatTime(openTime);
+    const formattedClose = formatTime(closeTime);
+    if (formattedOpen === "00:00" && formattedClose === "00:00") {
+        return "24/24";
+    }
+    return `${formattedOpen} - ${formattedClose}`;
 };
 
 const InfoTab = ({ station, priceSetting }: InfoTabProps) => {
@@ -134,7 +142,7 @@ const InfoTab = ({ station, priceSetting }: InfoTabProps) => {
                                     {formatDayOfWeek(hours.dayOfWeek)}
                                 </Text>
                                 <Text className="text-base text-[#9BA1A6]">
-                                    {formatTimeRange(hours.openTime, hours.closeTime)}
+                                    {formatTimeRange(hours.openTime, hours.closeTime, hours.isOpen)}
                                 </Text>
                             </View>
                         ))}
