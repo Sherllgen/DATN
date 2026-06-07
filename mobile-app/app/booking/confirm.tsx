@@ -201,7 +201,7 @@ export default function ConfirmBookingScreen() {
                 userId: booking.userId,
                 amount: invoice.totalCost,
                 description: `EV-Go Booking ${booking.id}`,
-                redirectUrl: ExpoLinking.createURL('booking')
+                redirectUrl: ExpoLinking.createURL('')
             });
 
             // 4. Open ZaloPay App-to-App
