@@ -78,15 +78,15 @@ export default {
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "5cc97fa3-c2cc-45a7-b89b-70d8cdd33ad9"
+        "projectId": "4b0cc3f5-45b9-4488-a216-533ae314478d"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/d99bc10d-69b7-47af-b1c2-ccbd8abcbe42"
+      "url": "https://u.expo.dev/4b0cc3f5-45b9-4488-a216-533ae314478d"
     },
-    "owner": "nncp19100"
+    "owner": "sherllgen"
   }
 }

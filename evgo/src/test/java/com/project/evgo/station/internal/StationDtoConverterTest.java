@@ -34,6 +34,9 @@ class StationDtoConverterTest {
     @Mock
     private ChargerStatisticProvider chargerStatisticProvider;
 
+    @Mock
+    private StationPhotoRepository stationPhotoRepository;
+
     @InjectMocks
     private StationDtoConverter stationDtoConverter;
 
@@ -41,6 +44,8 @@ class StationDtoConverterTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(stationPhotoRepository.findByStationIdOrderByDisplayOrderAsc(anyLong())).thenReturn(List.of());
+
         mockStation = new Station();
         mockStation.setId(1L);
         mockStation.setOwnerId(10L);
@@ -192,5 +197,28 @@ class StationDtoConverterTest {
         assertNull(result.distanceKm());
         assertEquals(0, result.totalChargersCount());
         assertEquals(0, result.availableChargersCount());
+    }
+
+    @Test
+    void convert_ShouldReturnStationResponse_WithImageUrlsFromPhotos() {
+        when(portCountProvider.getPortCounts(1L)).thenReturn(new PortCounts(10, 5));
+        when(chargerStatisticProvider.getTotalChargerCount(1L)).thenReturn(4L);
+        when(chargerStatisticProvider.getAvailableChargerCount(1L)).thenReturn(2L);
+        when(portCountProvider.getPortSummaries(1L)).thenReturn(List.of());
+
+        StationPhoto photo1 = new StationPhoto();
+        photo1.setImageUrl("photo1.png");
+        StationPhoto photo2 = new StationPhoto();
+        photo2.setImageUrl("photo2.png");
+        
+        when(stationPhotoRepository.findByStationIdOrderByDisplayOrderAsc(1L))
+                .thenReturn(List.of(photo1, photo2));
+
+        StationResponse response = stationDtoConverter.convert(mockStation);
+
+        assertNotNull(response);
+        assertEquals(2, response.imageUrls().size());
+        assertEquals("photo1.png", response.imageUrls().get(0));
+        assertEquals("photo2.png", response.imageUrls().get(1));
     }
 }

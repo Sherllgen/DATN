@@ -220,6 +220,21 @@ class BookingSchedulerTest {
         verify(zaloPayService, never()).queryOrderStatus(any());
     }
 
+    @Test
+    @DisplayName("expireUnusedBookings: Should call expireBooking for confirmed bookings past endTime")
+    void expireUnusedBookings_ExpiredConfirmedBookings_CallsExpireBooking() {
+        Booking booking = new Booking();
+        booking.setId(10L);
+        booking.setStatus(BookingStatus.CONFIRMED);
+
+        when(bookingRepository.findByStatusAndEndTimeBefore(eq(BookingStatus.CONFIRMED), any(LocalDateTime.class)))
+                .thenReturn(List.of(booking));
+
+        bookingScheduler.expireUnusedBookings();
+
+        verify(bookingService).expireBooking(10L);
+    }
+
     private Booking buildBooking(Long id, BookingStatus status, Long chargerId, Long portId,
                                   Long userId, LocalDateTime start, LocalDateTime end) {
         Booking b = new Booking();
