@@ -107,9 +107,9 @@ export default function StationQuickInfo({
                             />
                         ))}
                     </View>
-                    <Text className="text-sm text-[#9BA1A6]">
+                    {/* <Text className="text-sm text-[#9BA1A6]">
                         (128 reviews)
-                    </Text>
+                    </Text> */}
                 </View>
 
                 {/* Status and Stats */}
