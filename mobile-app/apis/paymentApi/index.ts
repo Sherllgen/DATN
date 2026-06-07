@@ -8,6 +8,7 @@ export interface ZaloPayOrderRequest {
     userId: number;
     amount: number;
     description: string;
+    redirectUrl?: string;
 }
 
 export interface InvoiceResponse {
@@ -28,15 +29,55 @@ export interface ZaloPayOrderResponse {
     appTransId: string;
 }
 
+import * as ExpoLinking from "expo-linking";
+
 /**
  * Creates a ZaloPay Sandbox order and returns App-to-App URLs
  */
 export const createZaloPayOrder = async (request: ZaloPayOrderRequest): Promise<ZaloPayOrderResponse> => {
+    // Automatically inject a deep link redirect URL if not provided
+    // This dynamically handles both Expo Go (exp://) and Standalone build (com.evgo.mobile://)
+    if (!request.redirectUrl) {
+        request.redirectUrl = ExpoLinking.createURL('booking');
+    }
+
     const res = await axiosInstance.post<ApiResponse<ZaloPayOrderResponse>>(
         `${API_BACKEND_URL}/api/v1/zalopay/orders`,
         request
     );
     return res.data.data;
+};
+
+import { Linking, Platform } from "react-native";
+
+/**
+ * Handles ZaloPay App-to-App deep linking with Web Gateway fallback
+ */
+export const processZaloPayPayment = async (order: ZaloPayOrderResponse) => {
+    // ZaloPay Sandbox uses app_id 2553 / 2554. We will extract it from orderUrl if possible, or use default 2553.
+    const appId = 2553;
+    const deepLink = `zalopay://app?app_id=${appId}&zptranstoken=${order.zpTransToken}`;
+
+    try {
+        if (Platform.OS === 'ios') {
+            const canOpen = await Linking.canOpenURL(deepLink);
+            if (canOpen) {
+                await Linking.openURL(deepLink);
+                return;
+            }
+        } else {
+            // Android can bypass canOpenURL to avoid Intent Filter requirement in manifest
+            await Linking.openURL(deepLink);
+            return;
+        }
+    } catch (error) {
+        console.log("Cannot open ZaloPay app, falling back to Web", error);
+    }
+
+    // Fallback to Web Gateway
+    if (order.orderUrl) {
+        await Linking.openURL(order.orderUrl);
+    }
 };
 
 export const getInvoiceByBookingId = async (bookingId: number): Promise<InvoiceResponse> => {

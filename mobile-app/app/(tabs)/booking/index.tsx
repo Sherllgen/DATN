@@ -8,7 +8,7 @@ import BookingCard from "@/components/booking/BookingCard";
 import { useRouter, useFocusEffect } from "expo-router";
 import { getMyBookings, cancelBooking } from "@/apis/bookingApi";
 import { BookingResponse } from "@/types/booking.types";
-import { getInvoiceByBookingId, createZaloPayOrder } from "@/apis/paymentApi";
+import { getInvoiceByBookingId, createZaloPayOrder, processZaloPayPayment } from "@/apis/paymentApi";
 import { useUserStore } from "@/contexts/user.store";
 import GuestPlaceholder from "@/components/auth/GuestPlaceholder";
 
@@ -107,7 +107,8 @@ export default function BookingPage() {
             });
 
             if (order.orderUrl) {
-                await Linking.openURL(order.orderUrl);
+                await processZaloPayPayment(order);
+                // After paying, maybe reload the booking list or it will be done on focus
             } else {
                 Alert.alert("Error", "Could not acquire a payment URL from ZaloPay.");
             }

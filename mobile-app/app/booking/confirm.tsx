@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, Image, ActivityIndicator, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as ExpoLinking from "expo-linking";
 import { MaterialCommunityIcons, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import AppHeader from "@/components/ui/AppHeader";
 import GradientBackground from "@/components/ui/GradientBackground";
@@ -14,7 +15,7 @@ import { getStationById } from "@/apis/stationApi/stationApi";
 import { getChargersByStationId } from "@/apis/chargerApi";
 import { getAllVehicleApi } from "@/apis/vehicleApi/vehicleApi";
 import { checkAvailability, createBooking } from "@/apis/bookingApi";
-import { getInvoiceByBookingId, createZaloPayOrder } from "@/apis/paymentApi";
+import { getInvoiceByBookingId, createZaloPayOrder, processZaloPayPayment } from "@/apis/paymentApi";
 import { getActivePriceSetting } from "@/apis/stationApi/stationApi";
 import { Station } from "@/types/station.types";
 import { PriceSettingResponse } from "@/types/station.types";
@@ -199,12 +200,13 @@ export default function ConfirmBookingScreen() {
                 invoiceId: invoice.id,
                 userId: booking.userId,
                 amount: invoice.totalCost,
-                description: `EV-Go Booking ${booking.id}`
+                description: `EV-Go Booking ${booking.id}`,
+                redirectUrl: ExpoLinking.createURL('booking')
             });
 
-            // 4. Open ZaloPay URL
+            // 4. Open ZaloPay App-to-App
             if (order.orderUrl) {
-                await Linking.openURL(order.orderUrl);
+                await processZaloPayPayment(order);
                 // Optionally push to a 'Waiting for payment' or 'Home' screen
                 router.replace('/');
             }

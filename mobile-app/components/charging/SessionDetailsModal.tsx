@@ -3,7 +3,7 @@ import { Modal, View, Text, ActivityIndicator, Image, Linking, ScrollView } from
 import { Ionicons } from "@expo/vector-icons";
 import Button from "@/components/ui/Button";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
-import { getInvoiceByChargingSessionId, createZaloPayOrder, InvoiceResponse } from "@/apis/paymentApi";
+import { getInvoiceByChargingSessionId, createZaloPayOrder, processZaloPayPayment, InvoiceResponse } from "@/apis/paymentApi";
 import { Toast } from "toastify-react-native";
 import { useUserStore } from "@/contexts/user.store";
 import { ChargingSessionResponse } from "@/types/charging.types";
@@ -61,9 +61,9 @@ export default function SessionDetailsModal({ showModal, session, duration, date
                 userId: Number(user.id)
             });
             if (data.orderUrl) {
-                Linking.openURL(data.orderUrl);
+                await processZaloPayPayment(data);
+                onDismiss(true);
             }
-            onDismiss(true);
         } catch (error: any) {
             Toast.error(error?.response?.data?.message || "Failed to create order");
         } finally {
