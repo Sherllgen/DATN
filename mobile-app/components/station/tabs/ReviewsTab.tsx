@@ -14,9 +14,10 @@ import { useUserStore } from "@/contexts/user.store";
 
 interface ReviewsTabProps {
     stationId: number;
+    onReviewChange?: (newRating: number) => void;
 }
 
-const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
+const ReviewsTab = ({ stationId, onReviewChange }: ReviewsTabProps) => {
     const [isIdShowingReviewModal, setIsIdShowingReviewModal] = useState(false);
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState("");
@@ -36,10 +37,13 @@ const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
         try {
             const data = await getReviewSummary(stationId);
             setSummary(data);
+            if (onReviewChange && data && 'averageRating' in data) {
+                onReviewChange(data.averageRating);
+            }
         } catch (error) {
             console.error("Error fetching review summary:", error);
         }
-    }, [stationId]);
+    }, [stationId, onReviewChange]);
 
     const fetchReviews = useCallback(async (pageNum: number, isInitial = false) => {
         try {
@@ -98,8 +102,8 @@ const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
             setIsIdShowingReviewModal(false);
 
             // Refresh data
-            fetchSummary();
-            fetchReviews(0, true);
+            await fetchSummary();
+            await fetchReviews(0, true);
 
             Alert.alert("Success", editingReviewId ? "Your review has been updated successfully!" : "Your review has been submitted successfully!");
         } catch (error) {
@@ -123,8 +127,8 @@ const ReviewsTab = ({ stationId }: ReviewsTabProps) => {
                         try {
                             await deleteReview(reviewId);
                             // Refresh data
-                            fetchSummary();
-                            fetchReviews(0, true);
+                            await fetchSummary();
+                            await fetchReviews(0, true);
                             Alert.alert("Success", "Review deleted successfully");
                         } catch (error) {
                             console.error("Error deleting review:", error);

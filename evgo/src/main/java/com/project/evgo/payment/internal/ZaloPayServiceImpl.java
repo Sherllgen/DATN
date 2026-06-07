@@ -68,7 +68,15 @@ public class ZaloPayServiceImpl implements ZaloPayService {
 
         String appTransId = buildAppTransId();
         long appTime = Instant.now().toEpochMilli();
-        String embedData = "{}";
+
+        String finalRedirectUrl = (request.redirectUrl() != null && !request.redirectUrl().isEmpty()) 
+                ? request.redirectUrl() 
+                : zaloPayConfig.getRedirectUrl();
+                
+        String embedData = (finalRedirectUrl != null && !finalRedirectUrl.isEmpty())
+                ? "{\"redirecturl\":\"" + finalRedirectUrl + "\"}"
+                : "{}";
+                
         String item = "[]";
         String appUser = String.valueOf(request.userId());
         long amount = request.amount().longValue();

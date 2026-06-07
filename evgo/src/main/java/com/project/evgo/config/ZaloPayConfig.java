@@ -18,6 +18,7 @@ public class ZaloPayConfig {
     private String key2;
     private String endpoint;
     private String callbackUrl;
+    private String redirectUrl;
 
     public ZaloPayConfig() {
     }
@@ -60,6 +61,14 @@ public class ZaloPayConfig {
 
     public void setCallbackUrl(String callbackUrl) {
         this.callbackUrl = callbackUrl;
+    }
+
+    public String getRedirectUrl() {
+        return redirectUrl;
+    }
+
+    public void setRedirectUrl(String redirectUrl) {
+        this.redirectUrl = redirectUrl;
     }
 
     @Bean
