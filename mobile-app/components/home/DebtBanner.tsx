@@ -14,7 +14,7 @@ export default function DebtBanner({ isVisible, unpaidCount }: DebtBannerProps) 
     if (!isVisible || unpaidCount === 0) return null;
 
     return (
-        <View className="mb-6 rounded-2xl bg-red-500/10 border border-red-500/20 overflow-hidden">
+        <View className="mt-6 mb-2 rounded-2xl bg-red-500/10 border border-red-500/20 overflow-hidden">
             <View className="p-4 flex-row items-center">
                 <View className="w-10 h-10 rounded-full bg-red-500/20 items-center justify-center mr-3">
                     <Feather name="alert-triangle" color="#EF4444" size={20} />
