@@ -51,30 +51,12 @@ export const createZaloPayOrder = async (request: ZaloPayOrderRequest): Promise<
 import { Linking, Platform } from "react-native";
 
 /**
- * Handles ZaloPay App-to-App deep linking with Web Gateway fallback
+ * Handles ZaloPay Payment by opening the Web Gateway.
+ * Note: Direct App-to-App deep linking (zalopay://app) without the official ZPDK SDK 
+ * is blocked by ZaloPay and will only open the ZaloPay home screen.
+ * The Web Gateway handles opening the ZaloPay app securely.
  */
 export const processZaloPayPayment = async (order: ZaloPayOrderResponse) => {
-    // ZaloPay Sandbox uses app_id 2553 / 2554. We will extract it from orderUrl if possible, or use default 2553.
-    const appId = 2553;
-    const deepLink = `zalopay://app?app_id=${appId}&zptranstoken=${order.zpTransToken}`;
-
-    try {
-        if (Platform.OS === 'ios') {
-            const canOpen = await Linking.canOpenURL(deepLink);
-            if (canOpen) {
-                await Linking.openURL(deepLink);
-                return;
-            }
-        } else {
-            // Android can bypass canOpenURL to avoid Intent Filter requirement in manifest
-            await Linking.openURL(deepLink);
-            return;
-        }
-    } catch (error) {
-        console.log("Cannot open ZaloPay app, falling back to Web", error);
-    }
-
-    // Fallback to Web Gateway
     if (order.orderUrl) {
         await Linking.openURL(order.orderUrl);
     }
