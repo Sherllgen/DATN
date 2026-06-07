@@ -128,3 +128,4 @@ zalopay:
   key2: ${ZALOPAY_KEY2}
   endpoint: ${ZALOPAY_ENDPOINT}
   callback-url: ${ZALOPAY_CALLBACK_URL}
+  redirect-url: ${ZALOPAY_REDIRECT_URL:}

@@ -112,7 +112,7 @@ class ZaloPayServiceTest {
         void createOrder_ValidRequest_ReturnsOrderResponseAndPersistsOnTransaction() {
             // Given
             ZaloPayOrderRequest request = new ZaloPayOrderRequest(
-                    INVOICE_ID, USER_ID, AMOUNT, "Test payment");
+                    INVOICE_ID, USER_ID, AMOUNT, "Test payment", null);
 
             Invoice invoice = buildPendingInvoice();
             when(invoiceRepository.findById(INVOICE_ID)).thenReturn(Optional.of(invoice));
@@ -142,7 +142,7 @@ class ZaloPayServiceTest {
         @Test
         @DisplayName("Should throw INVOICE_NOT_FOUND when invoice does not exist")
         void createOrder_InvoiceNotFound_ThrowsException() {
-            ZaloPayOrderRequest request = new ZaloPayOrderRequest(INVOICE_ID, USER_ID, AMOUNT, null);
+            ZaloPayOrderRequest request = new ZaloPayOrderRequest(INVOICE_ID, USER_ID, AMOUNT, null, null);
             when(invoiceRepository.findById(INVOICE_ID)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> zaloPayService.createOrder(request))
@@ -156,7 +156,7 @@ class ZaloPayServiceTest {
         @Test
         @DisplayName("Should throw INVOICE_ALREADY_PAID when invoice is already paid")
         void createOrder_InvoiceAlreadyPaid_ThrowsException() {
-            ZaloPayOrderRequest request = new ZaloPayOrderRequest(INVOICE_ID, USER_ID, AMOUNT, null);
+            ZaloPayOrderRequest request = new ZaloPayOrderRequest(INVOICE_ID, USER_ID, AMOUNT, null, null);
 
             Invoice invoice = buildPendingInvoice();
             invoice.setStatus(InvoiceStatus.PAID);
@@ -173,7 +173,7 @@ class ZaloPayServiceTest {
         @Test
         @DisplayName("Should throw ZALOPAY_ORDER_CREATION_FAILED when gateway returns error code")
         void createOrder_GatewayReturnsError_ThrowsException() {
-            ZaloPayOrderRequest request = new ZaloPayOrderRequest(INVOICE_ID, USER_ID, AMOUNT, null);
+            ZaloPayOrderRequest request = new ZaloPayOrderRequest(INVOICE_ID, USER_ID, AMOUNT, null, null);
             Invoice invoice = buildPendingInvoice();
             when(invoiceRepository.findById(INVOICE_ID)).thenReturn(Optional.of(invoice));
 
@@ -188,7 +188,7 @@ class ZaloPayServiceTest {
         @Test
         @DisplayName("Should throw ZALOPAY_ORDER_CREATION_FAILED when gateway returns null body")
         void createOrder_NullGatewayResponse_ThrowsException() {
-            ZaloPayOrderRequest request = new ZaloPayOrderRequest(INVOICE_ID, USER_ID, AMOUNT, null);
+            ZaloPayOrderRequest request = new ZaloPayOrderRequest(INVOICE_ID, USER_ID, AMOUNT, null, null);
             Invoice invoice = buildPendingInvoice();
             when(invoiceRepository.findById(INVOICE_ID)).thenReturn(Optional.of(invoice));
 
