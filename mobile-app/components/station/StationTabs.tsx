@@ -12,11 +12,12 @@ interface StationTabsProps {
     priceSetting?: PriceSettingResponse | null;
     activeTab?: StationTabType;
     onTabChange?: (tab: StationTabType) => void;
+    onStationUpdate?: (newRating?: number) => void;
 }
 
 const tabs: StationTabType[] = ["Info", "Reviews", "About"];
 
-const StationTabs = ({ station, priceSetting, activeTab: propActiveTab, onTabChange }: StationTabsProps) => {
+const StationTabs = ({ station, priceSetting, activeTab: propActiveTab, onTabChange, onStationUpdate }: StationTabsProps) => {
     const [localActiveTab, setLocalActiveTab] = useState<StationTabType>("Info");
     const activeTab = propActiveTab || localActiveTab;
 
@@ -30,7 +31,7 @@ const StationTabs = ({ station, priceSetting, activeTab: propActiveTab, onTabCha
             case "Info":
                 return <InfoTab station={station} priceSetting={priceSetting} />;
             case "Reviews":
-                return <ReviewsTab stationId={station.id} />;
+                return <ReviewsTab stationId={station.id} onReviewChange={onStationUpdate} />;
             case "About":
                 return <AboutTab station={station} />;
             default:

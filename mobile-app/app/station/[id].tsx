@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -44,7 +44,7 @@ export default function StationDetailScreen() {
         }
     }, [id]);
 
-    const fetchStationDetails = async () => {
+    const fetchStationDetails = useCallback(async () => {
         try {
             // Only show loading spinner if we don't already have data
             setLoading(prev => prev && !station); // Fix: check current state, not closure
@@ -73,7 +73,23 @@ export default function StationDetailScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, station]);
+
+    const handleStationUpdate = useCallback((newRating?: number) => {
+        if (newRating !== undefined) {
+            setStation(prev => {
+                if (prev) {
+                    if (prev.rate === newRating) return prev; // Prevent infinite re-render loop
+                    const updated = { ...prev, rate: newRating };
+                    useStationCache.getState().setStation(updated);
+                    return updated;
+                }
+                return prev;
+            });
+        } else {
+            fetchStationDetails();
+        }
+    }, [fetchStationDetails]);
 
     if (loading) {
         return (
@@ -244,6 +260,7 @@ export default function StationDetailScreen() {
                             priceSetting={priceSetting} 
                             activeTab={activeTab}
                             onTabChange={setActiveTab}
+                            onStationUpdate={handleStationUpdate}
                         />
 
                     </View>

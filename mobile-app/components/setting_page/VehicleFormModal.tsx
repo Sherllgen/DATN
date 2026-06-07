@@ -1,7 +1,7 @@
 import Dropdown from "@/components/ui/Dropdown";
 import Button from "@/components/ui/Button";
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from "react-native";
+import { Modal, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 
 export type VehicleBrand =
     | "VINFAST"
@@ -76,7 +76,7 @@ export default function VehicleFormModal({
             onRequestClose={onClose}
         >
             <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                behavior="padding"
                 className="flex-1"
             >
                 <TouchableOpacity
@@ -99,87 +99,94 @@ export default function VehicleFormModal({
                                 </Text>
                             </View>
 
-                            <View className="px-6 pt-4">
-                                {/* Error Message */}
-                                {errorMessage ? (
-                                    <View className="bg-red-500/20 mb-4 p-3 border border-red-500/50 rounded-lg">
-                                        <Text className="text-red-400 text-sm">
-                                            {errorMessage}
-                                        </Text>
-                                    </View>
-                                ) : null}
+                            <ScrollView
+                                bounces={false}
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={{}}
+                                keyboardShouldPersistTaps="handled"
+                            >
+                                <View className="px-6 pt-4">
+                                    {/* Error Message */}
+                                    {errorMessage ? (
+                                        <View className="bg-red-500/20 mb-4 p-3 border border-red-500/50 rounded-lg">
+                                            <Text className="text-red-400 text-sm">
+                                                {errorMessage}
+                                            </Text>
+                                        </View>
+                                    ) : null}
 
-                                {/* Brand Dropdown */}
-                                <Dropdown
-                                    label="Brand name"
-                                    value={selectedBrand}
-                                    items={listVehicleBrand}
-                                    onValueChange={(value) =>
-                                        onBrandChange(value as VehicleBrand)
-                                    }
-                                />
-
-                                {/* Model Name Input */}
-                                <View className="mt-4">
-                                    <Text className="mb-1 text-[#9BA1A6] text-sm">
-                                        Vehicle name*
-                                    </Text>
-                                    <TextInput
-                                        value={modelName}
-                                        onChangeText={onModelNameChange}
-                                        placeholder="EVO 200"
-                                        className="pb-3 border-border-gray border-b text-[#4CAF50] text-base"
-                                        placeholderTextColor="#9BA1A6"
+                                    {/* Brand Dropdown */}
+                                    <Dropdown
+                                        label="Brand name"
+                                        value={selectedBrand}
+                                        items={listVehicleBrand}
+                                        onValueChange={(value) =>
+                                            onBrandChange(value as VehicleBrand)
+                                        }
                                     />
-                                </View>
 
-                                {/* Connector Types */}
-                                <View className="mt-4">
-                                    <Text className="mb-3 text-[#9BA1A6] text-sm">
-                                        Connector Types*
-                                    </Text>
-                                    <View className="flex-row flex-wrap gap-2">
-                                        {availableConnectors.map((connector) => (
-                                            <TouchableOpacity
-                                                key={connector.id}
-                                                onPress={() =>
-                                                    toggleConnector(connector.id)
-                                                }
-                                                className={`px-4 py-2 rounded-lg border ${connectorTypes.includes(
-                                                    connector.id
-                                                )
-                                                    ? "bg-[#4CAF50] border-[#4CAF50]"
-                                                    : "bg-transparent border-border-gray"
-                                                    }`}
-                                                activeOpacity={0.7}
-                                            >
-                                                <Text
-                                                    className={
-                                                        connectorTypes.includes(
-                                                            connector.id
-                                                        )
-                                                            ? "text-white"
-                                                            : "text-[#9BA1A6]"
-                                                    }
-                                                >
-                                                    {connector.name}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
+                                    {/* Model Name Input */}
+                                    <View className="mt-4">
+                                        <Text className="mb-1 text-[#9BA1A6] text-sm">
+                                            Vehicle name*
+                                        </Text>
+                                        <TextInput
+                                            value={modelName}
+                                            onChangeText={onModelNameChange}
+                                            placeholder="EVO 200"
+                                            className="pb-3 border-border-gray border-b text-[#4CAF50] text-base"
+                                            placeholderTextColor="#9BA1A6"
+                                        />
                                     </View>
-                                </View>
 
-                                {/* Save Button */}
-                                <Button
-                                    className="mt-6"
-                                    variant="primary"
-                                    fullWidth
-                                    onPress={onSave}
-                                    loading={isSaving}
-                                >
-                                    {editingVehicle ? "Save changes" : "Add vehicle"}
-                                </Button>
-                            </View>
+                                    {/* Connector Types */}
+                                    <View className="mt-4">
+                                        <Text className="mb-3 text-[#9BA1A6] text-sm">
+                                            Connector Types*
+                                        </Text>
+                                        <View className="flex-row flex-wrap gap-2">
+                                            {availableConnectors.map((connector) => (
+                                                <TouchableOpacity
+                                                    key={connector.id}
+                                                    onPress={() =>
+                                                        toggleConnector(connector.id)
+                                                    }
+                                                    className={`px-4 py-2 rounded-lg border ${connectorTypes.includes(
+                                                        connector.id
+                                                    )
+                                                        ? "bg-[#4CAF50] border-[#4CAF50]"
+                                                        : "bg-transparent border-border-gray"
+                                                        }`}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <Text
+                                                        className={
+                                                            connectorTypes.includes(
+                                                                connector.id
+                                                            )
+                                                                ? "text-white"
+                                                                : "text-[#9BA1A6]"
+                                                        }
+                                                    >
+                                                        {connector.name}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+
+                                    {/* Save Button */}
+                                    <Button
+                                        className="mt-6"
+                                        variant="primary"
+                                        fullWidth
+                                        onPress={onSave}
+                                        loading={isSaving}
+                                    >
+                                        {editingVehicle ? "Save changes" : "Add vehicle"}
+                                    </Button>
+                                </View>
+                            </ScrollView>
                         </View>
                     </TouchableOpacity>
                 </TouchableOpacity>
