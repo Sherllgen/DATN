@@ -6,10 +6,10 @@ import {
     TouchableOpacity,
     KeyboardAvoidingView,
     Platform,
-    Dimensions,
     ModalProps as RNModalProps,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ModalVariant = "bottom-sheet" | "centered" | "full-screen";
 
@@ -32,8 +32,6 @@ interface ModalProps extends Omit<RNModalProps, "transparent" | "animationType">
     contentClassName?: string;
 }
 
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 export default function Modal({
     visible,
     onClose,
@@ -47,16 +45,11 @@ export default function Modal({
 }: ModalProps) {
     const insets = useSafeAreaInsets();
     
-    // Calculate actual bottom inset. On Android Modal, insets.bottom might be 0, 
-    // so we fallback to comparing screen height vs window height to detect the nav bar.
-    const { height: screenHeight } = Dimensions.get("screen");
-    const { height: windowHeight } = Dimensions.get("window");
-    const navBarHeight = Platform.OS === "android" ? Math.max(0, screenHeight - windowHeight) : 0;
-    
-    const actualBottomInset = Math.max(insets.bottom, navBarHeight);
-    
-    // Add extra breathing room (16px) above the nav bar, or default to 32px for gesture nav
-    const safeBottom = actualBottomInset > 0 ? actualBottomInset + 16 : 32;
+    // On iOS, use safe area insets.bottom to avoid the home indicator.
+    // On Android, use a static padding (16px) for optimal bottom sheet layout.
+    const safeBottom = Platform.OS === "ios"
+        ? (insets.bottom > 0 ? insets.bottom + 8 : 16)
+        : 16;
 
     // Variant styles
     const containerVariantStyles = {
@@ -112,7 +105,7 @@ export default function Modal({
                             {/* Swipe Indicator (Centered) */}
                             {variant === "bottom-sheet" && (
                                 <View className="w-full items-center py-3">
-                                    <View className="bg-white/20 rounded-full w-12 h-1.5" />
+                                    <View className="bg-[#4A5568] rounded-full w-12 h-1" />
                                 </View>
                             )}
 

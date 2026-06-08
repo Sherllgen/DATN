@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { View, Text, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Keyboard } from "react-native";
 import MapView, { Polyline, PROVIDER_GOOGLE } from "react-native-maps";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
@@ -33,6 +33,7 @@ export default function MapScreen() {
     const mapLogic = useMapLogic();
     const [showFilterSheet, setShowFilterSheet] = useState(false);
     const [activeFilters, setActiveFilters] = useState<StationFilterParams>();
+    const insets = useSafeAreaInsets();
 
     // Check if there are actual non-default filters applied
     const hasActiveFilters = useMemo(() => {
@@ -76,9 +77,9 @@ export default function MapScreen() {
 
     return (
         <GradientBackground preset="main" className="flex-1">
-            <SafeAreaView className="flex-1">
+            <View className="flex-1">
                 {/* Header with Search */}
-                <View className="px-4 pb-4 pt-2">
+                <View style={{ paddingTop: insets.top > 0 ? insets.top + 8 : 16 }} className="px-4 pb-4">
                     <View className="flex-row items-center gap-3">
                         {/* Back Button */}
                         <TouchableOpacity
@@ -243,7 +244,7 @@ export default function MapScreen() {
                         />
                     </View>
                 </View>
-            </SafeAreaView>
+            </View>
 
             {/* Modals */}
             <LocationPermissionModal
