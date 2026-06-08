@@ -17,6 +17,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -116,6 +117,7 @@ public class BookingScheduler {
     // Main Job: Unified periodic check for all booking-related actions
     // Runs every 60 seconds. Consolidates 3 previous jobs into 1 query.
     @Scheduled(fixedRate = 60000)
+    @Transactional
     public void processBookings() {
         LocalDateTime now = LocalDateTime.now();
         

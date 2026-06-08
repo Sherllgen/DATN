@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
@@ -37,6 +39,7 @@ public class ChargingInvoiceListener {
      * totalCost = totalKwh × chargingRatePerKwh (from the station's active price setting)
      */
     @ApplicationModuleListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onChargingSessionCompleted(ChargingSessionCompletedEvent event) {
         log.info("Received ChargingSessionCompletedEvent: sessionId={}, userId={}, portId={}, totalKwh={}, reason={}",
                 event.sessionId(), event.userId(), event.portId(), event.totalKwh(), event.reason());
