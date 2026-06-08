@@ -131,14 +131,26 @@ public class BookingServiceImpl implements BookingService {
             String lockKey = generateLockKey(request.getPortId(), interval);
             Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, currentUserId.toString(),
                     LOCK_TTL_MINUTES, TimeUnit.MINUTES);
+            boolean isNewLock = Boolean.TRUE.equals(success);
 
             if (Boolean.FALSE.equals(success)) {
+                String existingOwner = redisTemplate.opsForValue().get(lockKey);
+                if (existingOwner != null && existingOwner.equals(currentUserId.toString())) {
+                    redisTemplate.expire(lockKey, LOCK_TTL_MINUTES, TimeUnit.MINUTES);
+                    success = true;
+                }
+            }
+
+            if (!Boolean.TRUE.equals(success)) {
                 if (!lockedKeys.isEmpty()) {
                     redisTemplate.delete(lockedKeys);
                 }
-                throw new AppException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+                throw new AppException(ErrorCode.BOOKING_SLOT_TEMPORARILY_LOCKED);
             }
-            lockedKeys.add(lockKey);
+            
+            if (isNewLock) {
+                lockedKeys.add(lockKey);
+            }
         }
     }
 
@@ -155,7 +167,7 @@ public class BookingServiceImpl implements BookingService {
             String lockKey = generateLockKey(request.getPortId(), interval);
             String lockOwner = redisTemplate.opsForValue().get(lockKey);
             if (lockOwner == null || !lockOwner.equals(currentUserId.toString())) {
-                throw new AppException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+                throw new AppException(ErrorCode.BOOKING_SLOT_TEMPORARILY_LOCKED);
             }
         }
 

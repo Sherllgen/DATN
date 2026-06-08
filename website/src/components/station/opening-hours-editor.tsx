@@ -165,11 +165,16 @@ export function OpeningHoursEditor({
                             {DAYS.map((day) => {
                                 const entry = value.find((e) => e.dayOfWeek === day.key);
                                 const isOpen = entry?.isOpen ?? true;
+                                const is24h = entry ? (
+                                    entry.isOpen &&
+                                    (entry.openTime === null || entry.openTime === "" || entry.openTime === "00:00") &&
+                                    (entry.closeTime === null || entry.closeTime === "" || entry.closeTime === "00:00")
+                                ) : false;
 
                                 return (
                                     <div
                                         key={day.key}
-                                        className="grid grid-cols-[100px_60px_1fr] gap-8 items-center"
+                                        className="grid grid-cols-[100px_80px_100px_1fr] gap-4 items-center"
                                     >
                                         <div className="font-medium">{day.label}</div>
                                         <div className="flex items-center gap-2">
@@ -179,34 +184,60 @@ export function OpeningHoursEditor({
                                                     toggleDayOpen(day.key, checked)
                                                 }
                                             />
-                                            <span className="text-xs text-muted-foreground">
+                                            <span className="text-xs text-muted-foreground w-8">
                                                 {isOpen ? "Open" : "Closed"}
                                             </span>
                                         </div>
                                         {isOpen ? (
-                                            <div className="flex items-center gap-2">
-                                                <Input
-                                                    type="time"
-                                                    value={entry?.openTime || DEFAULT_OPEN_TIME}
-                                                    onChange={(e) =>
-                                                        updateDay(day.key, { openTime: e.target.value })
-                                                    }
-                                                    className="w-32"
-                                                />
-                                                <span className="text-muted-foreground">to</span>
-                                                <Input
-                                                    type="time"
-                                                    value={entry?.closeTime || DEFAULT_CLOSE_TIME}
-                                                    onChange={(e) =>
-                                                        updateDay(day.key, { closeTime: e.target.value })
-                                                    }
-                                                    className="w-32"
-                                                />
-                                            </div>
+                                            <>
+                                                <div className="flex items-center gap-2">
+                                                    <Switch
+                                                        id={`24h-${day.key}`}
+                                                        checked={is24h}
+                                                        onCheckedChange={(checked) => {
+                                                            updateDay(day.key, {
+                                                                openTime: checked ? null : DEFAULT_OPEN_TIME,
+                                                                closeTime: checked ? null : DEFAULT_CLOSE_TIME,
+                                                            });
+                                                        }}
+                                                    />
+                                                    <Label htmlFor={`24h-${day.key}`} className="text-xs text-muted-foreground cursor-pointer select-none">
+                                                        24 Hours
+                                                    </Label>
+                                                </div>
+                                                {is24h ? (
+                                                    <div className="text-sm text-emerald-500 font-medium">
+                                                        Open 24/24
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            type="time"
+                                                            value={entry?.openTime || DEFAULT_OPEN_TIME}
+                                                            onChange={(e) =>
+                                                                updateDay(day.key, { openTime: e.target.value })
+                                                            }
+                                                            className="w-32"
+                                                        />
+                                                        <span className="text-muted-foreground">to</span>
+                                                        <Input
+                                                            type="time"
+                                                            value={entry?.closeTime || DEFAULT_CLOSE_TIME}
+                                                            onChange={(e) =>
+                                                                updateDay(day.key, { closeTime: e.target.value })
+                                                            }
+                                                            className="w-32"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </>
                                         ) : (
-                                            <div className="text-muted-foreground text-sm">
-                                                Closed all day
-                                            </div>
+                                            <>
+                                                <div />
+                                                <div className="text-muted-foreground text-sm">
+                                                    Closed all day
+                                                </div>
+                                            </>
                                         )}
                                     </div>
                                 );

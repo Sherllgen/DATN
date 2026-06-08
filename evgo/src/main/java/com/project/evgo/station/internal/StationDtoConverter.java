@@ -23,12 +23,15 @@ public class StationDtoConverter {
 
 	private final PortCountProvider portCountProvider;
 	private final ChargerStatisticProvider chargerStatisticProvider;
+	private final StationPhotoRepository stationPhotoRepository;
 
 	// Explicit constructor
 	public StationDtoConverter(PortCountProvider portCountProvider,
-			ChargerStatisticProvider chargerStatisticProvider) {
+			ChargerStatisticProvider chargerStatisticProvider,
+			StationPhotoRepository stationPhotoRepository) {
 		this.portCountProvider = portCountProvider;
 		this.chargerStatisticProvider = chargerStatisticProvider;
+		this.stationPhotoRepository = stationPhotoRepository;
 	}
 
 	public StationResponse convert(Station from) {
@@ -47,6 +50,14 @@ public class StationDtoConverter {
 				.map(s -> new StationResponse.ChargerSummary(s.type().name(), s.available(), s.total()))
 				.toList();
 
+		List<String> imageUrls = stationPhotoRepository.findByStationIdOrderByDisplayOrderAsc(from.getId())
+				.stream()
+				.map(StationPhoto::getImageUrl)
+				.toList();
+		if (imageUrls.isEmpty() && from.getImageUrls() != null) {
+			imageUrls = new ArrayList<>(from.getImageUrls());
+		}
+
 		return StationResponse.builder()
 				.id(from.getId())
 				.ownerId(from.getOwnerId())
@@ -57,7 +68,7 @@ public class StationDtoConverter {
 				.longitude(from.getLongitude())
 				.rate(from.getRate())
 				.status(from.getStatus())
-				.imageUrls(new ArrayList<>(from.getImageUrls()))
+				.imageUrls(imageUrls)
 				.isFlaggedLowQuality(from.getIsFlaggedLowQuality())
 				.availableChargersCount(availableChargers)
 				.totalChargersCount(totalChargers)

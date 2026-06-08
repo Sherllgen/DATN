@@ -9,6 +9,7 @@ import {
     ModalProps as RNModalProps,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ModalVariant = "bottom-sheet" | "centered" | "full-screen";
 
@@ -42,6 +43,14 @@ export default function Modal({
     contentClassName = "",
     ...props
 }: ModalProps) {
+    const insets = useSafeAreaInsets();
+    
+    // On iOS, use safe area insets.bottom to avoid the home indicator.
+    // On Android, use a static padding (16px) for optimal bottom sheet layout.
+    const safeBottom = Platform.OS === "ios"
+        ? (insets.bottom > 0 ? insets.bottom + 8 : 16)
+        : 16;
+
     // Variant styles
     const containerVariantStyles = {
         "bottom-sheet": "flex-1 justify-end",
@@ -50,7 +59,7 @@ export default function Modal({
     };
 
     const contentVariantStyles = {
-        "bottom-sheet": "bg-surface pb-8 rounded-t-3xl",
+        "bottom-sheet": "bg-surface rounded-t-3xl", // pb handled dynamically via style
         centered: "bg-surface rounded-xl w-full max-w-md",
         "full-screen": "bg-surface flex-1",
     };
@@ -88,6 +97,7 @@ export default function Modal({
                             contentVariantStyles[variant],
                             contentClassName,
                         ].join(" ")}
+                        style={variant === "bottom-sheet" ? { paddingBottom: safeBottom } : undefined}
                     >
                         {/* Header */}
                         {/* Header Container (No Divider) */}
@@ -95,7 +105,7 @@ export default function Modal({
                             {/* Swipe Indicator (Centered) */}
                             {variant === "bottom-sheet" && (
                                 <View className="w-full items-center py-3">
-                                    <View className="bg-white/20 rounded-full w-12 h-1.5" />
+                                    <View className="bg-[#4A5568] rounded-full w-12 h-1" />
                                 </View>
                             )}
 

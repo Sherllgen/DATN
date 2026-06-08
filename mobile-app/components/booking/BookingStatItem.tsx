@@ -6,12 +6,14 @@ interface BookingStatItemProps {
     value: string;
     icon?: React.ReactNode;
     showBorderRight?: boolean;
+    flexRatio?: number;
 }
 
-const BookingStatItem = ({ label, value, icon, showBorderRight }: BookingStatItemProps) => {
+const BookingStatItem = ({ label, value, icon, showBorderRight, flexRatio = 1 }: BookingStatItemProps) => {
     return (
         <View
-            className={`flex-1 items-center px-1 ${showBorderRight ? 'border-r border-white/10' : ''}`}
+            className={`items-center px-1 ${showBorderRight ? 'border-r border-white/10' : ''}`}
+            style={{ flex: flexRatio }}
         >
             <Text className="text-white/40 text-[10px] mb-2 uppercase tracking-tight">
                 {label}
@@ -21,9 +23,8 @@ const BookingStatItem = ({ label, value, icon, showBorderRight }: BookingStatIte
                     <View className="mb-1">{icon}</View>
                 ) : (
                     <Text
-                        className="text-white text-xl font-semibold text-center"
+                        className="text-white text-[15px] font-semibold text-center"
                         numberOfLines={1}
-                        adjustsFontSizeToFit
                     >
                         {value}
                     </Text>

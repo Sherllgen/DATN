@@ -38,219 +38,224 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class BookingMetadataServiceTest {
 
-    @Mock
-    private BookingRepository bookingRepository;
+        @Mock
+        private BookingRepository bookingRepository;
 
-    @Mock
-    private PortCountProvider portCountProvider;
+        @Mock
+        private PortCountProvider portCountProvider;
 
-    @Mock
-    private StationService stationService;
+        @Mock
+        private StationService stationService;
 
-    @InjectMocks
-    private BookingMetadataServiceImpl service;
+        @InjectMocks
+        private BookingMetadataServiceImpl service;
 
-    @Test
-    @DisplayName("Should return valid durations from 1.0 to 12.0 in 0.5 increments")
-    void getDurations_ReturnsExpectedList() {
-        // When
-        DurationConfigResponse response = service.getDurations();
+        @Test
+        @DisplayName("Should return valid durations from 1.0 to 12.0 in 0.5 increments")
+        void getDurations_ReturnsExpectedList() {
+                // When
+                DurationConfigResponse response = service.getDurations();
 
-        // Then
-        assertThat(response.getDurations()).hasSize(23);
-        assertThat(response.getDurations().get(0)).isEqualTo(1.0);
-        assertThat(response.getDurations().get(1)).isEqualTo(1.5);
-        assertThat(response.getDurations().get(22)).isEqualTo(12.0);
-    }
+                // Then
+                assertThat(response.getDurations()).hasSize(23);
+                assertThat(response.getDurations().get(0)).isEqualTo(1.0);
+                assertThat(response.getDurations().get(1)).isEqualTo(1.5);
+                assertThat(response.getDurations().get(22)).isEqualTo(12.0);
+        }
 
-    @Test
-    @DisplayName("Should return all CLOSED when port count is zero")
-    void getCalendarStatus_NoPorts_ReturnsAllClosed() {
-        // Given
-        Long stationId = 1L;
-        YearMonth month = YearMonth.of(2023, 10);
-        when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(0, 0));
+        @Test
+        @DisplayName("Should return all CLOSED when port count is zero")
+        void getCalendarStatus_NoPorts_ReturnsAllClosed() {
+                // Given
+                Long stationId = 1L;
+                YearMonth month = YearMonth.of(2023, 10);
+                when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(0, 0));
 
-        // When
-        List<CalendarStatusResponse> response = service.getCalendarStatus(stationId, month);
+                // When
+                List<CalendarStatusResponse> response = service.getCalendarStatus(stationId, month);
 
-        // Then
-        assertThat(response).hasSize(31);
-        assertThat(response).allMatch(r -> r.getStatus() == AvailabilityStatus.CLOSED);
-    }
+                // Then
+                assertThat(response).hasSize(31);
+                assertThat(response).allMatch(r -> r.getStatus() == AvailabilityStatus.CLOSED);
+        }
 
-    @Test
-    @DisplayName("Should return all AVAILABLE when port count > 0 and no bookings")
-    void getCalendarStatus_WithAvailablePorts_ReturnsAllAvailable() {
-        // Given
-        Long stationId = 1L;
-        YearMonth month = YearMonth.of(2023, 10);
-        when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(5, 5));
-        when(bookingRepository.findByStationIdAndStatusInAndStartTimeBetween(
-                eq(stationId), any(), any(), any())).thenReturn(Collections.emptyList());
+        @Test
+        @DisplayName("Should return all AVAILABLE when port count > 0 and no bookings")
+        void getCalendarStatus_WithAvailablePorts_ReturnsAllAvailable() {
+                // Given
+                Long stationId = 1L;
+                YearMonth month = YearMonth.of(2023, 10);
+                when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(5, 5));
+                when(bookingRepository.findOverlappingBookings(
+                                eq(stationId), any(), any(), any())).thenReturn(Collections.emptyList());
 
-        // When
-        List<CalendarStatusResponse> response = service.getCalendarStatus(stationId, month);
+                // When
+                List<CalendarStatusResponse> response = service.getCalendarStatus(stationId, month);
 
-        // Then
-        assertThat(response).hasSize(31);
-        assertThat(response).allMatch(r -> r.getStatus() == AvailabilityStatus.AVAILABLE);
-    }
+                // Then
+                assertThat(response).hasSize(31);
+                assertThat(response).allMatch(r -> r.getStatus() == AvailabilityStatus.AVAILABLE);
+        }
 
-    @Test
-    @DisplayName("Should calculate available slots correctly with exist bookings")
-    void getAvailableSlots_WithBookings_CalculatesCorrectly() {
-        // Given
-        Long stationId = 1L;
-        LocalDate date = LocalDate.of(2023, 10, 15);
-        Double duration = 1.0;
-        
-        when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(2, 2));
-        
-        Booking booking1 = new Booking();
-        booking1.setStartTime(LocalDateTime.of(date, LocalTime.of(10, 0)));
-        booking1.setEndTime(LocalDateTime.of(date, LocalTime.of(11, 0)));
-        booking1.setStatus(BookingStatus.CONFIRMED);
-        
-        Booking booking2 = new Booking();
-        booking2.setStartTime(LocalDateTime.of(date, LocalTime.of(10, 30)));
-        booking2.setEndTime(LocalDateTime.of(date, LocalTime.of(11, 30)));
-        booking2.setStatus(BookingStatus.IN_PROGRESS);
+        @Test
+        @DisplayName("Should calculate available slots correctly with existing bookings (UTC→VN conversion)")
+        void getAvailableSlots_WithBookings_CalculatesCorrectly() {
+                // Given
+                Long stationId = 1L;
+                LocalDate date = LocalDate.of(2023, 10, 15);
+                Double duration = 1.0;
 
-        when(bookingRepository.findByStationIdAndStatusInAndStartTimeBetween(
-                eq(stationId), any(), any(), any())).thenReturn(Arrays.asList(booking1, booking2));
+                when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(2, 2));
 
-        // When
-        List<AvailableSlotResponse> response = service.getAvailableSlots(stationId, null, date, duration);
+                // Bookings stored in UTC. VN is UTC+7, so VN 10:00 = UTC 03:00
+                Booking booking1 = new Booking();
+                booking1.setStartTime(LocalDateTime.of(date, LocalTime.of(3, 0)));   // VN 10:00
+                booking1.setEndTime(LocalDateTime.of(date, LocalTime.of(4, 0)));     // VN 11:00
+                booking1.setStatus(BookingStatus.CONFIRMED);
 
-        // Then
-        // For slot 10:00-11:00, b1 overlaps (takes 1 port), b2 overlaps (starts at 10:30, takes 1 port). 
-        // Max concurrent overlap during 10:00-11:00 is 2. So availablePorts = 0.
-        AvailableSlotResponse slot10_00 = response.stream()
-                .filter(s -> s.getStartTime().equals(LocalTime.of(10, 0)))
-                .findFirst().orElseThrow();
-        assertThat(slot10_00.getAvailablePorts()).isEqualTo(0);
+                Booking booking2 = new Booking();
+                booking2.setStartTime(LocalDateTime.of(date, LocalTime.of(3, 30)));  // VN 10:30
+                booking2.setEndTime(LocalDateTime.of(date, LocalTime.of(4, 30)));    // VN 11:30
+                booking2.setStatus(BookingStatus.IN_PROGRESS);
 
-        // For slot 10:30-11:30, b1 overlaps, b2 overlaps. Max concurrent overlap is 2. availablePorts = 0.
-        AvailableSlotResponse slot10_30 = response.stream()
-                .filter(s -> s.getStartTime().equals(LocalTime.of(10, 30)))
-                .findFirst().orElseThrow();
-        assertThat(slot10_30.getAvailablePorts()).isEqualTo(0);
+                when(bookingRepository.findOverlappingBookings(
+                                eq(stationId), any(), any(), any())).thenReturn(Arrays.asList(booking1, booking2));
 
-        // For slot 11:00-12:00, b1 ends at 11:00 (no overlap), b2 overlaps. availablePorts = 1.
-        AvailableSlotResponse slot11_00 = response.stream()
-                .filter(s -> s.getStartTime().equals(LocalTime.of(11, 0)))
-                .findFirst().orElseThrow();
-        assertThat(slot11_00.getAvailablePorts()).isEqualTo(1);
-        
-        // Slot 08:00-09:00 has no overlaps. availablePorts = 2.
-        AvailableSlotResponse slot08_00 = response.stream()
-                .filter(s -> s.getStartTime().equals(LocalTime.of(8, 0)))
-                .findFirst().orElseThrow();
-        assertThat(slot08_00.getAvailablePorts()).isEqualTo(2);
-    }
+                // When
+                List<AvailableSlotResponse> response = service.getAvailableSlots(stationId, null, date, duration);
 
-    @Test
-    @DisplayName("Should calculate port-specific available slots correctly filtering other port bookings")
-    void getAvailableSlots_WithPortIdAndBookings_CalculatesPortAvailabilityCorrectly() {
-        // Given
-        Long stationId = 1L;
-        Long portId = 100L;
-        LocalDate date = LocalDate.of(2023, 10, 15);
-        Double duration = 1.0;
-        
-        when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(2, 2));
-        
-        Booking booking1 = new Booking();
-        booking1.setPortId(100L); // target port
-        booking1.setStartTime(LocalDateTime.of(date, LocalTime.of(10, 0)));
-        booking1.setEndTime(LocalDateTime.of(date, LocalTime.of(11, 0)));
-        booking1.setStatus(BookingStatus.CONFIRMED);
-        
-        Booking booking2 = new Booking();
-        booking2.setPortId(200L); // other port
-        booking2.setStartTime(LocalDateTime.of(date, LocalTime.of(10, 30)));
-        booking2.setEndTime(LocalDateTime.of(date, LocalTime.of(11, 30)));
-        booking2.setStatus(BookingStatus.IN_PROGRESS);
+                // Then
+                // For slot 10:00-11:00 (VN), b1 overlaps (takes 1 port), b2 overlaps (takes 1 port).
+                // Max concurrent overlap during 10:00-11:00 is 2. So availablePorts = 0.
+                AvailableSlotResponse slot10_00 = response.stream()
+                                .filter(s -> s.getStartTime().equals(LocalTime.of(10, 0)))
+                                .findFirst().orElseThrow();
+                assertThat(slot10_00.getAvailablePorts()).isEqualTo(0);
 
-        when(bookingRepository.findByStationIdAndStatusInAndStartTimeBetween(
-                eq(stationId), any(), any(), any())).thenReturn(Arrays.asList(booking1, booking2));
+                // For slot 10:30-11:30, b1 overlaps, b2 overlaps. Max concurrent overlap is 2.
+                // availablePorts = 0.
+                AvailableSlotResponse slot10_30 = response.stream()
+                                .filter(s -> s.getStartTime().equals(LocalTime.of(10, 30)))
+                                .findFirst().orElseThrow();
+                assertThat(slot10_30.getAvailablePorts()).isEqualTo(0);
 
-        // When
-        List<AvailableSlotResponse> response = service.getAvailableSlots(stationId, portId, date, duration);
+                // For slot 11:00-12:00, b1 ends at 11:00 (no overlap), b2 overlaps.
+                // availablePorts = 1.
+                AvailableSlotResponse slot11_00 = response.stream()
+                                .filter(s -> s.getStartTime().equals(LocalTime.of(11, 0)))
+                                .findFirst().orElseThrow();
+                assertThat(slot11_00.getAvailablePorts()).isEqualTo(1);
 
-        // Then
-        // For slot 10:00-11:00, b1 overlaps (takes 1 port). b2 is ignored.
-        // Max concurrent overlap is 1. Since total capacity is 1, availablePorts = 0.
-        AvailableSlotResponse slot10_00 = response.stream()
-                .filter(s -> s.getStartTime().equals(LocalTime.of(10, 0)))
-                .findFirst().orElseThrow();
-        assertThat(slot10_00.getAvailablePorts()).isEqualTo(0);
+                // Slot 08:00-09:00 has no overlaps. availablePorts = 2.
+                AvailableSlotResponse slot08_00 = response.stream()
+                                .filter(s -> s.getStartTime().equals(LocalTime.of(8, 0)))
+                                .findFirst().orElseThrow();
+                assertThat(slot08_00.getAvailablePorts()).isEqualTo(2);
+        }
 
-        // For slot 11:00-12:00, b1 ends at 11:00. b2 is ignored.
-        // No overlap. capacity = 1, availablePorts = 1.
-        AvailableSlotResponse slot11_00 = response.stream()
-                .filter(s -> s.getStartTime().equals(LocalTime.of(11, 0)))
-                .findFirst().orElseThrow();
-        assertThat(slot11_00.getAvailablePorts()).isEqualTo(1);
-        
-        // Slot 08:00-09:00 has no overlaps. capacity = 1, availablePorts = 1.
-        AvailableSlotResponse slot08_00 = response.stream()
-                .filter(s -> s.getStartTime().equals(LocalTime.of(8, 0)))
-                .findFirst().orElseThrow();
-        assertThat(slot08_00.getAvailablePorts()).isEqualTo(1);
-    }
+        @Test
+        @DisplayName("Should calculate port-specific available slots correctly filtering other port bookings")
+        void getAvailableSlots_WithPortIdAndBookings_CalculatesPortAvailabilityCorrectly() {
+                // Given
+                Long stationId = 1L;
+                Long portId = 100L;
+                LocalDate date = LocalDate.of(2023, 10, 15);
+                Double duration = 1.0;
 
-    @Test
-    @DisplayName("Should filter slots outside opening hours")
-    void getAvailableSlots_WithOpeningHours_FiltersSlotsOutsideOpeningHours() {
-        // Given
-        Long stationId = 1L;
-        LocalDate date = LocalDate.of(2023, 10, 16); // Monday
-        Double duration = 1.0;
-        
-        when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(1, 1));
-        when(bookingRepository.findByStationIdAndStatusInAndStartTimeBetween(
-                eq(stationId), any(), any(), any())).thenReturn(Collections.emptyList());
+                when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(2, 2));
 
-        StationOpeningHoursResponse mondayHours = StationOpeningHoursResponse.builder()
-                .dayOfWeek(DayOfWeek.MONDAY)
-                .openTime(LocalTime.of(8, 0))
-                .closeTime(LocalTime.of(20, 0))
-                .isOpen(true)
-                .build();
+                // Bookings stored in UTC. VN 10:00 = UTC 03:00
+                Booking booking1 = new Booking();
+                booking1.setPortId(100L); // target port
+                booking1.setStartTime(LocalDateTime.of(date, LocalTime.of(3, 0)));   // VN 10:00
+                booking1.setEndTime(LocalDateTime.of(date, LocalTime.of(4, 0)));     // VN 11:00
+                booking1.setStatus(BookingStatus.CONFIRMED);
 
-        StationResponse station = StationResponse.builder()
-                .id(stationId)
-                .openingHours(Arrays.asList(mondayHours))
-                .build();
+                Booking booking2 = new Booking();
+                booking2.setPortId(200L); // other port
+                booking2.setStartTime(LocalDateTime.of(date, LocalTime.of(3, 30)));  // VN 10:30
+                booking2.setEndTime(LocalDateTime.of(date, LocalTime.of(4, 30)));    // VN 11:30
+                booking2.setStatus(BookingStatus.IN_PROGRESS);
 
-        when(stationService.findById(stationId)).thenReturn(Optional.of(station));
+                when(bookingRepository.findOverlappingBookings(
+                                eq(stationId), any(), any(), any())).thenReturn(Arrays.asList(booking1, booking2));
 
-        // When
-        List<AvailableSlotResponse> response = service.getAvailableSlots(stationId, null, date, duration);
+                // When
+                List<AvailableSlotResponse> response = service.getAvailableSlots(stationId, portId, date, duration);
 
-        // Then
-        // 07:30 - 08:30 is outside bounds (starts before 08:00) -> should be filtered out
-        boolean hasSlot07_30 = response.stream()
-                .anyMatch(s -> s.getStartTime().equals(LocalTime.of(7, 30)));
-        assertThat(hasSlot07_30).isFalse();
+                // Then
+                // For slot 10:00-11:00, b1 overlaps (takes 1 port). b2 is ignored (different port).
+                // Max concurrent overlap is 1. Since total capacity is 1, availablePorts = 0.
+                AvailableSlotResponse slot10_00 = response.stream()
+                                .filter(s -> s.getStartTime().equals(LocalTime.of(10, 0)))
+                                .findFirst().orElseThrow();
+                assertThat(slot10_00.getAvailablePorts()).isEqualTo(0);
 
-        // 08:00 - 09:00 is within bounds
-        AvailableSlotResponse slot08_00 = response.stream()
-                .filter(s -> s.getStartTime().equals(LocalTime.of(8, 0)))
-                .findFirst().orElseThrow();
-        assertThat(slot08_00.getAvailablePorts()).isEqualTo(1);
+                // For slot 11:00-12:00, b1 ends at 11:00. b2 is ignored.
+                // No overlap. capacity = 1, availablePorts = 1.
+                AvailableSlotResponse slot11_00 = response.stream()
+                                .filter(s -> s.getStartTime().equals(LocalTime.of(11, 0)))
+                                .findFirst().orElseThrow();
+                assertThat(slot11_00.getAvailablePorts()).isEqualTo(1);
 
-        // 19:30 - 20:30 is outside bounds (ends after 20:00) -> should be filtered out
-        boolean hasSlot19_30 = response.stream()
-                .anyMatch(s -> s.getStartTime().equals(LocalTime.of(19, 30)));
-        assertThat(hasSlot19_30).isFalse();
+                // Slot 08:00-09:00 has no overlaps. capacity = 1, availablePorts = 1.
+                AvailableSlotResponse slot08_00 = response.stream()
+                                .filter(s -> s.getStartTime().equals(LocalTime.of(8, 0)))
+                                .findFirst().orElseThrow();
+                assertThat(slot08_00.getAvailablePorts()).isEqualTo(1);
+        }
 
-        // 19:00 - 20:00 is within bounds
-        AvailableSlotResponse slot19_00 = response.stream()
-                .filter(s -> s.getStartTime().equals(LocalTime.of(19, 0)))
-                .findFirst().orElseThrow();
-        assertThat(slot19_00.getAvailablePorts()).isEqualTo(1);
-    }
+        @Test
+        @DisplayName("Should filter slots outside opening hours")
+        void getAvailableSlots_WithOpeningHours_FiltersSlotsOutsideOpeningHours() {
+                // Given
+                Long stationId = 1L;
+                LocalDate date = LocalDate.of(2023, 10, 16); // Monday
+                Double duration = 1.0;
+
+                when(portCountProvider.getPortCounts(stationId)).thenReturn(new PortCounts(1, 1));
+                when(bookingRepository.findOverlappingBookings(
+                                eq(stationId), any(), any(), any())).thenReturn(Collections.emptyList());
+
+                StationOpeningHoursResponse mondayHours = StationOpeningHoursResponse.builder()
+                                .dayOfWeek(DayOfWeek.MONDAY)
+                                .openTime(LocalTime.of(8, 0))
+                                .closeTime(LocalTime.of(20, 0))
+                                .isOpen(true)
+                                .build();
+
+                StationResponse station = StationResponse.builder()
+                                .id(stationId)
+                                .openingHours(Arrays.asList(mondayHours))
+                                .build();
+
+                when(stationService.findById(stationId)).thenReturn(Optional.of(station));
+
+                // When
+                List<AvailableSlotResponse> response = service.getAvailableSlots(stationId, null, date, duration);
+
+                // Then
+                // 07:30 - 08:30 is outside bounds (starts before 08:00) -> should be filtered
+                // out
+                boolean hasSlot07_30 = response.stream()
+                                .anyMatch(s -> s.getStartTime().equals(LocalTime.of(7, 30)));
+                assertThat(hasSlot07_30).isFalse();
+
+                // 08:00 - 09:00 is within bounds
+                AvailableSlotResponse slot08_00 = response.stream()
+                                .filter(s -> s.getStartTime().equals(LocalTime.of(8, 0)))
+                                .findFirst().orElseThrow();
+                assertThat(slot08_00.getAvailablePorts()).isEqualTo(1);
+
+                // 19:30 - 20:30 is outside bounds (ends after 20:00) -> should be filtered out
+                boolean hasSlot19_30 = response.stream()
+                                .anyMatch(s -> s.getStartTime().equals(LocalTime.of(19, 30)));
+                assertThat(hasSlot19_30).isFalse();
+
+                // 19:00 - 20:00 is within bounds
+                AvailableSlotResponse slot19_00 = response.stream()
+                                .filter(s -> s.getStartTime().equals(LocalTime.of(19, 0)))
+                                .findFirst().orElseThrow();
+                assertThat(slot19_00.getAvailablePorts()).isEqualTo(1);
+        }
 }

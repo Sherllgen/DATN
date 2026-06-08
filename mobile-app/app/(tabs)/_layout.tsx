@@ -98,17 +98,18 @@ export default function TabLayout() {
 
     // Custom Tab Bar to position Top Tabs at the bottom
     const CustomTabBar = ({ state, descriptors, navigation }: MaterialTopTabBarProps) => {
-        // Fallback for Android devices where insets.bottom might be 0 despite edge-to-edge being enabled
-        const safeBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 48) : insets.bottom;
+        // On some Android devices, the 3-button navigation bar overlaps the tabs. Add extra padding.
+        const safeBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 24) : Math.max(insets.bottom, 20);
+        const extraPadding = 8;
         
         return (
             <View
                 style={{
                     flexDirection: 'row',
                     backgroundColor: "#131315",
-                    height: TAB_HEIGHT + safeBottom,
+                    height: TAB_HEIGHT + safeBottom + extraPadding,
                     paddingTop: 6,
-                    paddingBottom: safeBottom,
+                    paddingBottom: safeBottom + extraPadding,
                     borderTopWidth: 0.5,
                     borderTopColor: "rgba(255,255,255,0.1)",
                 }}

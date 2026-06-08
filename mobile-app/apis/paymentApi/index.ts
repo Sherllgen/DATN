@@ -8,6 +8,7 @@ export interface ZaloPayOrderRequest {
     userId: number;
     amount: number;
     description: string;
+    redirectUrl?: string;
 }
 
 export interface InvoiceResponse {
@@ -28,15 +29,37 @@ export interface ZaloPayOrderResponse {
     appTransId: string;
 }
 
+import * as ExpoLinking from "expo-linking";
+
 /**
  * Creates a ZaloPay Sandbox order and returns App-to-App URLs
  */
 export const createZaloPayOrder = async (request: ZaloPayOrderRequest): Promise<ZaloPayOrderResponse> => {
+    // Automatically inject a deep link redirect URL if not provided
+    // This dynamically handles both Expo Go (exp://) and Standalone build (com.evgo.mobile://)
+    if (!request.redirectUrl) {
+        request.redirectUrl = ExpoLinking.createURL('booking');
+    }
+
     const res = await axiosInstance.post<ApiResponse<ZaloPayOrderResponse>>(
         `${API_BACKEND_URL}/api/v1/zalopay/orders`,
         request
     );
     return res.data.data;
+};
+
+import { Linking, Platform } from "react-native";
+
+/**
+ * Handles ZaloPay Payment by opening the Web Gateway.
+ * Note: Direct App-to-App deep linking (zalopay://app) without the official ZPDK SDK 
+ * is blocked by ZaloPay and will only open the ZaloPay home screen.
+ * The Web Gateway handles opening the ZaloPay app securely.
+ */
+export const processZaloPayPayment = async (order: ZaloPayOrderResponse) => {
+    if (order.orderUrl) {
+        await Linking.openURL(order.orderUrl);
+    }
 };
 
 export const getInvoiceByBookingId = async (bookingId: number): Promise<InvoiceResponse> => {

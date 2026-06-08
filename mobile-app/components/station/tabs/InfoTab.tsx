@@ -3,6 +3,7 @@ import { View, Text, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import StationMarker from "@/components/map/StationMarker";
 import { Station, StationStatus, PriceSettingResponse } from "@/types/station.types";
 import ChargerTypeTag from "@/components/station/ChargerTypeTag";
 import Button from "@/components/ui/Button";
@@ -29,13 +30,21 @@ const formatDayOfWeek = (day: string): string => {
 };
 
 // Helper function to format time range
-const formatTimeRange = (openTime: string | null, closeTime: string | null): string => {
+const formatTimeRange = (openTime: string | null, closeTime: string | null, isOpen: boolean): string => {
+    if (!isOpen) {
+        return "Closed";
+    }
     if (!openTime || !closeTime) {
-        return "00:00 - 00:00";
+        return "24/24";
     }
     // Convert "HH:MM:SS" to "HH:MM"
     const formatTime = (time: string) => time.substring(0, 5);
-    return `${formatTime(openTime)} - ${formatTime(closeTime)}`;
+    const formattedOpen = formatTime(openTime);
+    const formattedClose = formatTime(closeTime);
+    if (formattedOpen === "00:00" && formattedClose === "00:00") {
+        return "24/24";
+    }
+    return `${formattedOpen} - ${formattedClose}`;
 };
 
 const InfoTab = ({ station, priceSetting }: InfoTabProps) => {
@@ -133,7 +142,7 @@ const InfoTab = ({ station, priceSetting }: InfoTabProps) => {
                                     {formatDayOfWeek(hours.dayOfWeek)}
                                 </Text>
                                 <Text className="text-base text-[#9BA1A6]">
-                                    {formatTimeRange(hours.openTime, hours.closeTime)}
+                                    {formatTimeRange(hours.openTime, hours.closeTime, hours.isOpen)}
                                 </Text>
                             </View>
                         ))}
@@ -188,18 +197,8 @@ const InfoTab = ({ station, priceSetting }: InfoTabProps) => {
                         }}
                     >
 
-                        <Marker
-                            coordinate={{
-                                latitude: station.latitude,
-                                longitude: station.longitude,
-                            }}
-                            pinColor={
-                                station.status === StationStatus.ACTIVE
-                                    ? "#4CAF50" // success/secondary
-                                    : station.status === StationStatus.SUSPENDED
-                                        ? "#F59E0B" // warning
-                                        : "#EF4444" // error
-                            }
+                        <StationMarker
+                            station={station}
                         />
                     </MapView>
                 </View>

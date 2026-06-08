@@ -56,9 +56,9 @@ public enum ErrorCode {
     STATION_ALREADY_SUSPENDED(5006, HttpStatus.BAD_REQUEST, "Station is already suspended"),
     STATION_INVALID_STATUS_CHANGE(5007, HttpStatus.BAD_REQUEST, "Invalid station status change"),
 
-    // Booking errors
     BOOKING_SLOT_UNAVAILABLE(5008, HttpStatus.CONFLICT, "Booking slot is unavailable"),
     BOOKING_CANCELLATION_NOT_ALLOWED(5009, HttpStatus.BAD_REQUEST, "Cannot cancel booking less than 2 hours before start time"),
+    BOOKING_SLOT_TEMPORARILY_LOCKED(5012, HttpStatus.CONFLICT, "Booking slot is temporarily locked by another user"),
 
     // Station Photo errors (501x)
     STATION_PHOTO_NOT_FOUND(5010, HttpStatus.NOT_FOUND, "Station photo not found"),

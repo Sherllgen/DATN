@@ -42,6 +42,8 @@ export default function ProfilePage() {
         birthdate: user?.birthday || "",
         bikeBrand: "" as BikeBrand,
         profileImage: user?.avatarUrl || (null as string | null),
+        phoneNumber: user?.phone || "",
+        email: user?.email || "",
         showImageModal: false,
     });
     const [listGender] = useState<GenderItem[]>([
@@ -227,7 +229,8 @@ export default function ProfilePage() {
                 gender: res.data.gender,
                 birthdate: res.data.birthday,
                 profileImage: res.data.avatarUrl,
-                phoneNumber: res.data.phone,
+                phoneNumber: res.data.phone || "",
+                email: res.data.email || "",
             }));
 
             setIsChanged(false);
@@ -366,7 +369,7 @@ export default function ProfilePage() {
                         </Text>
                         <View className="flex-row justify-between items-center pb-3 border-border-gray border-b">
                             <Text className="text-[#4CAF50] text-base">
-                                andrewainsley@gmail.com
+                                {state.email || "Chưa cập nhật"}
                             </Text>
                             <Text className="text-[#9BA1A6] text-sm">
                                 Read only
@@ -381,9 +384,9 @@ export default function ProfilePage() {
                         </Text>
                         <View className="flex-row justify-between items-center pb-3 border-border-gray border-b">
                             <Text className="text-[#4CAF50] text-base">
-                                {user?.phone || "Chưa cập nhật"}
+                                {state.phoneNumber || "Not updated"}
                             </Text>
-                            {user?.phone && (
+                            {state.phoneNumber ? (
                                 <View className="flex-row items-center bg-[#4CAF50]/20 px-3 py-1 rounded-full">
                                     <Ionicons
                                         name="checkmark-circle"
@@ -394,7 +397,7 @@ export default function ProfilePage() {
                                         Verified
                                     </Text>
                                 </View>
-                            )}
+                            ) : null}
                         </View>
                     </View>
                 </ScrollView>

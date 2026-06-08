@@ -1,6 +1,7 @@
 import React from "react";
 import { Marker } from "react-native-maps";
-import { StationSearchResult, StationStatus } from "@/types/station.types";
+import { Image, View } from "react-native";
+import { Station, StationStatus } from "@/types/station.types";
 
 const PIN_ACTIVE = require("@/assets/images/pin-active.png");
 const PIN_INACTIVE = require("@/assets/images/pin-inactive.png");
@@ -8,10 +9,10 @@ const PIN_SUSPENDED = require("@/assets/images/pin-suspended.png");
 const PIN_NAVIGATE = require("@/assets/images/pin-navigate.png");
 
 export interface StationMarkerProps {
-    station: StationSearchResult;
-    isNavigating: boolean;
-    isDestination: boolean;
-    onPress: () => void;
+    station: Station;
+    isNavigating?: boolean;
+    isDestination?: boolean;
+    onPress?: () => void;
 }
 
 /**
@@ -49,17 +50,45 @@ const StationMarker: React.FC<StationMarkerProps> = React.memo(
          */
         const zIndex = isNavigating && isDestination ? 10 : 5;
 
+        // Unify size across all maps for consistency
+        const size = 40;
+
+        const [tracksViewChanges, setTracksViewChanges] = React.useState(true);
+
+        // Force re-tracking if marker status changes
+        React.useEffect(() => {
+            setTracksViewChanges(true);
+            const timer = setTimeout(() => {
+                setTracksViewChanges(false);
+            }, 500); // Wait enough time for Android to render without fading
+            return () => clearTimeout(timer);
+        }, [isNavigating, isDestination, station.status]);
+
+        // Constant key prevents full Marker unmount/remount, avoiding visual glitches
+        const markerKey = station.id.toString();
+
         return (
             <Marker
+                key={markerKey}
                 coordinate={{
                     latitude: station.latitude,
                     longitude: station.longitude,
                 }}
+                anchor={{ x: 0.5, y: 1 }} // Pointy tip at the exact coordinate
+                centerOffset={{ x: 0, y: -size / 2 }} // Needed for callout positioning
                 onPress={onPress}
-                image={getMarkerImage()}
                 zIndex={zIndex}
-                tracksViewChanges={false} // Performance: Stop tracking for static markers
-            />
+                tracksViewChanges={tracksViewChanges}
+            >
+                <View style={{ width: size, height: size }}>
+                    <Image 
+                        source={getMarkerImage()} 
+                        style={{ width: size, height: size }} 
+                        resizeMode="contain"
+                        fadeDuration={0} // CRITICAL: Disable Android fade to prevent freezing at 20% opacity
+                    />
+                </View>
+            </Marker>
         );
     }
 );

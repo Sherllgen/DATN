@@ -1,4 +1,4 @@
-import { Feather, FontAwesome5, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Text, TouchableOpacity, View } from "react-native";
 import ListItemCard from "../ui/ListItemCard";
 
@@ -41,14 +41,14 @@ export default function VehicleCard({
                         activeOpacity={0.7}
                         onPress={() => onEdit(vehicle)}
                     >
-                        <Feather name="edit" size={18} color="#4CAF50" />
+                        <Ionicons name="pencil" size={18} color="#4CAF50" />
                     </TouchableOpacity>
                     <TouchableOpacity
                         className="bg-red-500/20 p-3 rounded-lg"
                         activeOpacity={0.7}
                         onPress={() => onDelete(vehicle.id)}
                     >
-                        <FontAwesome5 name="trash" size={18} color="#EF4444" />
+                        <Ionicons name="trash" size={18} color="#EF4444" />
                     </TouchableOpacity>
                 </View>
             }

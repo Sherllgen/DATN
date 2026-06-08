@@ -4,13 +4,14 @@ import com.project.evgo.notification.PushTokenService;
 import com.project.evgo.notification.request.RegisterPushTokenRequest;
 import com.project.evgo.notification.response.PushTokenResponse;
 import com.project.evgo.sharedkernel.dto.ApiResponse;
+import com.project.evgo.sharedkernel.enums.ErrorCode;
+import com.project.evgo.sharedkernel.exceptions.AppException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,15 +25,12 @@ public class PushTokenController {
     @PostMapping
     @Operation(summary = "Register device token", description = "Registers or updates a device token for the current user to receive push notifications.")
     public ResponseEntity<ApiResponse<PushTokenResponse>> registerToken(
-            @AuthenticationPrincipal Long currentUserId, // Assuming standard ID extraction, though standard Spring
-                                                         // security might need UserDetails implementation
             @Valid @RequestBody RegisterPushTokenRequest request) {
 
-        // Use a default user ID for now if currentUserId is not mapped via custom
-        // resolution,
-        // typically a custom ArgumentResolver handles @AuthenticationPrincipal Long
-        // userId.
-        Long userId = currentUserId != null ? currentUserId : 1L; // Fallback for simplicity
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "User must be logged in to register push token");
+        }
 
         PushTokenResponse response = pushTokenService.registerToken(userId, request);
         return ResponseEntity.ok(ApiResponse.<PushTokenResponse>builder()
@@ -52,5 +50,23 @@ public class PushTokenController {
                 .status(HttpStatus.OK.value())
                 .message("Token unregistered successfully")
                 .build());
+    }
+
+    // ------------------------ Helper ------------------------
+    private Long getCurrentUserId() {
+        org.springframework.security.core.Authentication authentication = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() != null) {
+            Object principal = authentication.getPrincipal();
+            try {
+                Object idVal =  principal.getClass().getMethod("getId").invoke(principal);
+                if (idVal instanceof Long) {
+                    return (Long) idVal;
+                }
+            } catch (Exception e) {
+                // Ignore and return null
+            }
+        }
+        return null;
     }
 }

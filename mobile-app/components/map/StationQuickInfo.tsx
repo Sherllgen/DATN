@@ -7,6 +7,7 @@ import StatusBadge, { StatusBadgeVariant } from "@/components/station/StatusBadg
 import { StationSearchResult, StationStatus } from "@/types/station.types";
 import { useAuthStore } from "@/contexts/auth.store";
 import { useUserStore } from "@/contexts/user.store";
+import { useStationCache } from "@/stores/stationCacheStore";
 import { router } from "expo-router";
 
 export interface StationQuickInfoProps {
@@ -33,8 +34,11 @@ export default function StationQuickInfo({
     onNavigate,
 }: StationQuickInfoProps) {
     const unpaidCount = useUserStore((state) => state.unpaidCount) || 0;
+    const cachedStation = useStationCache((state) => station ? state.cache.get(station.id)?.data : null);
 
     if (!station) return null;
+
+    const displayRate = cachedStation ? cachedStation.rate : station.rate;
 
     // Determine status variant based on backend status
     const statusVariant: StatusBadgeVariant =
@@ -67,7 +71,7 @@ export default function StationQuickInfo({
 
     return (
         <Modal visible={visible} onClose={onClose}>
-            <View className="pb-6">
+            <View>
                 {/* Station Name and Navigation */}
                 <View className="flex-row items-center justify-between mb-4">
                     <View className="flex-1">
@@ -95,21 +99,21 @@ export default function StationQuickInfo({
                 {/* Rating and Reviews */}
                 <View className="flex-row items-center mb-4">
                     <Text className="text-base font-semibold text-white mr-2">
-                        {station.rate?.toFixed(1) ?? "N/A"}
+                        {displayRate?.toFixed(1) ?? "N/A"}
                     </Text>
                     <View className="flex-row mr-2">
                         {[1, 2, 3, 4, 5].map((star) => (
                             <Ionicons
                                 key={star}
-                                name={station.rate && star <= station.rate ? "star" : "star-outline"}
+                                name={displayRate && star <= displayRate ? "star" : "star-outline"}
                                 size={14}
                                 color="#F59E0B"
                             />
                         ))}
                     </View>
-                    <Text className="text-sm text-[#9BA1A6]">
+                    {/* <Text className="text-sm text-[#9BA1A6]">
                         (128 reviews)
-                    </Text>
+                    </Text> */}
                 </View>
 
                 {/* Status and Stats */}

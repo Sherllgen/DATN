@@ -1,5 +1,6 @@
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import "react-native-reanimated";
 import { useEffect, useState } from "react";
 import { View, Text } from "react-native";
@@ -99,49 +100,51 @@ export default function RootLayout() {
 
     console.log('About to return JSX...');
     return (
-        <LinearGradient
-            colors={["#33404F", "#000000"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            className="flex-1"
-        >
-            <ThemeProvider value={BlackTheme}>
-                <Stack
-                    screenOptions={{
-                        headerShown: false, // Remove all native headers
-                    }}
-                >
-                    <Stack.Screen
-                        name="(tabs)"
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                        name="auth"
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                        name="payment"
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                        name="map"
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                        name="station"
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                        name="booking"
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                        name="charging"
-                        options={{ headerShown: false }}
-                    />
-                </Stack>
-            </ThemeProvider>
-            <ToastManager duration={1500} />
-        </LinearGradient>
+        <SafeAreaProvider>
+            <LinearGradient
+                colors={["#33404F", "#000000"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                className="flex-1"
+            >
+                <ThemeProvider value={BlackTheme}>
+                    <Stack
+                        screenOptions={{
+                            headerShown: false, // Remove all native headers
+                        }}
+                    >
+                        <Stack.Screen
+                            name="(tabs)"
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="auth"
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="payment"
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="map"
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="station"
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="booking"
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="charging"
+                            options={{ headerShown: false }}
+                        />
+                    </Stack>
+                </ThemeProvider>
+                <ToastManager duration={1500} />
+            </LinearGradient>
+        </SafeAreaProvider>
     );
 }
