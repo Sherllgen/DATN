@@ -26,11 +26,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByPortId(Long portId);
 
-    List<Booking> findByStationIdAndStatusInAndStartTimeBetween(
-            Long stationId,
-            List<BookingStatus> statuses,
-            LocalDateTime start,
-            LocalDateTime end);
+
+    /**
+     * Finds all bookings that overlap with the given time range.
+     * A booking overlaps when: booking.startTime < rangeEnd AND booking.endTime > rangeStart
+     */
+    @Query("SELECT b FROM Booking b WHERE b.stationId = :stationId " +
+           "AND b.status IN :statuses " +
+           "AND b.startTime < :rangeEnd AND b.endTime > :rangeStart")
+    List<Booking> findOverlappingBookings(
+            @Param("stationId") Long stationId,
+            @Param("statuses") List<BookingStatus> statuses,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd);
 
     boolean existsByPortIdAndEndTimeAfterAndStartTimeBeforeAndStatusIn(
             Long portId,
