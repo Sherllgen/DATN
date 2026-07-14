@@ -250,7 +250,7 @@ export default function EditStationPage() {
                                         <FormLabel>Station Name *</FormLabel>
                                         <FormControl>
                                             <Input
-                                                placeholder="e.g. EV-Go Station District 1"
+                                                placeholder="e.g. EVGo Station District 1"
                                                 {...field}
                                             />
                                         </FormControl>

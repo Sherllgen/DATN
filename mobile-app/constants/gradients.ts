@@ -1,7 +1,7 @@
 /**
  * Design System - Gradient Definitions
  * 
- * Centralized gradient configurations for the EV-Go mobile app.
+ * Centralized gradient configurations for the EVGo mobile app.
  * These gradients are used with expo-linear-gradient's LinearGradient component.
  */
 

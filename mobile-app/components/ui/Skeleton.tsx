@@ -16,7 +16,7 @@ interface SkeletonProps {
 
 /**
  * A reusable Skeleton component for loading states.
- * Follows EV-Go design system and supports pulsing animation.
+ * Follows EVGo design system and supports pulsing animation.
  */
 export default function Skeleton({
     width,

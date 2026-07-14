@@ -104,7 +104,7 @@ public class ZaloPayServiceImpl implements ZaloPayService {
         body.add("embed_data", embedData);
         body.add("item", item);
         body.add("description", request.description() != null ? request.description()
-                : "EV-Go payment for invoice #" + request.invoiceId());
+                : "EVGo payment for invoice #" + request.invoiceId());
         body.add("callback_url", zaloPayConfig.getCallbackUrl());
         body.add("mac", mac);
 

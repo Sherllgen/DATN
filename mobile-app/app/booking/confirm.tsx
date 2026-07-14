@@ -200,7 +200,7 @@ export default function ConfirmBookingScreen() {
                 invoiceId: invoice.id,
                 userId: booking.userId,
                 amount: invoice.totalCost,
-                description: `EV-Go Booking ${booking.id}`,
+                description: `EVGo Booking ${booking.id}`,
                 redirectUrl: ExpoLinking.createURL('')
             });
 

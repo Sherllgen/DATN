@@ -1,4 +1,4 @@
-# EV-Go 🔋⚡
+# EVGo 🔋⚡
 
 > Ứng dụng di động tìm kiếm trạm sạc xe máy điện và website quản lý cho chủ trạm và quản trị hệ thống
 >
@@ -10,7 +10,7 @@
 
 ## 📖 Overview
 
-EV-Go is an electric vehicle charging station management system designed for electric motorcycles. It provides:
+EVGo is an electric vehicle charging station management system designed for electric motorcycles. It provides:
 
 - **Mobile App** - For users (User/Guest) to find, book, and pay for charging sessions
 - **Web Dashboard** - For station owners to manage their stations and monitor revenue
@@ -44,33 +44,33 @@ This project uses a **Modular Monolithic** architecture with Spring Modulith, pr
 
 ### Modules
 
-| Module | Description |
-|--------|-------------|
-| `user` | User authentication, authorization, and profile management |
-| `station` | Charging station and location management |
-| `charger` | Individual charger and connector management |
-| `booking` | Reservation and scheduling system |
-| `charging` | Active charging session management |
-| `payment` | Payment processing and transaction history |
-| `review` | User ratings and feedback |
-| `complaint` | Issue tracking and resolution |
-| `notification` | Push notifications and alerts |
-| `sharedkernel` | Shared DTOs, exceptions, and enums |
+| Module         | Description                                                |
+| -------------- | ---------------------------------------------------------- |
+| `user`         | User authentication, authorization, and profile management |
+| `station`      | Charging station and location management                   |
+| `charger`      | Individual charger and connector management                |
+| `booking`      | Reservation and scheduling system                          |
+| `charging`     | Active charging session management                         |
+| `payment`      | Payment processing and transaction history                 |
+| `review`       | User ratings and feedback                                  |
+| `complaint`    | Issue tracking and resolution                              |
+| `notification` | Push notifications and alerts                              |
+| `sharedkernel` | Shared DTOs, exceptions, and enums                         |
 
 ## 🛠️ Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| **Language** | Java 21 |
-| **Framework** | Spring Boot 4.0.0 |
-| **Modulith** | Spring Modulith 2.0.0 |
-| **Database** | PostgreSQL |
-| **Cache/Session** | Redis |
-| **ORM** | Spring Data JPA / Hibernate |
-| **Security** | Spring Security + JWT |
-| **Payment** | MoMo One-Time Payment API |
-| **API Docs** | SpringDoc OpenAPI (Swagger) |
-| **Build Tool** | Maven |
+| Component         | Technology                  |
+| ----------------- | --------------------------- |
+| **Language**      | Java 21                     |
+| **Framework**     | Spring Boot 4.0.0           |
+| **Modulith**      | Spring Modulith 2.0.0       |
+| **Database**      | PostgreSQL                  |
+| **Cache/Session** | Redis                       |
+| **ORM**           | Spring Data JPA / Hibernate |
+| **Security**      | Spring Security + JWT       |
+| **Payment**       | MoMo One-Time Payment API   |
+| **API Docs**      | SpringDoc OpenAPI (Swagger) |
+| **Build Tool**    | Maven                       |
 
 ## 🚀 Getting Started
 
@@ -83,23 +83,27 @@ This project uses a **Modular Monolithic** architecture with Spring Modulith, pr
 ### Quick Start
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd evgo
    ```
 
 2. **Set up environment variables**
+
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
 3. **Start the services using Docker Compose**
+
    ```bash
    docker-compose up -d
    ```
 
 4. **Run the application**
+
    ```bash
    ./mvnw spring-boot:run
    ```
@@ -110,45 +114,44 @@ This project uses a **Modular Monolithic** architecture with Spring Modulith, pr
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DB_URL` | PostgreSQL connection URL | `jdbc:postgresql://localhost:5432/evgo_db` |
-| `DB_USERNAME` | Database username | `postgres` |
-| `DB_PASSWORD` | Database password | - |
-| `REDIS_HOST` | Redis host | `localhost` |
-| `REDIS_PORT` | Redis port | `6379` |
-| `JWT_SECRET` | JWT signing secret (min 256 bits) | - |
-| `PORT` | Application port | `8080` |
-
+| Variable      | Description                       | Default                                    |
+| ------------- | --------------------------------- | ------------------------------------------ |
+| `DB_URL`      | PostgreSQL connection URL         | `jdbc:postgresql://localhost:5432/evgo_db` |
+| `DB_USERNAME` | Database username                 | `postgres`                                 |
+| `DB_PASSWORD` | Database password                 | -                                          |
+| `REDIS_HOST`  | Redis host                        | `localhost`                                |
+| `REDIS_PORT`  | Redis port                        | `6379`                                     |
+| `JWT_SECRET`  | JWT signing secret (min 256 bits) | -                                          |
+| `PORT`        | Application port                  | `8080`                                     |
 
 ### Google OAuth Configuration & Testing
 
 To enable Google Login, you need a Google Cloud Project with OAuth 2.0 Credentials.
 
 1.  **Get Client ID**:
-    -   Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
-    -   Create OAuth 2.0 Client ID (Web Application).
-    -   Add `https://developers.google.com/oauthplayground` to **Authorized redirect URIs**.
+    - Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+    - Create OAuth 2.0 Client ID (Web Application).
+    - Add `https://developers.google.com/oauthplayground` to **Authorized redirect URIs**.
 
 2.  **Configure App**:
-    -   Update `.env`: `GOOGLE_CLIENT_ID=your-client-id-here`.
-    -   Restart the application.
+    - Update `.env`: `GOOGLE_CLIENT_ID=your-client-id-here`.
+    - Restart the application.
 
 3.  **Test with OAuth Playground**:
-    -   Go to [OAuth 2.0 Playground](https://developers.google.com/oauthplayground).
-    -   Click Gear Icon ⚙️ -> Check "Use your own OAuth credentials" -> Enter your OAuth Client ID (and Client Secret if asked, though backend only needs ID).
-    -   Select scopes: `email`, `profile`, `openid`.
-    -   Authorize API -> "Exchange authorization code for tokens".
-    -   Copy the **id_token** (NOT access_token).
+    - Go to [OAuth 2.0 Playground](https://developers.google.com/oauthplayground).
+    - Click Gear Icon ⚙️ -> Check "Use your own OAuth credentials" -> Enter your OAuth Client ID (and Client Secret if asked, though backend only needs ID).
+    - Select scopes: `email`, `profile`, `openid`.
+    - Authorize API -> "Exchange authorization code for tokens".
+    - Copy the **id_token** (NOT access_token).
 
 4.  **Verify via API**:
-    -   Endpoint: `POST http://localhost:8081/api/v1/auth/google`
-    -   Body:
-        ```json
-        {
-          "idToken": "your_id_token_here"
-        }
-        ```
+    - Endpoint: `POST http://localhost:8081/api/v1/auth/google`
+    - Body:
+      ```json
+      {
+        "idToken": "your_id_token_here"
+      }
+      ```
 
 ## 📚 Documentation
 
@@ -166,12 +169,12 @@ mvn test -Dtest=DocumenterTests
 
 Generated files are in `target/spring-modulith-docs/`:
 
-| File | Description |
-|------|-------------|
-| `components.puml` | PlantUML C4 component diagram |
-| `module-{name}.puml` | Individual module diagrams |
-| `module-{name}.adoc` | Module canvas documentation |
-| `all-docs.adoc` | Aggregating document |
+| File                 | Description                   |
+| -------------------- | ----------------------------- |
+| `components.puml`    | PlantUML C4 component diagram |
+| `module-{name}.puml` | Individual module diagrams    |
+| `module-{name}.adoc` | Module canvas documentation   |
+| `all-docs.adoc`      | Aggregating document          |
 
 #### Viewing PlantUML Diagrams
 

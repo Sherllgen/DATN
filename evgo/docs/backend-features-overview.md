@@ -1,24 +1,24 @@
-# Tổng quan Backend Features - EV-Go
+# Tổng quan Backend Features - EVGo
 
-Tài liệu này cung cấp cái nhìn tổng quan về các module backend đã được implement trong hệ thống EV-Go.
+Tài liệu này cung cấp cái nhìn tổng quan về các module backend đã được implement trong hệ thống EVGo.
 
 ---
 
 ## Module Status Overview
 
-| Module | Status | Mô tả | Tài liệu chi tiết |
-|--------|--------|-------|-------------------|
-| **User** | ✅ Implemented | Xác thực, quản lý người dùng, tài khoản, phương tiện | [walkthrough-user-module.md](walkthrough-user-module.md) |
-| **Station** | ✅ Implemented | Quản lý trạm sạc, ảnh, giá, phê duyệt | [walkthrough-station-module.md](walkthrough-station-module.md) |
-| **Charger** | ✅ Implemented | Quản lý trụ sạc và cổng sạc (Có thông tin OCPP) | [walkthrough-charger-module.md](walkthrough-charger-module.md) |
-| **OCPP** | ✅ Implemented | Xử lý giao thức OCPP 1.6J (WebSocket) cho trạm sạc | [walkthrough-ocpp-module.md](walkthrough-ocpp-module.md) |
-| **Notification** | ✅ Implemented | Email, SMS, thông báo | [walkthrough-notification-module.md](walkthrough-notification-module.md) |
-| **Payment** | ✅ Implemented | Thanh toán ZaloPay (App-to-App, Webhooks) | [walkthrough-payment-module.md](walkthrough-payment-module.md) |
-| **Shared Kernel** | ✅ Implemented | DTOs, Enums, Exceptions, Infra | [walkthrough-sharedkernel-module.md](walkthrough-sharedkernel-module.md) |
-| **Booking** | ✅ Implemented | Đặt lịch sạc, lấy config và metadata | [walkthrough-booking-module.md](walkthrough-booking-module.md) |
-| **Charging** | ✅ Implemented | Quản lý phiên sạc | [walkthrough-charging-module.md](walkthrough-charging-module.md) |
-| **Review** | ✅ Implemented | Đánh giá trạm sạc | [walkthrough-review-module.md](walkthrough-review-module.md) |
-| **Complaint** | 🔲 Skeleton | Khiếu nại | *Coming soon* |
+| Module            | Status         | Mô tả                                                | Tài liệu chi tiết                                                        |
+| ----------------- | -------------- | ---------------------------------------------------- | ------------------------------------------------------------------------ |
+| **User**          | ✅ Implemented | Xác thực, quản lý người dùng, tài khoản, phương tiện | [walkthrough-user-module.md](walkthrough-user-module.md)                 |
+| **Station**       | ✅ Implemented | Quản lý trạm sạc, ảnh, giá, phê duyệt                | [walkthrough-station-module.md](walkthrough-station-module.md)           |
+| **Charger**       | ✅ Implemented | Quản lý trụ sạc và cổng sạc (Có thông tin OCPP)      | [walkthrough-charger-module.md](walkthrough-charger-module.md)           |
+| **OCPP**          | ✅ Implemented | Xử lý giao thức OCPP 1.6J (WebSocket) cho trạm sạc   | [walkthrough-ocpp-module.md](walkthrough-ocpp-module.md)                 |
+| **Notification**  | ✅ Implemented | Email, SMS, thông báo                                | [walkthrough-notification-module.md](walkthrough-notification-module.md) |
+| **Payment**       | ✅ Implemented | Thanh toán ZaloPay (App-to-App, Webhooks)            | [walkthrough-payment-module.md](walkthrough-payment-module.md)           |
+| **Shared Kernel** | ✅ Implemented | DTOs, Enums, Exceptions, Infra                       | [walkthrough-sharedkernel-module.md](walkthrough-sharedkernel-module.md) |
+| **Booking**       | ✅ Implemented | Đặt lịch sạc, lấy config và metadata                 | [walkthrough-booking-module.md](walkthrough-booking-module.md)           |
+| **Charging**      | ✅ Implemented | Quản lý phiên sạc                                    | [walkthrough-charging-module.md](walkthrough-charging-module.md)         |
+| **Review**        | ✅ Implemented | Đánh giá trạm sạc                                    | [walkthrough-review-module.md](walkthrough-review-module.md)             |
+| **Complaint**     | 🔲 Skeleton    | Khiếu nại                                            | _Coming soon_                                                            |
 
 ---
 
@@ -132,147 +132,147 @@ flowchart LR
 
 ### Authentication (`/api/v1/auth`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| POST | `/register` | Đăng ký tài khoản |
-| POST | `/login` | Đăng nhập |
-| POST | `/refresh` | Làm mới token |
-| POST | `/logout` | Đăng xuất |
-| POST | `/verify-email` | Xác minh email |
-| POST | `/verify-phone` | Xác minh phone |
-| POST | `/forgot-password` | Quên mật khẩu |
-| POST | `/reset-password` | Đặt lại mật khẩu |
-| POST | `/google` | Đăng nhập Google |
+| Method | Endpoint           | Mô tả             |
+| ------ | ------------------ | ----------------- |
+| POST   | `/register`        | Đăng ký tài khoản |
+| POST   | `/login`           | Đăng nhập         |
+| POST   | `/refresh`         | Làm mới token     |
+| POST   | `/logout`          | Đăng xuất         |
+| POST   | `/verify-email`    | Xác minh email    |
+| POST   | `/verify-phone`    | Xác minh phone    |
+| POST   | `/forgot-password` | Quên mật khẩu     |
+| POST   | `/reset-password`  | Đặt lại mật khẩu  |
+| POST   | `/google`          | Đăng nhập Google  |
 
 ### User Profile (`/api/v1/users`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| GET | `/me` | Thông tin profile |
-| PUT | `/me` | Cập nhật profile |
-| PUT | `/me/password` | Đổi mật khẩu |
-| POST | `/me/avatar` | Cập nhật avatar |
-| GET | `/me/business-profile` | Business profile (Owner) |
-| PUT | `/me/business-profile` | Cập nhật business profile |
+| Method | Endpoint               | Mô tả                     |
+| ------ | ---------------------- | ------------------------- |
+| GET    | `/me`                  | Thông tin profile         |
+| PUT    | `/me`                  | Cập nhật profile          |
+| PUT    | `/me/password`         | Đổi mật khẩu              |
+| POST   | `/me/avatar`           | Cập nhật avatar           |
+| GET    | `/me/business-profile` | Business profile (Owner)  |
+| PUT    | `/me/business-profile` | Cập nhật business profile |
 
 ### Vehicles (`/api/v1/users/me/vehicles`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| POST | `/` | Thêm xe |
-| GET | `/` | Danh sách xe |
-| GET | `/{id}` | Chi tiết xe |
-| PUT | `/{id}` | Cập nhật xe |
-| DELETE | `/{id}` | Xóa xe |
-| PUT | `/{id}/in-use` | Đặt xe đang sử dụng |
-| GET | `/in-use` | Lấy xe đang sử dụng |
+| Method | Endpoint       | Mô tả               |
+| ------ | -------------- | ------------------- |
+| POST   | `/`            | Thêm xe             |
+| GET    | `/`            | Danh sách xe        |
+| GET    | `/{id}`        | Chi tiết xe         |
+| PUT    | `/{id}`        | Cập nhật xe         |
+| DELETE | `/{id}`        | Xóa xe              |
+| PUT    | `/{id}/in-use` | Đặt xe đang sử dụng |
+| GET    | `/in-use`      | Lấy xe đang sử dụng |
 
 ### Admin (`/api/v1/admin`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| GET | `/accounts` | Danh sách tài khoản |
-| GET | `/accounts/{id}` | Chi tiết tài khoản |
-| POST | `/accounts/{id}/lock` | Khóa tài khoản |
-| POST | `/accounts/{id}/unlock` | Mở khóa tài khoản |
-| DELETE | `/accounts/{id}` | Xóa tài khoản |
-| GET | `/station-owner` | Danh sách đơn đăng ký SO |
-| GET | `/station-owner/{id}` | Chi tiết đơn đăng ký |
-| PUT | `/station-owner/{id}` | Đánh dấu đang xem xét |
-| POST | `/station-owner/{id}/approve` | Duyệt đơn |
-| POST | `/station-owner/{id}/reject` | Từ chối đơn |
+| Method | Endpoint                      | Mô tả                    |
+| ------ | ----------------------------- | ------------------------ |
+| GET    | `/accounts`                   | Danh sách tài khoản      |
+| GET    | `/accounts/{id}`              | Chi tiết tài khoản       |
+| POST   | `/accounts/{id}/lock`         | Khóa tài khoản           |
+| POST   | `/accounts/{id}/unlock`       | Mở khóa tài khoản        |
+| DELETE | `/accounts/{id}`              | Xóa tài khoản            |
+| GET    | `/station-owner`              | Danh sách đơn đăng ký SO |
+| GET    | `/station-owner/{id}`         | Chi tiết đơn đăng ký     |
+| PUT    | `/station-owner/{id}`         | Đánh dấu đang xem xét    |
+| POST   | `/station-owner/{id}/approve` | Duyệt đơn                |
+| POST   | `/station-owner/{id}/reject`  | Từ chối đơn              |
 
 ### Stations (`/api/v1/stations`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| GET | `/` | Danh sách trạm sạc |
-| GET | `/{id}` | Chi tiết trạm |
-| GET | `/me` | Trạm của tôi (Owner) |
-| POST | `/` | Tạo trạm |
-| PUT | `/{id}` | Cập nhật trạm |
-| DELETE | `/{id}` | Xóa trạm |
-| PATCH | `/{id}/status` | Cập nhật trạng thái |
+| Method | Endpoint       | Mô tả                |
+| ------ | -------------- | -------------------- |
+| GET    | `/`            | Danh sách trạm sạc   |
+| GET    | `/{id}`        | Chi tiết trạm        |
+| GET    | `/me`          | Trạm của tôi (Owner) |
+| POST   | `/`            | Tạo trạm             |
+| PUT    | `/{id}`        | Cập nhật trạm        |
+| DELETE | `/{id}`        | Xóa trạm             |
+| PATCH  | `/{id}/status` | Cập nhật trạng thái  |
 
 ### Chargers (`/api/v1/chargers`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| GET | `/?stationId={id}` | Danh sách charger theo station |
-| GET | `/{id}` | Chi tiết charger |
-| POST | `/` | Tạo charger |
-| PUT | `/{id}` | Cập nhật charger |
-| DELETE | `/{id}` | Xóa charger |
-| GET | `/{id}/ports` | Danh sách port |
-| POST | `/{id}/ports` | Tạo port |
+| Method | Endpoint           | Mô tả                          |
+| ------ | ------------------ | ------------------------------ |
+| GET    | `/?stationId={id}` | Danh sách charger theo station |
+| GET    | `/{id}`            | Chi tiết charger               |
+| POST   | `/`                | Tạo charger                    |
+| PUT    | `/{id}`            | Cập nhật charger               |
+| DELETE | `/{id}`            | Xóa charger                    |
+| GET    | `/{id}/ports`      | Danh sách port                 |
+| POST   | `/{id}/ports`      | Tạo port                       |
 
 ### Ports (`/api/v1/ports`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| GET | `/{id}` | Chi tiết port |
-| PUT | `/{id}` | Cập nhật trạng thái port |
-| DELETE | `/{id}` | Xóa port |
+| Method | Endpoint | Mô tả                    |
+| ------ | -------- | ------------------------ |
+| GET    | `/{id}`  | Chi tiết port            |
+| PUT    | `/{id}`  | Cập nhật trạng thái port |
+| DELETE | `/{id}`  | Xóa port                 |
 
 ### Payment (`/api/v1/zalopay`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| POST | `/orders` | Tạo link thanh toán đơn hàng |
-| POST | `/callback` | Webhook IPN nhận kết quả |
-| GET | `/orders/{appTransId}/status` | Kiểm tra trạng thái đơn hàng |
+| Method | Endpoint                      | Mô tả                        |
+| ------ | ----------------------------- | ---------------------------- |
+| POST   | `/orders`                     | Tạo link thanh toán đơn hàng |
+| POST   | `/callback`                   | Webhook IPN nhận kết quả     |
+| GET    | `/orders/{appTransId}/status` | Kiểm tra trạng thái đơn hàng |
 
 ### OCPP (`/ocpp`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| WS | `/{chargePointId}` | Giao tiếp WebSocket với trụ sạc vật lý |
+| Method | Endpoint           | Mô tả                                  |
+| ------ | ------------------ | -------------------------------------- |
+| WS     | `/{chargePointId}` | Giao tiếp WebSocket với trụ sạc vật lý |
 
 ### Notifications (`/api/v1/notifications`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| GET | `/{id}` | Chi tiết thông báo |
-| GET | `/user/{userId}` | Thông báo của user |
-| GET | `/user/{userId}/unread` | Thông báo chưa đọc |
-| GET | `/user/{userId}/unread/count` | Đếm chưa đọc |
+| Method | Endpoint                      | Mô tả              |
+| ------ | ----------------------------- | ------------------ |
+| GET    | `/{id}`                       | Chi tiết thông báo |
+| GET    | `/user/{userId}`              | Thông báo của user |
+| GET    | `/user/{userId}/unread`       | Thông báo chưa đọc |
+| GET    | `/user/{userId}/unread/count` | Đếm chưa đọc       |
 
 ### Reviews (`/api/v1/reviews`)
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| GET | `/station/{id}/summary` | Thống kê đánh giá trạm sạc |
-| GET | `/station/{id}` | Danh sách đánh giá (phân trang) |
-| POST | `/station/{id}` | Gửi đánh giá mới |
-| PUT | `/{id}` | Cập nhật đánh giá (Owner) |
-| DELETE | `/{id}` | Xóa đánh giá (Owner/Admin) |
+| Method | Endpoint                | Mô tả                           |
+| ------ | ----------------------- | ------------------------------- |
+| GET    | `/station/{id}/summary` | Thống kê đánh giá trạm sạc      |
+| GET    | `/station/{id}`         | Danh sách đánh giá (phân trang) |
+| POST   | `/station/{id}`         | Gửi đánh giá mới                |
+| PUT    | `/{id}`                 | Cập nhật đánh giá (Owner)       |
+| DELETE | `/{id}`                 | Xóa đánh giá (Owner/Admin)      |
 
 ---
 
 ## User Roles & Permissions
 
-| Role | Mô tả | Quyền hạn chính |
-|------|-------|-----------------|
-| **USER** | Người dùng thường | Tìm trạm, đặt lịch, sạc xe, thanh toán |
-| **STATION_OWNER** | Chủ trạm sạc | Quản lý trạm, trụ sạc, xem thống kê |
-| **SUPER_ADMIN** | Quản trị viên | Quản lý tài khoản, duyệt đơn, thống kê |
+| Role              | Mô tả             | Quyền hạn chính                        |
+| ----------------- | ----------------- | -------------------------------------- |
+| **USER**          | Người dùng thường | Tìm trạm, đặt lịch, sạc xe, thanh toán |
+| **STATION_OWNER** | Chủ trạm sạc      | Quản lý trạm, trụ sạc, xem thống kê    |
+| **SUPER_ADMIN**   | Quản trị viên     | Quản lý tài khoản, duyệt đơn, thống kê |
 
 ---
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| Framework | Spring Boot 3.x |
-| Architecture | Spring Modulith |
-| Database | PostgreSQL |
-| Cache | Redis |
-| Security | JWT, Spring Security |
-| File Storage | Cloudinary |
-| Protocol | HTTP/REST, WebSocket (OCPP 1.6J) |
-| Email | SMTP (Gmail) |
-| API Docs | OpenAPI 3.0 (Swagger) |
-| Build Tool | Maven |
+| Component    | Technology                       |
+| ------------ | -------------------------------- |
+| Framework    | Spring Boot 3.x                  |
+| Architecture | Spring Modulith                  |
+| Database     | PostgreSQL                       |
+| Cache        | Redis                            |
+| Security     | JWT, Spring Security             |
+| File Storage | Cloudinary                       |
+| Protocol     | HTTP/REST, WebSocket (OCPP 1.6J) |
+| Email        | SMTP (Gmail)                     |
+| API Docs     | OpenAPI 3.0 (Swagger)            |
+| Build Tool   | Maven                            |
 
 ---
 
@@ -373,6 +373,7 @@ mvn spring-boot:run
 ### API Documentation
 
 Sau khi chạy server, truy cập Swagger UI:
+
 - http://localhost:8081/swagger-ui/index.html
 
 ---

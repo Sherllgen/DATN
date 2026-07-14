@@ -79,7 +79,7 @@ public class ZaloPayController {
                 invoice.getId(),
                 userId,
                 invoice.getTotalCost(),
-                "Thanh toan hoa don EV-Go " + invoice.getNumber(),
+                "Thanh toan hoa don EVGo " + invoice.getNumber(),
                 null);
 
         ZaloPayOrderResponse result = zaloPayService.createOrder(request);

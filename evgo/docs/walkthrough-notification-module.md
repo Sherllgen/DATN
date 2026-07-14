@@ -6,14 +6,14 @@ Module quản lý thông báo, cung cấp các chức năng gửi email và SMS 
 
 ## Tổng quan Module
 
-| Thuộc tính | Giá trị |
-|------------|---------|
-| **Package** | `com.project.evgo.notification` |
-| **Display Name** | Notification Management |
-| **Số Services** | 4 (NotificationService, PushTokenService, EmailService, SmsService) |
-| **Số Controllers** | 2 (NotificationController, PushTokenController) |
-| **Event Listeners** | 1 (PushNotificationEventListener) |
-| **Dependencies** | `sharedkernel`, `booking` |
+| Thuộc tính          | Giá trị                                                             |
+| ------------------- | ------------------------------------------------------------------- |
+| **Package**         | `com.project.evgo.notification`                                     |
+| **Display Name**    | Notification Management                                             |
+| **Số Services**     | 4 (NotificationService, PushTokenService, EmailService, SmsService) |
+| **Số Controllers**  | 2 (NotificationController, PushTokenController)                     |
+| **Event Listeners** | 1 (PushNotificationEventListener)                                   |
+| **Dependencies**    | `sharedkernel`, `booking`                                           |
 
 ---
 
@@ -35,12 +35,12 @@ flowchart TD
     style I fill:#87CEEB
 ```
 
-| Service | Implementation | Status |
-|---------|----------------|--------|
-| NotificationService | NotificationServiceImpl | ✅ Production |
-| PushTokenService | PushTokenServiceImpl | ✅ Production |
-| EmailService | SmtpEmailServiceImpl | ✅ Production |
-| SmsService | MockSmsServiceImpl | ⚠️ Mock (development) |
+| Service             | Implementation          | Status                |
+| ------------------- | ----------------------- | --------------------- |
+| NotificationService | NotificationServiceImpl | ✅ Production         |
+| PushTokenService    | PushTokenServiceImpl    | ✅ Production         |
+| EmailService        | SmtpEmailServiceImpl    | ✅ Production         |
+| SmsService          | MockSmsServiceImpl      | ⚠️ Mock (development) |
 
 ---
 
@@ -75,19 +75,19 @@ erDiagram
 
 ### Notification Endpoints
 
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| `GET` | `/api/v1/notifications/{id}` | Lấy thông báo theo ID | ✅ |
-| `GET` | `/api/v1/notifications/user/{userId}` | Danh sách thông báo của user | ✅ |
-| `GET` | `/api/v1/notifications/user/{userId}/unread` | Danh sách thông báo chưa đọc | ✅ |
-| `GET` | `/api/v1/notifications/user/{userId}/unread/count` | Đếm thông báo chưa đọc | ✅ |
+| Method | Endpoint                                           | Mô tả                        | Auth |
+| ------ | -------------------------------------------------- | ---------------------------- | ---- |
+| `GET`  | `/api/v1/notifications/{id}`                       | Lấy thông báo theo ID        | ✅   |
+| `GET`  | `/api/v1/notifications/user/{userId}`              | Danh sách thông báo của user | ✅   |
+| `GET`  | `/api/v1/notifications/user/{userId}/unread`       | Danh sách thông báo chưa đọc | ✅   |
+| `GET`  | `/api/v1/notifications/user/{userId}/unread/count` | Đếm thông báo chưa đọc       | ✅   |
 
 ### ✅ **[NEW]** Push Token Endpoints
 
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| `POST` | `/api/v1/notifications/push-tokens` | Đăng ký device token cho push notification | ✅ |
-| `DELETE` | `/api/v1/notifications/push-tokens/{token}` | Xóa device token (ngừng nhận push) | ✅ |
+| Method   | Endpoint                                    | Mô tả                                      | Auth |
+| -------- | ------------------------------------------- | ------------------------------------------ | ---- |
+| `POST`   | `/api/v1/notifications/push-tokens`         | Đăng ký device token cho push notification | ✅   |
+| `DELETE` | `/api/v1/notifications/push-tokens/{token}` | Xóa device token (ngừng nhận push)         | ✅   |
 
 ---
 
@@ -128,7 +128,7 @@ public interface EmailService {
 public interface SmsService {
     // Gửi OTP xác minh số điện thoại
     void sendVerificationOtp(String phoneNumber, String otp);
-    
+
     // Gửi OTP đặt lại mật khẩu
     void sendPasswordResetOtp(String phoneNumber, String otp);
 }
@@ -238,6 +238,7 @@ public class Notification {
 
 > [!NOTE]
 > **Ý nghĩa các trường đặc biệt:**
+>
 > - `isRead`: Cờ đánh dấu thông báo đã đọc. Dùng để hiển thị badge số thông báo chưa đọc
 > - `type`: Loại thông báo, dùng để phân loại và hiển thị icon khác nhau trên mobile
 
@@ -255,13 +256,13 @@ public enum NotificationType {
 }
 ```
 
-| Type | Mô tả | Icon gợi ý |
-|------|-------|------------|
-| `BOOKING` | Thông báo liên quan đặt lịch sạc | 📅 |
-| `CHARGING` | Thông báo khi sạc xong, sạc bị ngắt | ⚡ |
-| `PAYMENT` | Thông báo thanh toán thành công/thất bại | 💳 |
-| `SYSTEM` | Thông báo bảo trì, cập nhật hệ thống | ⚙️ |
-| `PROMOTION` | Thông báo khuyến mãi, giảm giá | 🎁 |
+| Type        | Mô tả                                    | Icon gợi ý |
+| ----------- | ---------------------------------------- | ---------- |
+| `BOOKING`   | Thông báo liên quan đặt lịch sạc         | 📅         |
+| `CHARGING`  | Thông báo khi sạc xong, sạc bị ngắt      | ⚡         |
+| `PAYMENT`   | Thông báo thanh toán thành công/thất bại | 💳         |
+| `SYSTEM`    | Thông báo bảo trì, cập nhật hệ thống     | ⚙️         |
+| `PROMOTION` | Thông báo khuyến mãi, giảm giá           | 🎁         |
 
 ## Configuration
 
@@ -321,10 +322,12 @@ notification/
 ## Dependencies
 
 Module `notification` phụ thuộc vào:
+
 - `sharedkernel` - DTOs, Enums, Exceptions
 - `booking` - Lắng nghe `SendPushNotificationEvent` để gửi push notification
 
 Module `notification` được sử dụng bởi:
+
 - `user` - Gửi email xác minh, welcome, password reset
 - `booking` - Publish `SendPushNotificationEvent` → consumed by `PushNotificationEventListener`
 - `charging` - Gửi thông báo khi sạc xong (future)
@@ -398,18 +401,19 @@ sequenceDiagram
 
 ### Notification Handling
 
-| Scenario | Handler | Behavior |
-|----------|---------|----------|
-| **Foreground** | `Notifications.setNotificationHandler` | Shows alert, plays sound, sets badge |
-| **Foreground received** | `addNotificationReceivedListener` | Updates state, logs content |
+| Scenario                   | Handler                                   | Behavior                                  |
+| -------------------------- | ----------------------------------------- | ----------------------------------------- |
+| **Foreground**             | `Notifications.setNotificationHandler`    | Shows alert, plays sound, sets badge      |
+| **Foreground received**    | `addNotificationReceivedListener`         | Updates state, logs content               |
 | **User taps notification** | `addNotificationResponseReceivedListener` | Logs tap, can navigate to relevant screen |
 
 ### Android Notification Channel
 
 The hook creates a `default` channel with:
+
 - `importance: MAX` — heads-up display
 - `vibrationPattern: [0, 250, 250, 250]`
-- `lightColor: #00A452` (EV-Go brand green)
+- `lightColor: #00A452` (EVGo brand green)
 - `sound: default`
 
 > [!WARNING]

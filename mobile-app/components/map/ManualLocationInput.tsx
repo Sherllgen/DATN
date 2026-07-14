@@ -34,7 +34,7 @@ export default function ManualLocationInput({
 
             const response = await fetch(url, {
                 headers: {
-                    'User-Agent': 'EV-Go Mobile App', // Required by Nominatim
+                    'User-Agent': 'EVGo Mobile App', // Required by Nominatim
                 },
             });
 
