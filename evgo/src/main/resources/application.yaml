@@ -100,10 +100,10 @@ spring.mail:
         writetimeout: 5000
 
 app:
-  name: EV-Go
+  name: EVGo
   email:
     from: ${MAIL_USERNAME}
-    from-name: EV-Go Support
+    from-name: EVGo Support
   upload:
     max-size: ${APP_UPLOAD_MAX_SIZE:10485760}
 
@@ -118,9 +118,9 @@ google:
   client-id: ${GOOGLE_CLIENT_ID}
 
 cloudinary:
-    cloud-name: ${CLOUD_NAME}
-    api-key: ${CLOUD_API_KEY}
-    api-secret: ${CLOUD_API_SECRET}
+  cloud-name: ${CLOUD_NAME}
+  api-key: ${CLOUD_API_KEY}
+  api-secret: ${CLOUD_API_SECRET}
 
 zalopay:
   app-id: ${ZALOPAY_APP_ID}

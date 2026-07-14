@@ -28,10 +28,10 @@ public class SmtpEmailServiceImpl implements EmailService {
     @Value("${app.email.from}")
     private String fromEmail;
 
-    @Value("${app.email.from-name:EV-Go}")
+    @Value("${app.email.from-name:EVGo}")
     private String fromName;
 
-    @Value("${app.name:EV-Go}")
+    @Value("${app.name:EVGo}")
     private String appName;
 
     @Override

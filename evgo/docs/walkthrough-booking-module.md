@@ -1,14 +1,18 @@
 # Walkthrough: Booking Module
 
 ## 1. Description
-The `booking` module handles the reservation of charging ports at stations. 
+
+The `booking` module handles the reservation of charging ports at stations.
 
 ## 2. Dependencies
+
 - `sharedkernel`: Common DTOs, Enums (`AvailabilityStatus`, `BookingStatus`), and Exceptions.
 - `station`: Provides `PortCountProvider` to calculate total vs available ports.
 
 ## 3. Entities
+
 ### Booking
+
 - `id`: Primary key
 - `userId`: Identifier of the user booking
 - `stationId`: The station where the booking takes place
@@ -20,28 +24,30 @@ The `booking` module handles the reservation of charging ports at stations.
 ## 4. Features & Operations Flow
 
 ### The 6-Phase Booking Lifecycle
-1. **Search & Software Lock (Redis)** 
+
+1. **Search & Software Lock (Redis)**
    - User selects time slot (e.g., 09:00 - 10:00).
    - Backend queries DB for availability, then creates a temporary Redis lock (8-min TTL) to prevent overlapping bookings. App shows 5 mins countdown.
 2. **Payment & Confirmation**
    - User pays via MoMo/VNPay.
    - On SUCCESS webhook, backend saves to DB (bookings, invoices) and deletes Redis key. Slot is officially booked.
-3. **Pre-arrival & OCPP Lock (T-10 mins before start)** 
+3. **Pre-arrival & OCPP Lock (T-10 mins before start)**
    - `BookingScheduler` finds blocks starting in 10 mins (e.g. 08:50).
-   - *Clear the station*: Checks for overstaying EV and fires `SendRemoteStopCommandEvent` (with a specific `reason: "Booking Overtake"`) if another user is overstaying.
-   - *ReserveNow*: Fires `SendReserveNowCommandEvent`. Port LED turns yellow/Reserved.
+   - _Clear the station_: Checks for overstaying EV and fires `SendRemoteStopCommandEvent` (with a specific `reason: "Booking Overtake"`) if another user is overstaying.
+   - _ReserveNow_: Fires `SendReserveNowCommandEvent`. Port LED turns yellow/Reserved.
 4. **Charging & Notification**
    - User arrives, plugs in, and charges (managed by the `charging` module).
    - When charging finishes, the `ChargingSessionCompletedEvent` triggers `BookingEventListener` to transition the booking status to `COMPLETED` cleanly without circular dependencies.
-   - At T-15 mins before end (e.g. 09:45), `BookingScheduler` sends a *Soft Warning* push notification: "5 mins left until power cut".
+   - At T-15 mins before end (e.g. 09:45), `BookingScheduler` sends a _Soft Warning_ push notification: "5 mins left until power cut".
 5. **Cut-off & Grace Period (T-10 mins before end)**
-   - At T-10 mins (e.g. 09:50), `BookingScheduler` fires a *Hard Cut-off* (`SendRemoteStopCommandEvent`). Power is safely cut.
+   - At T-10 mins (e.g. 09:50), `BookingScheduler` fires a _Hard Cut-off_ (`SendRemoteStopCommandEvent`). Power is safely cut.
    - Push notification sent: "Power cut. You have 10 mins to move your bike before idle fees apply".
 6. **Penalties & Resolution (End of Block)**
-   - *Overstay*: At 10:00, if EV remains plugged in, idle fees begin.
-   - *No-Show*: At 10:00, if user never arrived, `ReserveNow` naturally expires and port returns to `Available`. User forfeits payment.
+   - _Overstay_: At 10:00, if EV remains plugged in, idle fees begin.
+   - _No-Show_: At 10:00, if user never arrived, `ReserveNow` naturally expires and port returns to `Available`. User forfeits payment.
 
 ### APIs & Schedulers
+
 ✅ **[NEW] Configurable durations**: Fetch list of valid charging durations in hours (1.0 to 12.0)
 ✅ **[NEW] Calendar Status & Available Slots**: Fetch availability and calculate available time slots minus existing bookings.
 ✅ **[NEW] Check Availability**: DB/Redis availability check and price estimation.
@@ -57,20 +63,21 @@ The `booking` module handles the reservation of charging ports at stations.
 
 ## 5. API Endpoints
 
-| Method | Endpoint | Description | Auth | Role |
-|--------|----------|-------------|------|------|
-| `GET` | `/api/v1/config/durations` | Get list of charging durations | ❌ | ANY |
-| `GET` | `/api/v1/bookings/calendar-status` | Get days in a month with availability status | ❌ | ANY |
-| `GET` | `/api/v1/bookings/available-slots` | Calculates and returns available time slots | ❌ | ANY |
-| `GET` | `/api/v1/bookings/{id}` | Get booking by ID | ✅ | ANY |
-| `GET` | `/api/v1/bookings/user/{userId}` | Get bookings by user ID | ✅ | ANY |
-| `GET` | `/api/v1/bookings/port/{portId}` | Get bookings by port ID | ✅ | ANY |
-| `GET` | `/api/v1/bookings?status={status}&page={page}&size={size}` | Get bookings by status with pagination | ✅ | ANY |
-| `POST` | `/api/v1/bookings/check-availability` | Check availability and create Redis lock (8 min) | ✅ | ANY |
-| `POST` | `/api/v1/bookings` | Create a PENDING booking | ✅ | ANY |
-| `POST` | `/api/v1/bookings/{id}/cancel` | Cancel a booking (> 2 hours before start time) | ✅ | ANY |
+| Method | Endpoint                                                   | Description                                      | Auth | Role |
+| ------ | ---------------------------------------------------------- | ------------------------------------------------ | ---- | ---- |
+| `GET`  | `/api/v1/config/durations`                                 | Get list of charging durations                   | ❌   | ANY  |
+| `GET`  | `/api/v1/bookings/calendar-status`                         | Get days in a month with availability status     | ❌   | ANY  |
+| `GET`  | `/api/v1/bookings/available-slots`                         | Calculates and returns available time slots      | ❌   | ANY  |
+| `GET`  | `/api/v1/bookings/{id}`                                    | Get booking by ID                                | ✅   | ANY  |
+| `GET`  | `/api/v1/bookings/user/{userId}`                           | Get bookings by user ID                          | ✅   | ANY  |
+| `GET`  | `/api/v1/bookings/port/{portId}`                           | Get bookings by port ID                          | ✅   | ANY  |
+| `GET`  | `/api/v1/bookings?status={status}&page={page}&size={size}` | Get bookings by status with pagination           | ✅   | ANY  |
+| `POST` | `/api/v1/bookings/check-availability`                      | Check availability and create Redis lock (8 min) | ✅   | ANY  |
+| `POST` | `/api/v1/bookings`                                         | Create a PENDING booking                         | ✅   | ANY  |
+| `POST` | `/api/v1/bookings/{id}/cancel`                             | Cancel a booking (> 2 hours before start time)   | ✅   | ANY  |
 
 ## 6. Testing
+
 - `BookingMetadataServiceTest`: Covers unit tests for duration config, calendar status and available slots calculations.
 - `BookingServiceTest`: Covers Redis locking mechanism and booking estimation (`preview`).
 - `BookingEventListenerTest`: Verifies `PaymentSuccessEvent` listener logic (booking status update & Redis lock deletion).
@@ -78,6 +85,7 @@ The `booking` module handles the reservation of charging ports at stations.
 - `ModularityTest`: Guarantees no illegal inter-module relationships.
 
 ## 7. Architecture & Constraints
+
 - Calculating available slots factors in `PortCounts` from the `station` module to ensure we never overbook ports.
 - The physical charger ports are locked via OCPP `ReserveNow` matching exactly the booking blocks.
 - The Redis locking mechanism uses the consecutive key format `evgo:booking:lock:{stationId}:{portNumber}:{intervalStart}` mapped exactly per 30-min block with an 8-minute TTL.
@@ -86,15 +94,17 @@ The `booking` module handles the reservation of charging ports at stations.
 ## 8. Application Events
 
 ### Events Published by Booking Module
-| Event | Payload | When |
-|-------|---------|------|
-| `SendRemoteStopCommandEvent` | `sessionId, chargePointId, transactionId, reason` | BookingScheduler T-10m checks overstay and forces hardware cut-off. |
+
+| Event                        | Payload                                                        | When                                                                     |
+| ---------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `SendRemoteStopCommandEvent` | `sessionId, chargePointId, transactionId, reason`              | BookingScheduler T-10m checks overstay and forces hardware cut-off.      |
 | `SendReserveNowCommandEvent` | `chargePointId, connectorId, idTag, expiryDate, reservationId` | BookingScheduler T-10m reserves the hardware port for the arriving user. |
 
 ### Events Consumed by Booking Module
-| Event | Source | Handler | Action |
-|-------|--------|---------|--------|
-| `PaymentSuccessEvent` | `payment` | `BookingEventListener.onPaymentSuccess()` | Marks booking as CONFIRMED, deletes Redis lock. |
+
+| Event                           | Source     | Handler                                      | Action                                                     |
+| ------------------------------- | ---------- | -------------------------------------------- | ---------------------------------------------------------- |
+| `PaymentSuccessEvent`           | `payment`  | `BookingEventListener.onPaymentSuccess()`    | Marks booking as CONFIRMED, deletes Redis lock.            |
 | `ChargingSessionCompletedEvent` | `charging` | `BookingEventListener.onChargingCompleted()` | Marks booking as COMPLETED if a matching session finishes. |
 
 ## 9. Sequence Diagram: Robust Booking Flow
@@ -103,7 +113,7 @@ The `booking` module handles the reservation of charging ports at stations.
 sequenceDiagram
     autonumber
     participant App as Mobile App
-    participant BE as EV-Go Backend
+    participant BE as EVGo Backend
     participant Redis as Redis Cache
     participant DB as Postgres DB
     participant Gateway as MoMo/ZaloPay
@@ -119,10 +129,10 @@ sequenceDiagram
     BE->>Redis: Verify user owns all consecutive 30-min block locks
     BE->>DB: Save Booking (Status: PENDING)
     BE-->>App: Booking Created
-    
+
     App->>Gateway: Complete Payment transaction
     Gateway->>BE: POST /api/v1/zalopay/callback (IPN Webhook)
-    
+
     alt IPN arrives inside 8m Window
         BE->>DB: Update Invoice & Transaction (Idempotency Check)
         BE->>BE: Emit PaymentSuccessEvent

@@ -35,7 +35,7 @@ export interface PushNotificationState {
  * 1. Sets up Android notification channel (required for Android 8+).
  * 2. Requests OS permission.
  * 3. Fetches the device's Expo Push Token.
- * 4. Registers the token with the EV-Go backend.
+ * 4. Registers the token with the EVGo backend.
  * 5. Listens for foreground notifications.
  * 6. Listens for notification interactions (tap to open).
  *
@@ -53,7 +53,7 @@ export function usePushNotifications(isAuthenticated: boolean): PushNotification
     useEffect(() => {
         if (Platform.OS === "android") {
             Notifications.setNotificationChannelAsync("default", {
-                name: "EV-Go Notifications",
+                name: "EVGo Notifications",
                 importance: Notifications.AndroidImportance.MAX,
                 vibrationPattern: [0, 250, 250, 250],
                 lightColor: "#00A452",

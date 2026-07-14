@@ -23,7 +23,7 @@ export interface GuestPlaceholderProps {
  */
 export default function GuestPlaceholder({
     title = "Authentication Required",
-    description = "Please log in to view your data and use all features of EV-Go.",
+    description = "Please log in to view your data and use all features of EVGo.",
     icon = "person-circle-outline",
     loginButtonText = "Login Now",
     onLoginPress,

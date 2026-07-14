@@ -18,7 +18,7 @@ public class MockSmsServiceImpl implements SmsService {
     public void sendVerificationOtp(String phoneNumber, String otp) {
         log.info("========== MOCK SMS ==========");
         log.info("To: {}", phoneNumber);
-        log.info("Message: Your EV-Go verification code is: {}", otp);
+        log.info("Message: Your EVGo verification code is: {}", otp);
         log.info("===============================");
     }
 
@@ -26,7 +26,7 @@ public class MockSmsServiceImpl implements SmsService {
     public void sendPasswordResetOtp(String phoneNumber, String otp) {
         log.info("========== MOCK SMS ==========");
         log.info("To: {}", phoneNumber);
-        log.info("Message: Your EV-Go password reset code is: {}", otp);
+        log.info("Message: Your EVGo password reset code is: {}", otp);
         log.info("===============================");
     }
 }

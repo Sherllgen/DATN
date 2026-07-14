@@ -32,11 +32,11 @@ public class OpenApiConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
             .info(new Info()
-                .title("EV-Go API")
+                .title("EVGo API")
                 .description("API for Electric Vehicle Charging Station Management System")
                 .version("1.0.0")
                 .contact(new Contact()
-                    .name("EV-Go Team")
+                    .name("EVGo Team")
                     .email("support@evgo.com"))
                 .license(new License()
                     .name("MIT License")

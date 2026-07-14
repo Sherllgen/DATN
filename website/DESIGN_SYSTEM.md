@@ -1,6 +1,6 @@
-# EV-Go Website - Design System
+# EVGo Website - Design System
 
-> **Project**: EV-Go Web Application  
+> **Project**: EVGo Web Application  
 > **Tech Stack**: Next.js + React + Tailwind CSS v4 + shadcn/ui + TypeScript  
 > **Analysis Date**: 01/25/2026
 
@@ -8,21 +8,21 @@
 
 ## 📋 Overview
 
-This Design System was extracted from the Frontend source code of the **EV-Go Website** project - a Next.js application built with **Tailwind CSS v4** and **shadcn/ui** component library.
+This Design System was extracted from the Frontend source code of the **EVGo Website** project - a Next.js application built with **Tailwind CSS v4** and **shadcn/ui** component library.
 
 ### Tech Stack Details
 
-| Technology | Purpose | Version |
-|-----------|----------|---------|
-| **Next.js** | React framework | 15.4.7 |
-| **React** | UI library | 19.1.0 |
-| **Tailwind CSS** | CSS utility framework | ^4.1.11 |
-| **TypeScript** | Type safety | ^5 |
-| **shadcn/ui** | Component library | Latest |
-| **Radix UI** | Headless UI primitives | Latest |
-| **Zustand** | State management | ^5.0.7 |
-| **next-themes** | Theme management | ^0.4.6 |
-| **Lucide React** | Icon library | ^0.536.0 |
+| Technology       | Purpose                | Version  |
+| ---------------- | ---------------------- | -------- |
+| **Next.js**      | React framework        | 15.4.7   |
+| **React**        | UI library             | 19.1.0   |
+| **Tailwind CSS** | CSS utility framework  | ^4.1.11  |
+| **TypeScript**   | Type safety            | ^5       |
+| **shadcn/ui**    | Component library      | Latest   |
+| **Radix UI**     | Headless UI primitives | Latest   |
+| **Zustand**      | State management       | ^5.0.7   |
+| **next-themes**  | Theme management       | ^0.4.6   |
+| **Lucide React** | Icon library           | ^0.536.0 |
 
 ---
 
@@ -34,75 +34,76 @@ The website uses a **CSS Custom Properties** approach with **OKLCH color space**
 
 #### Color System Architecture
 
-| Color Category | Description | Usage |
-|---------------|-------------|-------|
-| **Semantic Colors** | Base colors defined with OKLCH | Core theme colors (background, foreground, primary, etc.) |
-| **Component Colors** | Derived from semantic colors | Card, popover, modal backgrounds |
-| **Chart Colors** | Data visualization palette | Recharts, analytics visualizations |
-| **Sidebar Colors** | Navigation-specific colors | Left/right sidebar components |
+| Color Category       | Description                    | Usage                                                     |
+| -------------------- | ------------------------------ | --------------------------------------------------------- |
+| **Semantic Colors**  | Base colors defined with OKLCH | Core theme colors (background, foreground, primary, etc.) |
+| **Component Colors** | Derived from semantic colors   | Card, popover, modal backgrounds                          |
+| **Chart Colors**     | Data visualization palette     | Recharts, analytics visualizations                        |
+| **Sidebar Colors**   | Navigation-specific colors     | Left/right sidebar components                             |
 
 #### Primary Colors (Light Mode)
 
-| Token Name | OKLCH Value | Usage | CSS Variable |
-|------------|-------------|-------|--------------|
-| **Background** | `oklch(1 0 0)` | Main page background | `--background` |
-| **Foreground** | `oklch(0.145 0 0)` | Main text color | `--foreground` |
-| **Primary** | `oklch(0.205 0 0)` | Primary brand color, CTAs | `--primary` |
-| **Primary Foreground** | `oklch(0.985 0 0)` | Text on primary | `--primary-foreground` |
-| **Secondary** | `oklch(0.97 0 0)` | Secondary backgrounds | `--secondary` |
-| **Secondary Foreground** | `oklch(0.205 0 0)` | Text on secondary | `--secondary-foreground` |
-| **Accent** | `oklch(0.97 0 0)` | Accent elements | `--accent` |
-| **Accent Foreground** | `oklch(0.205 0 0)` | Text on accent | `--accent-foreground` |
+| Token Name               | OKLCH Value        | Usage                     | CSS Variable             |
+| ------------------------ | ------------------ | ------------------------- | ------------------------ |
+| **Background**           | `oklch(1 0 0)`     | Main page background      | `--background`           |
+| **Foreground**           | `oklch(0.145 0 0)` | Main text color           | `--foreground`           |
+| **Primary**              | `oklch(0.205 0 0)` | Primary brand color, CTAs | `--primary`              |
+| **Primary Foreground**   | `oklch(0.985 0 0)` | Text on primary           | `--primary-foreground`   |
+| **Secondary**            | `oklch(0.97 0 0)`  | Secondary backgrounds     | `--secondary`            |
+| **Secondary Foreground** | `oklch(0.205 0 0)` | Text on secondary         | `--secondary-foreground` |
+| **Accent**               | `oklch(0.97 0 0)`  | Accent elements           | `--accent`               |
+| **Accent Foreground**    | `oklch(0.205 0 0)` | Text on accent            | `--accent-foreground`    |
 
 #### Semantic Colors
 
-| Purpose | Light Mode | Dark Mode | CSS Variable |
-|---------|------------|-----------|--------------|
-| **Success** | *(Undefined - use chart colors)* | *(Undefined)* | - |
-| **Destructive** | `oklch(0.577 0.245 27.325)` | `oklch(0.704 0.191 22.216)` | `--destructive` |
-| **Muted** | `oklch(0.97 0 0)` | `oklch(0.269 0 0)` | `--muted` |
-| **Muted Foreground** | `oklch(0.556 0 0)` | `oklch(0.708 0 0)` | `--muted-foreground` |
+| Purpose              | Light Mode                       | Dark Mode                   | CSS Variable         |
+| -------------------- | -------------------------------- | --------------------------- | -------------------- |
+| **Success**          | _(Undefined - use chart colors)_ | _(Undefined)_               | -                    |
+| **Destructive**      | `oklch(0.577 0.245 27.325)`      | `oklch(0.704 0.191 22.216)` | `--destructive`      |
+| **Muted**            | `oklch(0.97 0 0)`                | `oklch(0.269 0 0)`          | `--muted`            |
+| **Muted Foreground** | `oklch(0.556 0 0)`               | `oklch(0.708 0 0)`          | `--muted-foreground` |
 
 #### Surface Colors
 
-| Surface Type | Light Mode | Dark Mode | Usage |
-|--------------|------------|-----------|-------|
-| **Card** | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Card backgrounds |
-| **Card Foreground** | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Text on cards |
-| **Popover** | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Dropdown, tooltip backgrounds |
-| **Popover Foreground** | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Text on popovers |
+| Surface Type           | Light Mode         | Dark Mode          | Usage                         |
+| ---------------------- | ------------------ | ------------------ | ----------------------------- |
+| **Card**               | `oklch(1 0 0)`     | `oklch(0.205 0 0)` | Card backgrounds              |
+| **Card Foreground**    | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Text on cards                 |
+| **Popover**            | `oklch(1 0 0)`     | `oklch(0.205 0 0)` | Dropdown, tooltip backgrounds |
+| **Popover Foreground** | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Text on popovers              |
 
 #### Border & Interactive Colors
 
-| Type | Light Mode | Dark Mode | Usage |
-|------|------------|-----------|-------|
+| Type       | Light Mode         | Dark Mode            | Usage                     |
+| ---------- | ------------------ | -------------------- | ------------------------- |
 | **Border** | `oklch(0.922 0 0)` | `oklch(1 0 0 / 10%)` | Default borders, dividers |
-| **Input** | `oklch(0.922 0 0)` | `oklch(1 0 0 / 15%)` | Input borders |
-| **Ring** | `oklch(0.708 0 0)` | `oklch(0.556 0 0)` | Focus rings |
+| **Input**  | `oklch(0.922 0 0)` | `oklch(1 0 0 / 15%)` | Input borders             |
+| **Ring**   | `oklch(0.708 0 0)` | `oklch(0.556 0 0)`   | Focus rings               |
 
 #### Chart Colors (Data Visualization)
 
-| Chart Token | Light Mode | Dark Mode | Usage |
-|-------------|------------|-----------|-------|
-| **Chart 1** | `oklch(0.646 0.222 41.116)` | `oklch(0.488 0.243 264.376)` | Primary data series |
-| **Chart 2** | `oklch(0.6 0.118 184.704)` | `oklch(0.696 0.17 162.48)` | Secondary data series |
-| **Chart 3** | `oklch(0.398 0.07 227.392)` | `oklch(0.769 0.188 70.08)` | Tertiary data series |
-| **Chart 4** | `oklch(0.828 0.189 84.429)` | `oklch(0.627 0.265 303.9)` | Quaternary data series |
-| **Chart 5** | `oklch(0.769 0.188 70.08)` | `oklch(0.645 0.246 16.439)` | Quinary data series |
+| Chart Token | Light Mode                  | Dark Mode                    | Usage                  |
+| ----------- | --------------------------- | ---------------------------- | ---------------------- |
+| **Chart 1** | `oklch(0.646 0.222 41.116)` | `oklch(0.488 0.243 264.376)` | Primary data series    |
+| **Chart 2** | `oklch(0.6 0.118 184.704)`  | `oklch(0.696 0.17 162.48)`   | Secondary data series  |
+| **Chart 3** | `oklch(0.398 0.07 227.392)` | `oklch(0.769 0.188 70.08)`   | Tertiary data series   |
+| **Chart 4** | `oklch(0.828 0.189 84.429)` | `oklch(0.627 0.265 303.9)`   | Quaternary data series |
+| **Chart 5** | `oklch(0.769 0.188 70.08)`  | `oklch(0.645 0.246 16.439)`  | Quinary data series    |
 
 #### Sidebar Colors
 
-| Sidebar Token | Light Mode | Dark Mode | Usage |
-|---------------|------------|-----------|-------|
-| **Sidebar** | `oklch(0.985 0 0)` | `oklch(0.205 0 0)` | Sidebar background |
-| **Sidebar Foreground** | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Sidebar text |
-| **Sidebar Primary** | `oklch(0.205 0 0)` | `oklch(0.488 0.243 264.376)` | Active navigation items |
-| **Sidebar Accent** | `oklch(94.912% 0.00011 271.152)` | `oklch(0.269 0 0)` | Hover states |
-| **Sidebar Border** | `oklch(0.922 0 0)` | `oklch(1 0 0 / 10%)` | Sidebar borders |
+| Sidebar Token          | Light Mode                       | Dark Mode                    | Usage                   |
+| ---------------------- | -------------------------------- | ---------------------------- | ----------------------- |
+| **Sidebar**            | `oklch(0.985 0 0)`               | `oklch(0.205 0 0)`           | Sidebar background      |
+| **Sidebar Foreground** | `oklch(0.145 0 0)`               | `oklch(0.985 0 0)`           | Sidebar text            |
+| **Sidebar Primary**    | `oklch(0.205 0 0)`               | `oklch(0.488 0.243 264.376)` | Active navigation items |
+| **Sidebar Accent**     | `oklch(94.912% 0.00011 271.152)` | `oklch(0.269 0 0)`           | Hover states            |
+| **Sidebar Border**     | `oklch(0.922 0 0)`               | `oklch(1 0 0 / 10%)`         | Sidebar borders         |
 
 #### Using Colors in Code
 
 **Tailwind Classes:**
+
 ```tsx
 // Use semantic color tokens
 <div className="bg-background text-foreground">
@@ -111,6 +112,7 @@ The website uses a **CSS Custom Properties** approach with **OKLCH color space**
 ```
 
 **Custom Properties:**
+
 ```css
 /* Access raw CSS variables */
 background-color: var(--primary);
@@ -126,12 +128,13 @@ border-color: var(--border);
 
 The project uses **Inter** as the primary font family with system font fallbacks:
 
-| Purpose | Font Stack | CSS Variable |
-|---------|------------|--------------|
-| **Sans Serif** | `var(--font-inter)` | `--font-sans` |
-| **Default** | System fonts fallback | - |
+| Purpose        | Font Stack            | CSS Variable  |
+| -------------- | --------------------- | ------------- |
+| **Sans Serif** | `var(--font-inter)`   | `--font-sans` |
+| **Default**    | System fonts fallback | -             |
 
 **Font Setup:**
+
 ```tsx
 // In app/layout.tsx
 import { Inter } from "next/font/google";
@@ -143,17 +146,18 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 The website uses Tailwind's default type scale with custom tokens. Common usage patterns:
 
-| Text Type | Tailwind Class | Weight | Usage Example |
-|-----------|----------------|--------|---------------|
-| **Heading XL** | `text-4xl`, `text-5xl`, `text-6xl` | `font-bold` | Page titles, hero sections |
-| **Heading Large** | `text-2xl`, `text-3xl` | `font-semibold`, `font-bold` | Section headers |
-| **Heading Medium** | `text-xl` | `font-semibold` | Card titles, modal headers |
-| **Body Large** | `text-lg` | `font-medium` | Emphasized body text |
-| **Body Base** | `text-base`, `text-sm` | `font-normal`, `font-medium` | Default text, labels |
-| **Body Small** | `text-sm` | `font-normal` | Helper text, captions |
-| **Caption** | `text-xs` | `font-normal` | Metadata, timestamps |
+| Text Type          | Tailwind Class                     | Weight                       | Usage Example              |
+| ------------------ | ---------------------------------- | ---------------------------- | -------------------------- |
+| **Heading XL**     | `text-4xl`, `text-5xl`, `text-6xl` | `font-bold`                  | Page titles, hero sections |
+| **Heading Large**  | `text-2xl`, `text-3xl`             | `font-semibold`, `font-bold` | Section headers            |
+| **Heading Medium** | `text-xl`                          | `font-semibold`              | Card titles, modal headers |
+| **Body Large**     | `text-lg`                          | `font-medium`                | Emphasized body text       |
+| **Body Base**      | `text-base`, `text-sm`             | `font-normal`, `font-medium` | Default text, labels       |
+| **Body Small**     | `text-sm`                          | `font-normal`                | Helper text, captions      |
+| **Caption**        | `text-xs`                          | `font-normal`                | Metadata, timestamps       |
 
 **Font Weight Scale:**
+
 - `font-bold` (700) - Main headings
 - `font-semibold` (600) - Sub-headings, emphasized text
 - `font-medium` (500) - Labels, buttons
@@ -167,35 +171,35 @@ The website uses Tailwind's default type scale with custom tokens. Common usage 
 
 The project uses the default Tailwind spacing scale (4px base unit):
 
-| Tailwind Class | Pixels | Usage |
-|----------------|--------|-------|
-| `p-1`, `m-1` | 4px | Minimal spacing |
-| `p-2`, `m-2` | 8px | Compact spacing |
-| `p-3`, `m-3` | 12px | Small spacing |
-| `p-4`, `m-4` | 16px | Standard spacing |
-| `p-6`, `m-6` | 24px | Large spacing |
-| `p-8`, `m-8` | 32px | Extra large spacing |
-| `p-12`, `m-12` | 48px | Section spacing |
+| Tailwind Class | Pixels | Usage               |
+| -------------- | ------ | ------------------- |
+| `p-1`, `m-1`   | 4px    | Minimal spacing     |
+| `p-2`, `m-2`   | 8px    | Compact spacing     |
+| `p-3`, `m-3`   | 12px   | Small spacing       |
+| `p-4`, `m-4`   | 16px   | Standard spacing    |
+| `p-6`, `m-6`   | 24px   | Large spacing       |
+| `p-8`, `m-8`   | 32px   | Extra large spacing |
+| `p-12`, `m-12` | 48px   | Section spacing     |
 
 #### Layout Patterns
 
-| Pattern | Classes | Usage |
-|---------|---------|-------|
-| **Container** | `container mx-auto px-4 md:px-6 lg:px-8` | Page container with responsive padding |
-| **Section Spacing** | `py-12 md:py-16 lg:py-24` | Vertical section spacing |
-| **Card Padding** | `p-4 md:p-6` | Internal card spacing |
-| **Form Field Spacing** | `space-y-4` | Stack form fields |
-| **Grid Gap** | `gap-4 md:gap-6` | Grid/flex gap |
+| Pattern                | Classes                                  | Usage                                  |
+| ---------------------- | ---------------------------------------- | -------------------------------------- |
+| **Container**          | `container mx-auto px-4 md:px-6 lg:px-8` | Page container with responsive padding |
+| **Section Spacing**    | `py-12 md:py-16 lg:py-24`                | Vertical section spacing               |
+| **Card Padding**       | `p-4 md:p-6`                             | Internal card spacing                  |
+| **Form Field Spacing** | `space-y-4`                              | Stack form fields                      |
+| **Grid Gap**           | `gap-4 md:gap-6`                         | Grid/flex gap                          |
 
 #### Responsive Breakpoints
 
-| Breakpoint | Min Width | Tailwind Prefix | Usage |
-|------------|-----------|-----------------|-------|
-| **sm** | 640px | `sm:` | Mobile landscape |
-| **md** | 768px | `md:` | Tablet |
-| **lg** | 1024px | `lg:` | Desktop |
-| **xl** | 1280px | `xl:` | Large desktop |
-| **2xl** | 1536px | `2xl:` | Extra large desktop |
+| Breakpoint | Min Width | Tailwind Prefix | Usage               |
+| ---------- | --------- | --------------- | ------------------- |
+| **sm**     | 640px     | `sm:`           | Mobile landscape    |
+| **md**     | 768px     | `md:`           | Tablet              |
+| **lg**     | 1024px    | `lg:`           | Desktop             |
+| **xl**     | 1280px    | `xl:`           | Large desktop       |
+| **2xl**    | 1536px    | `2xl:`          | Extra large desktop |
 
 ---
 
@@ -205,13 +209,13 @@ The project uses the default Tailwind spacing scale (4px base unit):
 
 Custom radius system defined in `globals.css`:
 
-| Radius Type | CSS Variable | Value | Tailwind Class | Usage |
-|-------------|--------------|-------|----------------|-------|
-| **Small** | `--radius-sm` | `calc(var(--radius) - 4px)` | - | Nested elements |
-| **Medium** | `--radius-md` | `calc(var(--radius) - 2px)` | - | Cards, inputs |
-| **Large** | `--radius-lg` | `var(--radius)` | `rounded-lg` | Default (10px) |
-| **Extra Large** | `--radius-xl` | `calc(var(--radius) + 4px)` | - | Modals, large containers |
-| **Full** | - | `9999px` | `rounded-full` | Buttons, avatars, badges |
+| Radius Type     | CSS Variable  | Value                       | Tailwind Class | Usage                    |
+| --------------- | ------------- | --------------------------- | -------------- | ------------------------ |
+| **Small**       | `--radius-sm` | `calc(var(--radius) - 4px)` | -              | Nested elements          |
+| **Medium**      | `--radius-md` | `calc(var(--radius) - 2px)` | -              | Cards, inputs            |
+| **Large**       | `--radius-lg` | `var(--radius)`             | `rounded-lg`   | Default (10px)           |
+| **Extra Large** | `--radius-xl` | `calc(var(--radius) + 4px)` | -              | Modals, large containers |
+| **Full**        | -             | `9999px`                    | `rounded-full` | Buttons, avatars, badges |
 
 **Default Radius:** `0.625rem` (10px)
 
@@ -219,13 +223,13 @@ Custom radius system defined in `globals.css`:
 
 The website uses subtle shadows for depth. Common patterns from shadcn/ui:
 
-| Shadow Level | Usage | Example Component |
-|--------------|-------|-------------------|
-| **None** | Flat surfaces | Cards on colored backgrounds |
-| **Small** | `shadow-sm` | Buttons, input fields |
-| **Medium** | `shadow-md` | Cards, dropdowns |
-| **Large** | `shadow-lg` | Modals, popovers |
-| **Extra Large** | `shadow-xl` | Overlays |
+| Shadow Level    | Usage         | Example Component            |
+| --------------- | ------------- | ---------------------------- |
+| **None**        | Flat surfaces | Cards on colored backgrounds |
+| **Small**       | `shadow-sm`   | Buttons, input fields        |
+| **Medium**      | `shadow-md`   | Cards, dropdowns             |
+| **Large**       | `shadow-lg`   | Modals, popovers             |
+| **Extra Large** | `shadow-xl`   | Overlays                     |
 
 #### Focus States
 
@@ -236,26 +240,26 @@ The website uses subtle shadows for depth. Common patterns from shadcn/ui:
 
 ```tsx
 // Button hover
-"hover:bg-primary/90"
+"hover:bg-primary/90";
 
 // Link hover
-"hover:underline"
+"hover:underline";
 
 // Card hover
-"hover:shadow-lg transition-shadow"
+"hover:shadow-lg transition-shadow";
 ```
 
 #### Transitions
 
 ```tsx
 // Default transition
-"transition-colors duration-200"
+"transition-colors duration-200";
 
 // Smooth transition
-"transition-all duration-300"
+"transition-all duration-300";
 
 // Transform transition
-"transition-transform hover:scale-105"
+"transition-transform hover:scale-105";
 ```
 
 ---
@@ -275,6 +279,7 @@ The website uses **shadcn/ui** - a collection of reusable components built with 
 **Location:** `components/ui/button.tsx` ✅
 
 **Variants:**
+
 ```tsx
 import { Button } from "@/components/ui/button";
 
@@ -297,6 +302,7 @@ import { Button } from "@/components/ui/button";
 ```
 
 **Props Pattern:**
+
 - Uses `class-variance-authority` for variant management
 - Extends `React.ButtonHTMLAttributes`
 - Supports `asChild` prop for composition (via Radix Slot)
@@ -306,6 +312,7 @@ import { Button } from "@/components/ui/button";
 **Location:** `components/ui/input.tsx` ✅
 
 **Usage:**
+
 ```tsx
 import { Input } from "@/components/ui/input";
 
@@ -316,6 +323,7 @@ import { Input } from "@/components/ui/input";
 ```
 
 **Features:**
+
 - Styled with `border-input`, `bg-background`
 - Focus ring integrated
 - Disabled state styling
@@ -336,6 +344,7 @@ import { Label } from "@/components/ui/label";
 **Location:** `components/ui/badge.tsx` ✅
 
 **Variants:**
+
 ```tsx
 import { Badge } from "@/components/ui/badge";
 
@@ -355,7 +364,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 <Avatar>
   <AvatarImage src="/avatar.jpg" alt="User" />
   <AvatarFallback>UN</AvatarFallback>
-</Avatar>
+</Avatar>;
 ```
 
 #### 6. Separator
@@ -376,7 +385,7 @@ import { Separator } from "@/components/ui/separator";
 ```tsx
 import { Skeleton } from "@/components/ui/skeleton";
 
-<Skeleton className="w-full h-12" />
+<Skeleton className="w-full h-12" />;
 ```
 
 #### 8. Loading Spinner
@@ -386,7 +395,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 ```tsx
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-<LoadingSpinner />
+<LoadingSpinner />;
 ```
 
 ---
@@ -398,20 +407,23 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 **Location:** `components/ui/card.tsx` ✅
 
 ```tsx
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 
 <Card>
   <CardHeader>
     <CardTitle>Card Title</CardTitle>
     <CardDescription>Card description</CardDescription>
   </CardHeader>
-  <CardContent>
-    Main content
-  </CardContent>
-  <CardFooter>
-    Footer actions
-  </CardFooter>
-</Card>
+  <CardContent>Main content</CardContent>
+  <CardFooter>Footer actions</CardFooter>
+</Card>;
 ```
 
 #### 2. Dialog (Modal)
@@ -419,7 +431,15 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 **Location:** `components/ui/dialog.tsx` ✅
 
 ```tsx
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 <Dialog>
   <DialogTrigger asChild>
@@ -434,7 +454,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
       <Button>Close</Button>
     </DialogFooter>
   </DialogContent>
-</Dialog>
+</Dialog>;
 ```
 
 #### 3. Sheet (Slide-out Panel)
@@ -442,7 +462,13 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 **Location:** `components/ui/sheet.tsx` ✅
 
 ```tsx
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 <Sheet>
   <SheetTrigger asChild>
@@ -454,7 +480,7 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/co
     </SheetHeader>
     Content
   </SheetContent>
-</Sheet>
+</Sheet>;
 ```
 
 **Sides:** `"left"`, `"right"`, `"top"`, `"bottom"`
@@ -464,7 +490,13 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/co
 **Location:** `components/ui/dropdown-menu.tsx` ✅
 
 ```tsx
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 <DropdownMenu>
   <DropdownMenuTrigger asChild>
@@ -475,7 +507,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
     <DropdownMenuSeparator />
     <DropdownMenuItem>Item 2</DropdownMenuItem>
   </DropdownMenuContent>
-</DropdownMenu>
+</DropdownMenu>;
 ```
 
 #### 5. Select
@@ -483,7 +515,13 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 **Location:** `components/ui/select.tsx` ✅
 
 ```tsx
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 <Select>
   <SelectTrigger>
@@ -493,7 +531,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
     <SelectItem value="1">Option 1</SelectItem>
     <SelectItem value="2">Option 2</SelectItem>
   </SelectContent>
-</Select>
+</Select>;
 ```
 
 #### 6. Popover
@@ -501,16 +539,18 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 **Location:** `components/ui/popover.tsx` ✅
 
 ```tsx
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 
 <Popover>
   <PopoverTrigger asChild>
     <Button>Open</Button>
   </PopoverTrigger>
-  <PopoverContent>
-    Popover content
-  </PopoverContent>
-</Popover>
+  <PopoverContent>Popover content</PopoverContent>
+</Popover>;
 ```
 
 #### 7. Tooltip
@@ -518,16 +558,19 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 **Location:** `components/ui/tooltip.tsx` ✅
 
 ```tsx
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 <TooltipProvider>
   <Tooltip>
     <TooltipTrigger>Hover me</TooltipTrigger>
-    <TooltipContent>
-      Tooltip text
-    </TooltipContent>
+    <TooltipContent>Tooltip text</TooltipContent>
   </Tooltip>
-</TooltipProvider>
+</TooltipProvider>;
 ```
 
 #### 8. Toast
@@ -549,7 +592,14 @@ toast.warning("Warning message");
 **Location:** `components/ui/form.tsx` ✅
 
 ```tsx
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 
 const form = useForm();
@@ -570,7 +620,7 @@ const form = useForm();
       )}
     />
   </form>
-</Form>
+</Form>;
 ```
 
 #### 10. Checkbox
@@ -580,7 +630,7 @@ const form = useForm();
 ```tsx
 import { Checkbox } from "@/components/ui/checkbox";
 
-<Checkbox checked={checked} onCheckedChange={setChecked} />
+<Checkbox checked={checked} onCheckedChange={setChecked} />;
 ```
 
 #### 11. Switch
@@ -590,7 +640,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 ```tsx
 import { Switch } from "@/components/ui/switch";
 
-<Switch checked={enabled} onCheckedChange={setEnabled} />
+<Switch checked={enabled} onCheckedChange={setEnabled} />;
 ```
 
 #### 12. Radio Group
@@ -605,7 +655,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
   <Label htmlFor="1">Option 1</Label>
   <RadioGroupItem value="2" id="2" />
   <Label htmlFor="2">Option 2</Label>
-</RadioGroup>
+</RadioGroup>;
 ```
 
 #### 13. Progress
@@ -615,7 +665,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 ```tsx
 import { Progress } from "@/components/ui/progress";
 
-<Progress value={60} />
+<Progress value={60} />;
 ```
 
 #### 14. Table
@@ -623,7 +673,14 @@ import { Progress } from "@/components/ui/progress";
 **Location:** `components/ui/table.tsx` ✅
 
 ```tsx
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 
 <Table>
   <TableHeader>
@@ -636,7 +693,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
       <TableCell>Cell</TableCell>
     </TableRow>
   </TableBody>
-</Table>
+</Table>;
 ```
 
 #### 15. Tabs
@@ -653,7 +710,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
   </TabsList>
   <TabsContent value="tab1">Content 1</TabsContent>
   <TabsContent value="tab2">Content 2</TabsContent>
-</Tabs>
+</Tabs>;
 ```
 
 ---
@@ -665,23 +722,26 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 **Location:** `components/ui/sidebar.tsx` ✅
 
 **Features:**
+
 - Collapsible sidebar
 - Support for left/right placement
 - Variants: `sidebar`, `floating`, `inset`
 - Mobile responsive
 
 ```tsx
-import { Sidebar, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  Sidebar,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 <SidebarProvider>
-  <Sidebar>
-    {/* Sidebar content */}
-  </Sidebar>
+  <Sidebar>{/* Sidebar content */}</Sidebar>
   <main>
     <SidebarTrigger />
     {/* Page content */}
   </main>
-</SidebarProvider>
+</SidebarProvider>;
 ```
 
 #### 2. App Sidebar
@@ -697,7 +757,7 @@ Custom sidebar implementation with navigation, user menu, and notifications.
 ```tsx
 import SiteHeader from "@/components/site-header";
 
-<SiteHeader />
+<SiteHeader />;
 ```
 
 #### 4. Site Footer
@@ -707,7 +767,7 @@ import SiteHeader from "@/components/site-header";
 ```tsx
 import SiteFooter from "@/components/site-footer";
 
-<SiteFooter />
+<SiteFooter />;
 ```
 
 #### 5. Navigation Menu
@@ -715,18 +775,22 @@ import SiteFooter from "@/components/site-footer";
 **Location:** `components/ui/navigation-menu.tsx` ✅
 
 ```tsx
-import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuTrigger, NavigationMenuContent } from "@/components/ui/navigation-menu";
+import {
+  NavigationMenu,
+  NavigationMenuList,
+  NavigationMenuItem,
+  NavigationMenuTrigger,
+  NavigationMenuContent,
+} from "@/components/ui/navigation-menu";
 
 <NavigationMenu>
   <NavigationMenuList>
     <NavigationMenuItem>
       <NavigationMenuTrigger>Menu</NavigationMenuTrigger>
-      <NavigationMenuContent>
-        Content
-      </NavigationMenuContent>
+      <NavigationMenuContent>Content</NavigationMenuContent>
     </NavigationMenuItem>
   </NavigationMenuList>
-</NavigationMenu>
+</NavigationMenu>;
 ```
 
 #### 6. Command (Command Palette)
@@ -734,7 +798,13 @@ import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuT
 **Location:** `components/ui/command.tsx` ✅
 
 ```tsx
-import { Command, CommandInput, CommandList, CommandItem, CommandGroup } from "@/components/ui/command";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandItem,
+  CommandGroup,
+} from "@/components/ui/command";
 
 <Command>
   <CommandInput placeholder="Search..." />
@@ -744,7 +814,7 @@ import { Command, CommandInput, CommandList, CommandItem, CommandGroup } from "@
       <CommandItem>Item 2</CommandItem>
     </CommandGroup>
   </CommandList>
-</Command>
+</Command>;
 ```
 
 #### 7. Accordion
@@ -752,14 +822,19 @@ import { Command, CommandInput, CommandList, CommandItem, CommandGroup } from "@
 **Location:** `components/ui/accordion.tsx` ✅
 
 ```tsx
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 
 <Accordion type="single" collapsible>
   <AccordionItem value="item-1">
     <AccordionTrigger>Question?</AccordionTrigger>
     <AccordionContent>Answer</AccordionContent>
   </AccordionItem>
-</Accordion>
+</Accordion>;
 ```
 
 #### 8. Calendar
@@ -769,11 +844,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 ```tsx
 import { Calendar } from "@/components/ui/calendar";
 
-<Calendar
-  mode="single"
-  selected={date}
-  onSelect={setDate}
-/>
+<Calendar mode="single" selected={date} onSelect={setDate} />;
 ```
 
 #### 9. Chart
@@ -788,55 +859,64 @@ Wrapper around Recharts library with consistent theming.
 
 ### 1. Styling Approach
 
-| Aspect | Details |
-|--------|---------|
-| **Framework** | **Tailwind CSS v4** (PostCSS plugin) |
-| **Class Syntax** | `className="..."` with Tailwind utility classes |
-| **Custom Properties** | OKLCH color space with CSS variables |
-| **Conditional Classes** | `cn()` utility from `lib/utils.ts` |
-| **Component Variants** | `class-variance-authority` (cva) |
-| **Theme** | Inline `@theme` in `globals.css` |
+| Aspect                  | Details                                         |
+| ----------------------- | ----------------------------------------------- |
+| **Framework**           | **Tailwind CSS v4** (PostCSS plugin)            |
+| **Class Syntax**        | `className="..."` with Tailwind utility classes |
+| **Custom Properties**   | OKLCH color space with CSS variables            |
+| **Conditional Classes** | `cn()` utility from `lib/utils.ts`              |
+| **Component Variants**  | `class-variance-authority` (cva)                |
+| **Theme**               | Inline `@theme` in `globals.css`                |
 
 **Example:**
+
 ```tsx
 import { cn } from "@/lib/utils";
 
-<div className={cn(
-  "flex items-center justify-between",
-  isActive && "bg-primary text-primary-foreground",
-  className
-)} />
+<div
+  className={cn(
+    "flex items-center justify-between",
+    isActive && "bg-primary text-primary-foreground",
+    className,
+  )}
+/>;
 ```
 
 ### 2. Naming Conventions
 
 #### File & Component Names
+
 - **PascalCase**: `Button.tsx`, `AppSidebar.tsx`
 - **kebab-case for routes**: `(auth)/login/page.tsx`
 - **camelCase for utilities**: `utils.ts`, `cn.ts`
 
 #### Component Props
+
 - **camelCase**: `onClick`, `isOpen`, `className`
 - **Boolean props**: Prefix `is`, `show`, `has`, `can` (`isOpen`, `showModal`, `hasError`)
 - **Callbacks**: Prefix `on` (`onClick`, `onClose`, `onSubmit`)
 
 #### Style Props Convention
+
 - `className` - Main wrapper styles
 - `asChild` - Radix Slot composition (render as child element)
 
 #### Variables
+
 - **camelCase**: `userData`, `isLoading`, `formData`
 - **SCREAMING_SNAKE_CASE** for constants: `API_BASE_URL`, `MAX_FILE_SIZE`
 
 ### 3. State Management
 
 #### Local State (useState)
+
 ```tsx
 const [isOpen, setIsOpen] = useState(false);
 const [formData, setFormData] = useState({ name: "", email: "" });
 ```
 
 #### Form State (react-hook-form)
+
 ```tsx
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -848,6 +928,7 @@ const form = useForm({
 ```
 
 #### Global State (Zustand)
+
 ```tsx
 import { create } from "zustand";
 
@@ -863,6 +944,7 @@ export const useStore = create<Store>((set) => ({
 ```
 
 #### Theme State (next-themes)
+
 ```tsx
 import { useTheme } from "next-themes";
 
@@ -889,26 +971,26 @@ interface ComponentProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 // 4. Component definition
-export default function Component({ 
+export default function Component({
   variant = "default",
   isOpen,
   onClose,
   className,
-  ...props 
+  ...props
 }: ComponentProps) {
   // 5. Hooks
   const [state, setState] = React.useState();
-  
+
   // 6. Effects
   React.useEffect(() => {
     // Effect logic
   }, []);
-  
+
   // 7. Handlers
   const handleClick = () => {
     // Handler logic
   };
-  
+
   // 8. JSX Return
   return (
     <div className={cn("base-classes", className)} {...props}>
@@ -921,6 +1003,7 @@ export default function Component({
 ### 5. TypeScript Patterns
 
 #### Interface Extending HTML Attributes
+
 ```tsx
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "outline";
@@ -929,11 +1012,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 ```
 
 #### Union Types for Variants
+
 ```tsx
-type Variant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+type Variant =
+  | "default"
+  | "destructive"
+  | "outline"
+  | "secondary"
+  | "ghost"
+  | "link";
 ```
 
 #### Generic Types
+
 ```tsx
 interface ApiResponse<T> {
   data: T;
@@ -944,6 +1035,7 @@ const [data, setData] = useState<User | null>(null);
 ```
 
 #### Zod Schema Validation
+
 ```tsx
 import { z } from "zod";
 
@@ -968,7 +1060,7 @@ import { useRouter } from "next/navigation";
 // Link component
 <Link href="/dashboard" className="...">
   Dashboard
-</Link>
+</Link>;
 
 // Programmatic navigation
 const router = useRouter();
@@ -982,26 +1074,28 @@ router.back();
 
 ### ✅ Strengths
 
-| Strength | Evidence |
-|----------|----------|
-| **Comprehensive component library** | 39 shadcn/ui components in `components/ui/` |
-| **Consistent theming** | CSS custom properties with OKLCH color space |
-| **Type safety** | Full TypeScript coverage |
-| **Dark mode support** | Built-in with `next-themes` |
-| **Accessibility** | Radix UI primitives provide ARIA support |
-| **Modern CSS** | Tailwind CSS v4 with PostCSS plugin |
+| Strength                            | Evidence                                     |
+| ----------------------------------- | -------------------------------------------- |
+| **Comprehensive component library** | 39 shadcn/ui components in `components/ui/`  |
+| **Consistent theming**              | CSS custom properties with OKLCH color space |
+| **Type safety**                     | Full TypeScript coverage                     |
+| **Dark mode support**               | Built-in with `next-themes`                  |
+| **Accessibility**                   | Radix UI primitives provide ARIA support     |
+| **Modern CSS**                      | Tailwind CSS v4 with PostCSS plugin          |
 
 ### 🎯 Recommendations
 
 #### 1. Design Token Documentation
 
 **Action:** Document custom OKLCH color values in this design system.
+
 - Map OKLCH values to hex equivalents for designer handoff
 - Create color palette visualization page
 
 #### 2. Component Usage Examples
 
 **Action:** Create a component showcase/storybook page
+
 - Route: `/components` or `/design-system`
 - Display all variants and states
 - Include code snippets
@@ -1009,6 +1103,7 @@ router.back();
 #### 3. Accessibility Testing
 
 **Action:** Implement accessibility testing
+
 - Add keyboard navigation testing
 - Test with screen readers
 - Ensure WCAG 2.1 AA compliance
@@ -1016,6 +1111,7 @@ router.back();
 #### 4. Responsive Design Patterns
 
 **Action:** Document responsive patterns
+
 - Mobile-first approach
 - Sidebar behavior on mobile
 - Form layout patterns
@@ -1023,6 +1119,7 @@ router.back();
 #### 5. Animation & Transitions
 
 **Action:** Define animation design tokens
+
 - Transition durations
 - Easing functions
 - Micro-interactions
@@ -1035,41 +1132,41 @@ router.back();
 
 ```tsx
 // Backgrounds
-className="bg-background text-foreground"
-className="bg-card text-card-foreground"
-className="bg-muted text-muted-foreground"
+className = "bg-background text-foreground";
+className = "bg-card text-card-foreground";
+className = "bg-muted text-muted-foreground";
 
 // Borders
-className="border border-border"
-className="border-input"
+className = "border border-border";
+className = "border-input";
 
 // Interactive States
-className="hover:bg-accent hover:text-accent-foreground"
-className="focus-visible:ring-2 focus-visible:ring-ring"
+className = "hover:bg-accent hover:text-accent-foreground";
+className = "focus-visible:ring-2 focus-visible:ring-ring";
 
 // Semantic Colors
-className="bg-primary text-primary-foreground"
-className="bg-secondary text-secondary-foreground"
-className="bg-destructive text-destructive-foreground"
+className = "bg-primary text-primary-foreground";
+className = "bg-secondary text-secondary-foreground";
+className = "bg-destructive text-destructive-foreground";
 ```
 
 ### Layout Patterns
 
 ```tsx
 // Centered Container
-className="container mx-auto px-4"
+className = "container mx-auto px-4";
 
 // Flex Row
-className="flex items-center justify-between gap-4"
+className = "flex items-center justify-between gap-4";
 
 // Grid
-className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
 
 // Stack
-className="flex flex-col gap-4"
+className = "flex flex-col gap-4";
 
 // Full Height
-className="min-h-screen flex flex-col"
+className = "min-h-screen flex flex-col";
 ```
 
 ### Component Composition
@@ -1107,7 +1204,8 @@ className="min-h-screen flex flex-col"
 
 ## 📝 Conclusion
 
-The **EV-Go Website** Design System provides a robust foundation with:
+The **EVGo Website** Design System provides a robust foundation with:
+
 - ✅ Complete shadcn/ui component library
 - ✅ Modern theming with OKLCH color space
 - ✅ Full TypeScript support
@@ -1116,6 +1214,7 @@ The **EV-Go Website** Design System provides a robust foundation with:
 - ✅ Tailwind CSS v4 for styling
 
 **Best Practices:**
+
 - Use semantic color tokens (`bg-primary`, not hex codes)
 - Compose with Radix Slot pattern (`asChild` prop)
 - Leverage `cn()` utility for conditional classes
@@ -1123,6 +1222,7 @@ The **EV-Go Website** Design System provides a robust foundation with:
 - Maintain type safety with TypeScript
 
 **Next Steps:**
+
 1. Create component showcase page
 2. Document custom components in `components/` directory
 3. Add animation design tokens
@@ -1132,10 +1232,11 @@ The **EV-Go Website** Design System provides a robust foundation with:
 ---
 
 **📄 This document can be used as a reference for:**
+
 - New developers joining the team
 - Design handoff from designers
 - Component usage guidelines
 - Code review standards
 - Consistency enforcement
 
-*Analysis complete - Design System extracted successfully! 🎉*
+_Analysis complete - Design System extracted successfully! 🎉_

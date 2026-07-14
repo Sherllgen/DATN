@@ -61,7 +61,7 @@ export default function ChargingCompleteModal({ showModal, sessionId, totalCost,
             setPaying(true);
             const data = await createZaloPayOrder({
                 amount: Math.round(invoice.totalCost),
-                description: `EV-Go Payment for Invoice ${invoice.number}`,
+                description: `EVGo Payment for Invoice ${invoice.number}`,
                 invoiceId: invoice.id,
                 userId: Number(user.id)
             });

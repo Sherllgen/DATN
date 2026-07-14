@@ -31,8 +31,8 @@ class SmtpEmailServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(emailService, "fromEmail", "noreply@evgo.com");
-        ReflectionTestUtils.setField(emailService, "fromName", "EV-Go System");
-        ReflectionTestUtils.setField(emailService, "appName", "EV-Go");
+        ReflectionTestUtils.setField(emailService, "fromName", "EVGo System");
+        ReflectionTestUtils.setField(emailService, "appName", "EVGo");
 
         Session session = Session.getDefaultInstance(new Properties());
         mimeMessage = new MimeMessage(session);

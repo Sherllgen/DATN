@@ -4,20 +4,20 @@
 
 Dedicated Spring Modulith module (`com.project.evgo.ocpp`) implementing OCPP 1.6J Central System over WebSocket: message parsing, session tracking, strategy-based action routing, and handlers for BootNotification, Heartbeat, and StatusNotification.
 
-> **Domain mapping:** `chargePointId` in OCPP = **Charger ID** (database PK) in EV-Go. Each Charger opens its own WebSocket at `ws://host:port/ocpp/{chargerId}`. OCPP Connectors map to **Ports**.
+> **Domain mapping:** `chargePointId` in OCPP = **Charger ID** (database PK) in EVGo. Each Charger opens its own WebSocket at `ws://host:port/ocpp/{chargerId}`. OCPP Connectors map to **Ports**.
 
 ---
 
 ## Implemented Actions
 
-| Action | Handler | Behavior |
-|--------|---------|----------|
-| **BootNotification** | `BootNotificationHandler` | Validates vendor/model → looks up charger by ID → updates metadata (vendor, model, serial, firmware) & status → publishes `ChargePointBootedEvent` → returns `Accepted` with `currentTime` + `interval: 300s`. Returns `Rejected` if charger not found or missing required fields. |
-| **Heartbeat** | `HeartbeatHandler` | Updates `lastHeartbeat` timestamp → returns `currentTime` |
-| **StatusNotification** | `StatusNotificationHandler` | Persists port status to DB → publishes `StatusNotificationReceivedEvent` → returns empty `{}` |
-| **MeterValues** | `MeterValuesHandler` | Parses sampled kWh values (MeterValue) → publishes `MeterValuesReceivedEvent` → returns empty `{}` |
-| **StartTransaction** | `StartTransactionHandler` | Validates ID tag → publishes `StartTransactionReceivedEvent` → returns `Accepted` with `transactionId` |
-| **StopTransaction** | `StopTransactionHandler` | Calculates final meter value → publishes `StopTransactionReceivedEvent` → returns empty `{}` |
+| Action                 | Handler                     | Behavior                                                                                                                                                                                                                                                                           |
+| ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **BootNotification**   | `BootNotificationHandler`   | Validates vendor/model → looks up charger by ID → updates metadata (vendor, model, serial, firmware) & status → publishes `ChargePointBootedEvent` → returns `Accepted` with `currentTime` + `interval: 300s`. Returns `Rejected` if charger not found or missing required fields. |
+| **Heartbeat**          | `HeartbeatHandler`          | Updates `lastHeartbeat` timestamp → returns `currentTime`                                                                                                                                                                                                                          |
+| **StatusNotification** | `StatusNotificationHandler` | Persists port status to DB → publishes `StatusNotificationReceivedEvent` → returns empty `{}`                                                                                                                                                                                      |
+| **MeterValues**        | `MeterValuesHandler`        | Parses sampled kWh values (MeterValue) → publishes `MeterValuesReceivedEvent` → returns empty `{}`                                                                                                                                                                                 |
+| **StartTransaction**   | `StartTransactionHandler`   | Validates ID tag → publishes `StartTransactionReceivedEvent` → returns `Accepted` with `transactionId`                                                                                                                                                                             |
+| **StopTransaction**    | `StopTransactionHandler`    | Calculates final meter value → publishes `StopTransactionReceivedEvent` → returns empty `{}`                                                                                                                                                                                       |
 
 ---
 
@@ -39,20 +39,22 @@ WebSocketSession
 ### Application Events
 
 #### Events Published by OCPP Module
-| Event | Payload | When |
-|-------|---------|------|
-| `StartTransactionReceivedEvent` | `chargePointId, connectorId, portId, transactionId, idTag, meterStart, timestamp, reservationId` | When `StartTransaction` is received from the hardware. |
-| `StopTransactionReceivedEvent` | `transactionId, meterStop, timestamp, idTag, reason` | When `StopTransaction` is received from the hardware. |
+
+| Event                             | Payload                                                                                             | When                                                                         |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `StartTransactionReceivedEvent`   | `chargePointId, connectorId, portId, transactionId, idTag, meterStart, timestamp, reservationId`    | When `StartTransaction` is received from the hardware.                       |
+| `StopTransactionReceivedEvent`    | `transactionId, meterStop, timestamp, idTag, reason`                                                | When `StopTransaction` is received from the hardware.                        |
 | `StatusNotificationReceivedEvent` | `chargePointId, connectorId, portId, errorCode, status, info, timestamp, vendorErrorCode, vendorId` | When a status update (e.g., `Available`, `Charging`, `Faulted`) is received. |
-| `MeterValuesReceivedEvent` | `transactionId, meterValue, timestamp` | When `MeterValues` sampled data is received from the hardware. |
-| `ChargePointBootedEvent` | `chargePointId, vendor, model, serial, firmwareVersion` | When a successful `BootNotification` is processed. |
+| `MeterValuesReceivedEvent`        | `transactionId, meterValue, timestamp`                                                              | When `MeterValues` sampled data is received from the hardware.               |
+| `ChargePointBootedEvent`          | `chargePointId, vendor, model, serial, firmwareVersion`                                             | When a successful `BootNotification` is processed.                           |
 
 #### Events Consumed by OCPP Module
-| Event | Source | Handler | Action |
-|-------|--------|---------|--------|
-| `SendRemoteStartCommandEvent` | `charging` | `OcppCommandListener.onSendRemoteStartCommand()` | Dispatches `RemoteStartTransaction` to the specified charger over WebSocket. |
-| `SendRemoteStopCommandEvent` | `charging`, `booking` | `OcppCommandListener.onSendRemoteStopCommand()` | Dispatches `RemoteStopTransaction` to the specified charger over WebSocket. |
-| `SendReserveNowCommandEvent` | `booking` | `OcppCommandListener.onSendReserveNowCommand()` | Dispatches `ReserveNow` to the specified charger to lock the port. |
+
+| Event                         | Source                | Handler                                          | Action                                                                       |
+| ----------------------------- | --------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `SendRemoteStartCommandEvent` | `charging`            | `OcppCommandListener.onSendRemoteStartCommand()` | Dispatches `RemoteStartTransaction` to the specified charger over WebSocket. |
+| `SendRemoteStopCommandEvent`  | `charging`, `booking` | `OcppCommandListener.onSendRemoteStopCommand()`  | Dispatches `RemoteStopTransaction` to the specified charger over WebSocket.  |
+| `SendReserveNowCommandEvent`  | `booking`             | `OcppCommandListener.onSendReserveNowCommand()`  | Dispatches `ReserveNow` to the specified charger to lock the port.           |
 
 ---
 
@@ -89,12 +91,12 @@ charger/ (modified)
 
 ## Charger API Changes (for OCPP support)
 
-| Change | Details |
-|--------|---------|
-| Removed `ocppIdentity` field | Using charger database ID directly as OCPP identity |
-| `CreateChargerRequest` | Added `@NotNull connectorType` (was hardcoded) |
-| `updateCharger()` | Refactored: accepts `UpdateChargerRequest` object instead of individual params |
-| Flyway V3 | Added OCPP metadata columns, dropped `ocpp_identity` |
+| Change                       | Details                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| Removed `ocppIdentity` field | Using charger database ID directly as OCPP identity                            |
+| `CreateChargerRequest`       | Added `@NotNull connectorType` (was hardcoded)                                 |
+| `updateCharger()`            | Refactored: accepts `UpdateChargerRequest` object instead of individual params |
+| Flyway V3                    | Added OCPP metadata columns, dropped `ocpp_identity`                           |
 
 ---
 
@@ -119,15 +121,15 @@ ocpp → charger     (ChargerService public API)
 
 ## Test Results
 
-| Test Class | Tests | Status |
-|------------|-------|--------|
-| `OcppMessageParserTest` | 13 | ✅ All pass |
-| `OcppWebSocketHandlerTest` | 10 | ✅ All pass |
-| `OcppActionRouterTest` | 8 | ✅ All pass |
-| `OcppCommandListenerTest` | 12| ✅ All pass |
-| `ChargerServiceTest` | 16 | ✅ All pass |
-| `ChargerControllerTest` | 13 | ✅ All pass |
-| **Total** | **72** | ✅ |
+| Test Class                 | Tests  | Status      |
+| -------------------------- | ------ | ----------- |
+| `OcppMessageParserTest`    | 13     | ✅ All pass |
+| `OcppWebSocketHandlerTest` | 10     | ✅ All pass |
+| `OcppActionRouterTest`     | 8      | ✅ All pass |
+| `OcppCommandListenerTest`  | 12     | ✅ All pass |
+| `ChargerServiceTest`       | 16     | ✅ All pass |
+| `ChargerControllerTest`    | 13     | ✅ All pass |
+| **Total**                  | **72** | ✅          |
 
 ### Key Test Scenarios
 
@@ -141,6 +143,7 @@ ocpp → charger     (ChargerService public API)
 ## Simulator Setup
 
 Use [OCPP CP Simulator](https://shiv3.github.io/ocpp-cp-simulator/):
+
 - **Central System URL:** `ws://localhost:8081/ocpp/`
 - **Charge Point Identity:** `{chargerId}` (e.g., `32` = charger DB ID)
 

@@ -63,7 +63,7 @@ export default function QrScanPage() {
         if (isNaN(portIdNum) || portIdNum <= 0) {
             Alert.alert(
                 "Invalid QR Code",
-                "This QR code does not contain a valid charging port. Please scan a valid EV-Go QR code.",
+                "This QR code does not contain a valid charging port. Please scan a valid EVGo QR code.",
                 [{ text: "OK", onPress: () => setScanned(false) }]
             );
             return;

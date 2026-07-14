@@ -1,6 +1,6 @@
 export default {
   "expo": {
-    "name": "EV-Go",
+    "name": "EVGo",
     "slug": "capstone-project",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -57,7 +57,7 @@ export default {
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow EV-Go to use your location to find nearby charging stations.",
+          "locationAlwaysAndWhenInUsePermission": "Allow EVGo to use your location to find nearby charging stations.",
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": false
         }

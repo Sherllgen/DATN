@@ -22,7 +22,7 @@ export default function DebtBanner({ isVisible, unpaidCount }: DebtBannerProps) 
                 <View className="flex-1">
                     <Text className="text-white font-bold text-base mb-1">Payment Required</Text>
                     <Text className="text-gray-300 text-xs leading-tight">
-                        You have {unpaidCount} unpaid invoice{unpaidCount > 1 ? "s" : ""}. Please settle your balance to continue using EV-Go services.
+                        You have {unpaidCount} unpaid invoice{unpaidCount > 1 ? "s" : ""}. Please settle your balance to continue using EVGo services.
                     </Text>
                 </View>
             </View>

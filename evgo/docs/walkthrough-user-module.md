@@ -1,17 +1,17 @@
 # Tài liệu Walkthrough - User Module
 
-Module quản lý người dùng là module lớn nhất trong hệ thống EV-Go, bao gồm các chức năng xác thực, quản lý hồ sơ, quản lý tài khoản (Admin) và quản lý phương tiện.
+Module quản lý người dùng là module lớn nhất trong hệ thống EVGo, bao gồm các chức năng xác thực, quản lý hồ sơ, quản lý tài khoản (Admin) và quản lý phương tiện.
 
 ---
 
 ## Tổng quan Module
 
-| Thuộc tính | Giá trị |
-|------------|---------|
-| **Package** | `com.project.evgo.user` |
-| **Display Name** | User Management |
-| **Số Services** | 8 (AuthService, UserService, AccountManagementService, VehicleService, AdminReviewService, StationOwnerService, FileRegistrationService, PdfParsingService) |
-| **Số Controllers** | 6 (AuthController, UserController, AdminController, VehicleController, VehicleCatalogController, GuestController) |
+| Thuộc tính         | Giá trị                                                                                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Package**        | `com.project.evgo.user`                                                                                                                                     |
+| **Display Name**   | User Management                                                                                                                                             |
+| **Số Services**    | 8 (AuthService, UserService, AccountManagementService, VehicleService, AdminReviewService, StationOwnerService, FileRegistrationService, PdfParsingService) |
+| **Số Controllers** | 6 (AuthController, UserController, AdminController, VehicleController, VehicleCatalogController, GuestController)                                           |
 
 ---
 
@@ -54,23 +54,24 @@ erDiagram
 ## 1. Authentication (AuthService)
 
 ### Mô tả
+
 Cung cấp các chức năng xác thực người dùng bao gồm đăng ký, đăng nhập, xác minh email/phone, quên mật khẩu và đăng nhập Google OAuth.
 
 ### API Endpoints
 
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| `POST` | `/api/v1/auth/register` | Đăng ký tài khoản mới | ❌ |
-| `POST` | `/api/v1/auth/login` | Đăng nhập | ❌ |
-| `POST` | `/api/v1/auth/refresh` | Làm mới access token | ❌ |
-| `POST` | `/api/v1/auth/logout` | Đăng xuất | ✅ |
-| `POST` | `/api/v1/auth/verify-email` | Xác minh email | ❌ |
-| `POST` | `/api/v1/auth/verify-phone` | Xác minh số điện thoại | ❌ |
-| `POST` | `/api/v1/auth/resend-verification` | Gửi lại mã xác minh | ❌ |
-| `POST` | `/api/v1/auth/forgot-password` | Yêu cầu đặt lại mật khẩu | ❌ |
-| `POST` | `/api/v1/auth/reset-password` | Đặt lại mật khẩu với token | ❌ |
-| `POST` | `/api/v1/auth/google` | Đăng nhập bằng Google | ❌ |
-| `POST` | `/api/v1/auth/station-owner/register` | Đăng ký Station Owner (upload PDF) | ❌ |
+| Method | Endpoint                              | Mô tả                              | Auth |
+| ------ | ------------------------------------- | ---------------------------------- | ---- |
+| `POST` | `/api/v1/auth/register`               | Đăng ký tài khoản mới              | ❌   |
+| `POST` | `/api/v1/auth/login`                  | Đăng nhập                          | ❌   |
+| `POST` | `/api/v1/auth/refresh`                | Làm mới access token               | ❌   |
+| `POST` | `/api/v1/auth/logout`                 | Đăng xuất                          | ✅   |
+| `POST` | `/api/v1/auth/verify-email`           | Xác minh email                     | ❌   |
+| `POST` | `/api/v1/auth/verify-phone`           | Xác minh số điện thoại             | ❌   |
+| `POST` | `/api/v1/auth/resend-verification`    | Gửi lại mã xác minh                | ❌   |
+| `POST` | `/api/v1/auth/forgot-password`        | Yêu cầu đặt lại mật khẩu           | ❌   |
+| `POST` | `/api/v1/auth/reset-password`         | Đặt lại mật khẩu với token         | ❌   |
+| `POST` | `/api/v1/auth/google`                 | Đăng nhập bằng Google              | ❌   |
+| `POST` | `/api/v1/auth/station-owner/register` | Đăng ký Station Owner (upload PDF) | ❌   |
 
 ### Luồng xử lý chính
 
@@ -118,33 +119,34 @@ sequenceDiagram
 
 ### Files liên quan
 
-| File | Vai trò |
-|------|---------|
-| `AuthService.java` | Service interface (public) |
-| `internal/AuthServiceImpl.java` | Implementation |
-| `internal/web/AuthController.java` | REST Controller |
-| `security/JwtTokenProvider.java` | JWT token generation/validation |
-| `security/JwtAuthenticationFilter.java` | Authentication filter |
-| `internal/token/TokenBlacklistService.java` | Token blacklist management |
+| File                                        | Vai trò                         |
+| ------------------------------------------- | ------------------------------- |
+| `AuthService.java`                          | Service interface (public)      |
+| `internal/AuthServiceImpl.java`             | Implementation                  |
+| `internal/web/AuthController.java`          | REST Controller                 |
+| `security/JwtTokenProvider.java`            | JWT token generation/validation |
+| `security/JwtAuthenticationFilter.java`     | Authentication filter           |
+| `internal/token/TokenBlacklistService.java` | Token blacklist management      |
 
 ---
 
 ## 2. User Profile (UserService)
 
 ### Mô tả
+
 Quản lý thông tin hồ sơ người dùng, bao gồm cập nhật profile, đổi mật khẩu, và quản lý avatar.
 
 ### API Endpoints
 
-| Method | Endpoint | Mô tả | Auth | Role |
-|--------|----------|-------|------|------|
-| `GET` | `/api/v1/users/me` | Lấy thông tin profile hiện tại | ✅ | Any |
-| `PUT` | `/api/v1/users/me` | Cập nhật profile | ✅ | Any |
-| `PUT` | `/api/v1/users/me/password` | Đổi mật khẩu | ✅ | Any |
-| `POST` | `/api/v1/users/me/avatar/upload-signature` | Lấy Cloudinary signature | ✅ | Any |
-| `POST` | `/api/v1/users/me/avatar` | Cập nhật avatar URL | ✅ | Any |
-| `GET` | `/api/v1/users/me/business-profile` | Lấy business profile | ✅ | STATION_OWNER |
-| `PUT` | `/api/v1/users/me/business-profile` | Cập nhật business profile | ✅ | STATION_OWNER |
+| Method | Endpoint                                   | Mô tả                          | Auth | Role          |
+| ------ | ------------------------------------------ | ------------------------------ | ---- | ------------- |
+| `GET`  | `/api/v1/users/me`                         | Lấy thông tin profile hiện tại | ✅   | Any           |
+| `PUT`  | `/api/v1/users/me`                         | Cập nhật profile               | ✅   | Any           |
+| `PUT`  | `/api/v1/users/me/password`                | Đổi mật khẩu                   | ✅   | Any           |
+| `POST` | `/api/v1/users/me/avatar/upload-signature` | Lấy Cloudinary signature       | ✅   | Any           |
+| `POST` | `/api/v1/users/me/avatar`                  | Cập nhật avatar URL            | ✅   | Any           |
+| `GET`  | `/api/v1/users/me/business-profile`        | Lấy business profile           | ✅   | STATION_OWNER |
+| `PUT`  | `/api/v1/users/me/business-profile`        | Cập nhật business profile      | ✅   | STATION_OWNER |
 
 ### Luồng upload Avatar (Cloudinary)
 
@@ -176,17 +178,18 @@ sequenceDiagram
 ## 3. Account Management (AccountManagementService)
 
 ### Mô tả
+
 Chức năng dành cho Super Admin để quản lý tất cả tài khoản trong hệ thống.
 
 ### API Endpoints
 
-| Method | Endpoint | Mô tả | Auth | Role |
-|--------|----------|-------|------|------|
-| `GET` | `/api/v1/admin/accounts` | Danh sách tài khoản (paginated) | ✅ | SUPER_ADMIN |
-| `GET` | `/api/v1/admin/accounts/{userId}` | Chi tiết tài khoản | ✅ | SUPER_ADMIN |
-| `POST` | `/api/v1/admin/accounts/{userId}/lock` | Khóa tài khoản | ✅ | SUPER_ADMIN |
-| `POST` | `/api/v1/admin/accounts/{userId}/unlock` | Mở khóa tài khoản | ✅ | SUPER_ADMIN |
-| `DELETE` | `/api/v1/admin/accounts/{userId}` | Xóa tài khoản (soft delete) | ✅ | SUPER_ADMIN |
+| Method   | Endpoint                                 | Mô tả                           | Auth | Role        |
+| -------- | ---------------------------------------- | ------------------------------- | ---- | ----------- |
+| `GET`    | `/api/v1/admin/accounts`                 | Danh sách tài khoản (paginated) | ✅   | SUPER_ADMIN |
+| `GET`    | `/api/v1/admin/accounts/{userId}`        | Chi tiết tài khoản              | ✅   | SUPER_ADMIN |
+| `POST`   | `/api/v1/admin/accounts/{userId}/lock`   | Khóa tài khoản                  | ✅   | SUPER_ADMIN |
+| `POST`   | `/api/v1/admin/accounts/{userId}/unlock` | Mở khóa tài khoản               | ✅   | SUPER_ADMIN |
+| `DELETE` | `/api/v1/admin/accounts/{userId}`        | Xóa tài khoản (soft delete)     | ✅   | SUPER_ADMIN |
 
 ### Các tính năng đã implement
 
@@ -202,17 +205,18 @@ Chức năng dành cho Super Admin để quản lý tất cả tài khoản tron
 ## 4. Station Owner Review (AdminReviewService)
 
 ### Mô tả
+
 Quy trình duyệt đơn đăng ký Station Owner bởi Admin.
 
 ### API Endpoints
 
-| Method | Endpoint | Mô tả | Auth | Role |
-|--------|----------|-------|------|------|
-| `GET` | `/api/v1/admin/station-owner` | Danh sách đơn đăng ký | ✅ | SUPER_ADMIN |
-| `GET` | `/api/v1/admin/station-owner/{profileId}` | Chi tiết đơn đăng ký | ✅ | SUPER_ADMIN |
-| `PUT` | `/api/v1/admin/station-owner/{profileId}` | Đánh dấu đang xem xét | ✅ | SUPER_ADMIN |
-| `POST` | `/api/v1/admin/station-owner/{profileId}/approve` | Duyệt đơn | ✅ | SUPER_ADMIN |
-| `POST` | `/api/v1/admin/station-owner/{profileId}/reject` | Từ chối đơn | ✅ | SUPER_ADMIN |
+| Method | Endpoint                                          | Mô tả                 | Auth | Role        |
+| ------ | ------------------------------------------------- | --------------------- | ---- | ----------- |
+| `GET`  | `/api/v1/admin/station-owner`                     | Danh sách đơn đăng ký | ✅   | SUPER_ADMIN |
+| `GET`  | `/api/v1/admin/station-owner/{profileId}`         | Chi tiết đơn đăng ký  | ✅   | SUPER_ADMIN |
+| `PUT`  | `/api/v1/admin/station-owner/{profileId}`         | Đánh dấu đang xem xét | ✅   | SUPER_ADMIN |
+| `POST` | `/api/v1/admin/station-owner/{profileId}/approve` | Duyệt đơn             | ✅   | SUPER_ADMIN |
+| `POST` | `/api/v1/admin/station-owner/{profileId}/reject`  | Từ chối đơn           | ✅   | SUPER_ADMIN |
 
 ### Luồng duyệt đơn
 
@@ -239,19 +243,20 @@ stateDiagram-v2
 ## 5. Vehicle Management (VehicleService)
 
 ### Mô tả
+
 Quản lý phương tiện của người dùng, hỗ trợ tìm kiếm trạm sạc phù hợp.
 
 ### API Endpoints
 
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| `POST` | `/api/v1/users/me/vehicles` | Thêm phương tiện mới | ✅ |
-| `GET` | `/api/v1/users/me/vehicles` | Danh sách phương tiện | ✅ |
-| `GET` | `/api/v1/users/me/vehicles/{id}` | Chi tiết phương tiện | ✅ |
-| `PUT` | `/api/v1/users/me/vehicles/{id}` | Cập nhật phương tiện | ✅ |
-| `DELETE` | `/api/v1/users/me/vehicles/{id}` | Xóa phương tiện | ✅ |
-| `PUT` | `/api/v1/users/me/vehicles/{id}/in-use` | Đặt làm xe đang sử dụng | ✅ |
-| `GET` | `/api/v1/users/me/vehicles/in-use` | Lấy xe đang sử dụng | ✅ |
+| Method   | Endpoint                                | Mô tả                   | Auth |
+| -------- | --------------------------------------- | ----------------------- | ---- |
+| `POST`   | `/api/v1/users/me/vehicles`             | Thêm phương tiện mới    | ✅   |
+| `GET`    | `/api/v1/users/me/vehicles`             | Danh sách phương tiện   | ✅   |
+| `GET`    | `/api/v1/users/me/vehicles/{id}`        | Chi tiết phương tiện    | ✅   |
+| `PUT`    | `/api/v1/users/me/vehicles/{id}`        | Cập nhật phương tiện    | ✅   |
+| `DELETE` | `/api/v1/users/me/vehicles/{id}`        | Xóa phương tiện         | ✅   |
+| `PUT`    | `/api/v1/users/me/vehicles/{id}/in-use` | Đặt làm xe đang sử dụng | ✅   |
+| `GET`    | `/api/v1/users/me/vehicles/in-use`      | Lấy xe đang sử dụng     | ✅   |
 
 ### Các tính năng đã implement
 
@@ -264,13 +269,14 @@ Quản lý phương tiện của người dùng, hỗ trợ tìm kiếm trạm s
 ## 6. Station Owner Tracking (StationOwnerService)
 
 ### Mô tả
+
 Cho phép người đăng ký Station Owner theo dõi trạng thái đơn của mình.
 
 ### API Endpoints
 
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| `POST` | `/api/v1/guest/track-registration` | Kiểm tra trạng thái đơn | ❌ |
+| Method | Endpoint                           | Mô tả                   | Auth |
+| ------ | ---------------------------------- | ----------------------- | ---- |
+| `POST` | `/api/v1/guest/track-registration` | Kiểm tra trạng thái đơn | ❌   |
 
 ### Các tính năng đã implement
 
@@ -309,6 +315,7 @@ public class User {
 
 > [!NOTE]
 > **Ý nghĩa các trường đặc biệt:**
+>
 > - `status`: Trạng thái tài khoản. Default = `INACTIVE` (chưa xác minh email)
 > - `emailVerified`/`phoneVerified`: Cờ xác minh riêng cho email và phone
 > - `authProvider`: Phương thức đăng nhập. `LOCAL` = email/password, `GOOGLE` = OAuth
@@ -332,6 +339,7 @@ public class Vehicle {
 
 > [!NOTE]
 > **Ý nghĩa các trường đặc biệt:**
+>
 > - `connectorTypes`: **Set (không phải single value)** - một xe có thể hỗ trợ nhiều loại đầu sạc
 > - `inUse`: Cờ đánh dấu xe đang sử dụng chính. Dùng để tự động lọc trạm sạc phù hợp
 > - ⚠️ Các field `licensePlate`, `batteryCapacity`, `createdAt`, `updatedAt` đã bị comment out trong code
@@ -346,15 +354,15 @@ public class StationOwnerProfile {
     String registrationCode;  // Mã đăng ký unique
     User user;
     StationOwnerType ownerType;  // INDIVIDUAL hoặc COMPANY
-    
+
     // INDIVIDUAL fields
     String fullName;
     String idNumber;  // CMND/CCCD
-    
+
     // COMPANY fields
     String businessName;
     String taxCode;
-    
+
     // Common fields
     String contactEmail;
     String contactPhone;
@@ -371,6 +379,7 @@ public class StationOwnerProfile {
 
 > [!NOTE]
 > **Ý nghĩa các trường đặc biệt:**
+>
 > - `registrationCode`: Mã đăng ký unique, dùng để tra cứu trạng thái
 > - `ownerType`: `INDIVIDUAL` = cá nhân, `COMPANY` = doanh nghiệp
 > - `status`: Default = `SUBMITTED` (không phải PENDING như docs cũ ghi)
@@ -382,33 +391,33 @@ public class StationOwnerProfile {
 
 ### UserStatus
 
-| Status | Mô tả | Cho phép Login |
-|--------|-------|----------------|
-| `ACTIVE` | Đã xác minh, đang hoạt động | ✅ Có |
-| `INACTIVE` | Chưa xác minh email (default) | ❌ Không |
-| `BLOCKED` | Bị Admin khóa | ❌ Không |
-| `DELETED` | Đã xóa (soft delete) | ❌ Không |
+| Status     | Mô tả                         | Cho phép Login |
+| ---------- | ----------------------------- | -------------- |
+| `ACTIVE`   | Đã xác minh, đang hoạt động   | ✅ Có          |
+| `INACTIVE` | Chưa xác minh email (default) | ❌ Không       |
+| `BLOCKED`  | Bị Admin khóa                 | ❌ Không       |
+| `DELETED`  | Đã xóa (soft delete)          | ❌ Không       |
 
 > [!IMPORTANT]
 > Không có status `PENDING`. User mới đăng ký có status = `INACTIVE`.
 
 ### StationOwnerStatus
 
-| Status | Mô tả | Bước tiếp theo |
-|--------|-------|----------------|
-| `SUBMITTED` | Mới nộp đơn (default) | Admin mở xem |
-| `UNDER_REVIEW` | Admin đang xem xét | Admin quyết định |
-| `APPROVED` | Được duyệt | Gán role STATION_OWNER |
-| `REJECTED` | Bị từ chối | User nộp lại hoặc liên hệ support |
+| Status         | Mô tả                 | Bước tiếp theo                    |
+| -------------- | --------------------- | --------------------------------- |
+| `SUBMITTED`    | Mới nộp đơn (default) | Admin mở xem                      |
+| `UNDER_REVIEW` | Admin đang xem xét    | Admin quyết định                  |
+| `APPROVED`     | Được duyệt            | Gán role STATION_OWNER            |
+| `REJECTED`     | Bị từ chối            | User nộp lại hoặc liên hệ support |
 
 > [!IMPORTANT]
 > Status mặc định là `SUBMITTED` (không phải `PENDING` như docs cũ ghi).
 
 ### AuthProvider
 
-| Value | Mô tả |
-|-------|-------|
-| `LOCAL` | Đăng ký bằng email/password |
+| Value    | Mô tả                       |
+| -------- | --------------------------- |
+| `LOCAL`  | Đăng ký bằng email/password |
 | `GOOGLE` | Đăng nhập bằng Google OAuth |
 
 ---
@@ -416,10 +425,12 @@ public class StationOwnerProfile {
 ## Dependencies
 
 Module `user` phụ thuộc vào:
+
 - `sharedkernel` - DTOs, Enums, Exceptions
 - `notification` - Gửi email xác minh, thông báo
 
 Module `user` expose public subpackage:
+
 - `user::security` - JwtTokenProvider, JwtAuthenticationFilter (cho module config sử dụng)
 
 ---
